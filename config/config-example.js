@@ -16,6 +16,35 @@ exports.port = 8000;
 exports.bindaddress = '0.0.0.0';
 
 /**
+* Impulse server configs
+*/
+
+// Server Name - used by news and other commands.
+exports.Server_Name = 'Impulse';
+
+// WhiteListed Users - used by management and other commands.
+exports.WhiteListed = ['princesky', 'turborx', 'musaddiktemkar'];
+
+// Github gist token - used by files commands.
+exports.Github_Token = '';
+
+// Avatar Url - used by avatars and other commands.
+exports.Avatar_Url = 'impulse-ps.mooo.com/avatars/';
+
+// ImpulseDB ( MongoDB ) - used by chat-plugins.
+exports.Impulse_DB = {
+	uri: 'mongodb://127.0.0.1:27017/impulse',
+	options: {
+		maxPoolSize: 500,
+		minPoolSize: 10,
+	},
+};
+
+/**
+* Impulse server configs ends
+*/
+
+/**
  * wsdeflate - compresses WebSocket messages
  *  Toggles use of the Sec-WebSocket-Extension permessage-deflate extension.
  *  This compresses messages sent and received over a WebSocket connection
