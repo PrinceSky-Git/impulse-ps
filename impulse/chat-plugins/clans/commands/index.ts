@@ -9,7 +9,7 @@ import { rankCommands } from './rank';
 import { clanInfoCommands } from './clan-info';
 import { adminCommands } from './admin';
 import { warCommands } from '../war/index';
-import { wrapWithDbCheck } from '../../impulse-utils';
+import { wrapWithDbCheck } from '../../../impulse-utils';
 
 // ─── Help Lists ───────────────────────────────────────────────────────────────
 
