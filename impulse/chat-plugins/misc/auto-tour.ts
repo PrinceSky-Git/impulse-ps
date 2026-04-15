@@ -327,9 +327,9 @@ export const commands: Chat.ChatCommands = {
 				`<center><small>Gen 9 Random Battle format is used by default.</small></center></div>`
 			);
 		},
-	},
+	}),
 
-	at: 'autotour'),
+	at: 'autotour',
 };
 
 export const destroy = (): void => {
