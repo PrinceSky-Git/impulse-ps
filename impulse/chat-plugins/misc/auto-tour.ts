@@ -338,13 +338,9 @@ export const destroy = (): void => {
 	}
 };
 
-void (async (): Promise<void> => {
-    if (!ImpulseDB.isConnected()) {
-        console.warn('[autotour] DB not connected at load time — skipping config load.');
-        return;
-    }
+export async function initAutotour(): Promise<void> {
     await loadConfig();
     for (const roomid in autotourConfig) {
         if (autotourConfig[roomid]?.enabled) startRoomAutotourScheduler(roomid as RoomID);
     }
-})();
+}
