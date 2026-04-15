@@ -328,8 +328,6 @@ export const commands: Chat.ChatCommands = {
 			);
 		},
 	}),
-
-	at: 'autotour',
 };
 
 export const destroy = (): void => {
