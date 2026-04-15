@@ -3,7 +3,7 @@
 * Automated Tournaments Commands
 * @author PrinceSky-Git
 */
-import { ImpulseCollection } from '../../impulse-db';
+import { ImpulseCollection, ImpulseDB } from '../../impulse-db';
 import { Table, wrapWithDbCheck } from '../../impulse-utils';
 import { nameColor } from '../customization/colors';
 
@@ -339,8 +339,12 @@ export const destroy = (): void => {
 };
 
 void (async (): Promise<void> => {
-	await loadConfig();
-	for (const roomid in autotourConfig) {
-		if (autotourConfig[roomid]?.enabled) startRoomAutotourScheduler(roomid as RoomID);
-	}
+    if (!ImpulseDB.isConnected()) {
+        console.warn('[autotour] DB not connected at load time — skipping config load.');
+        return;
+    }
+    await loadConfig();
+    for (const roomid in autotourConfig) {
+        if (autotourConfig[roomid]?.enabled) startRoomAutotourScheduler(roomid as RoomID);
+    }
 })();
