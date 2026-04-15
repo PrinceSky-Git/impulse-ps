@@ -4,7 +4,7 @@
 * @author PrinceSky-Git
 */
 import { ImpulseCollection } from '../../impulse-db';
-import { Table } from '../../impulse-utils';
+import { Table, wrapWithDbCheck } from '../../impulse-utils';
 import { nameColor } from '../customization/colors';
 
 const AUTOTOUR_COLLECTION = 'autotour_configs';
@@ -206,7 +206,7 @@ async function modifyFormats(
 }
 
 export const commands: Chat.ChatCommands = {
-	autotour: {
+	autotour: wrapWithDbCheck({
 		async enable(target, room, user) {
 			if (!checkRoomOwner(this, room)) return;
 			const config = ensureRoomConfig(room!.roomid);
@@ -329,7 +329,7 @@ export const commands: Chat.ChatCommands = {
 		},
 	},
 
-	at: 'autotour',
+	at: 'autotour'),
 };
 
 export const destroy = (): void => {
