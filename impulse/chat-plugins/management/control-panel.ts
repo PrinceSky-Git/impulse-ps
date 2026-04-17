@@ -110,7 +110,7 @@ function renderHome(user: User): string {
 
 	const cardHtml = cards.map(c =>
 		'<div style="' +
-			'border: 1px solid #ccc; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px;' +
+			'background: rgba(216, 238, 245, 0.6); border: 1px solid #ccc; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px;' +
 			'display: flex; align-items: center; gap: 14px;' +
 		'">' +
 			'<div style="flex: 1;">' +
