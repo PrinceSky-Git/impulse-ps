@@ -6,9 +6,9 @@
 
 import { Clans, UserClans, ClanBattleLogs, ClanWars } from './database';
 import type { ClanBattleLogEntry } from './interface';
-import { calculateElo, safeElo } from './helpers/elo';
-import { broadcastWarUpdate, broadcastWarEnded, getWarUhtmlId } from './helpers/broadcast';
-import { resolveWarClans } from './war/war-context';
+import { calculateElo, safeElo } from './utils';
+import { broadcastWarUpdate, broadcastWarEnded, getWarUhtmlId } from './html';
+import { resolveWarClans } from './context';
 import { log } from './utils';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -22,10 +22,6 @@ interface BattleEndResult {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * Validates that both players are in different clans and returns their clan IDs.
- * Returns null if either player has no clan or both are in the same clan.
- */
 async function resolveBattleClans(
 	winner: ID,
 	loser: ID
@@ -45,10 +41,6 @@ async function resolveBattleClans(
 	return { winner, loser, winnerClanId, loserClanId };
 }
 
-/**
- * Handles the conclusion of a war when the winning clan reaches the wins needed.
- * Updates ELO, clan stats, war status, and broadcasts the war ended card.
- */
 async function handleWarConclusion(
 	battle: RoomBattle,
 	result: BattleEndResult,
@@ -146,10 +138,6 @@ async function handleWarConclusion(
 	}
 }
 
-/**
- * Handles a battle win within an ongoing war (not yet concluded).
- * Updates the score and broadcasts the updated war card.
- */
 async function handleWarBattleWin(
 	battle: RoomBattle,
 	result: BattleEndResult,
@@ -217,10 +205,6 @@ async function handleWarBattleWin(
 
 // ─── Main Battle End Handler ──────────────────────────────────────────────────
 
-/**
- * Main handler fired when a battle ends.
- * Checks if both players are in an active war and processes the result.
- */
 async function handleClanBattleEnd(
 	battle: RoomBattle,
 	winner: ID,
@@ -271,14 +255,7 @@ async function handleClanBattleEnd(
 	const newLoserScore = war.scores[loserClanId] || 0;
 
 	if (newWinnerScore >= winsNeeded) {
-		await handleWarConclusion(
-			battle,
-			result,
-			war,
-			winsNeeded,
-			newWinnerScore,
-			newLoserScore
-		);
+		await handleWarConclusion(battle, result, war, winsNeeded, newWinnerScore, newLoserScore);
 	} else {
 		await handleWarBattleWin(battle, result, war, newWinnerScore);
 	}

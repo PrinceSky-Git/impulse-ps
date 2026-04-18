@@ -1,25 +1,17 @@
 /*
  * Pokemon Showdown - Impulse Server
- * Clans Utility Functions
+ * Clans Utility Functions & ELO Helper
  * @author PrinceSky-Git
  */
 
 import { ClanLogs } from './database';
 import type { Clan, ClanLogType, ClanRole } from './interface';
-import { ROLE_LEVELS } from './constants';
+import { ROLE_LEVELS, ELO_K_FACTOR, DEFAULT_ELO, MIN_ELO_CHANGE } from './constants';
 
 // ─── Activity Logging ─────────────────────────────────────────────────────────
 
 /**
  * Logs a clan activity event to the database as a single formatted message.
- *
- * @param clanId  - The clan the activity belongs to
- * @param type    - The log type (used for filtering and display prefix)
- * @param message - A pre-formatted single-line description of the event
- *
- * @example
- * await log(clanId, 'KICK', `${targetId} kicked by ${actorId}`);
- * await log(clanId, 'PROMOTE', `${targetId} promoted to leader by ${actorId}`);
  */
 export async function log(
 	clanId: ID,
@@ -36,43 +28,14 @@ export async function log(
 
 // ─── Role Checking ────────────────────────────────────────────────────────────
 
-/**
- * Returns the role of a user within a clan.
- * The owner always returns 'owner' regardless of the stored member role.
- *
- * @param clan   - The clan document
- * @param userId - The user ID to check
- * @returns The user's ClanRole or null if they are not a member
- */
-export function getClanRole(
-	clan: Clan,
-	userId: ID
-): ClanRole | null {
+export function getClanRole(clan: Clan, userId: ID): ClanRole | null {
 	if (clan.owner === userId) return 'owner';
 	const member = clan.members[userId];
 	if (!member) return null;
 	return member.role ?? null;
 }
 
-/**
- * Checks whether a user meets the minimum role requirement within a clan.
- * The owner always passes all role checks.
- *
- * @param clan    - The clan document
- * @param userId  - The user ID to check
- * @param minRole - The minimum role required
- * @returns True if the user meets or exceeds the minimum role, false otherwise
- *
- * @example
- * hasMinRole(clan, userId, 'officer') // true if user is officer, leader, or owner
- * hasMinRole(clan, userId, 'leader')  // true if user is leader or owner
- * hasMinRole(clan, userId, 'owner')   // true only if user is the owner
- */
-export function hasMinRole(
-	clan: Clan,
-	userId: ID,
-	minRole: ClanRole
-): boolean {
+export function hasMinRole(clan: Clan, userId: ID, minRole: ClanRole): boolean {
 	const userRole = getClanRole(clan, userId);
 	if (!userRole) return false;
 	return (ROLE_LEVELS[userRole] ?? 0) >= (ROLE_LEVELS[minRole] ?? 0);
@@ -80,18 +43,6 @@ export function hasMinRole(
 
 // ─── Date & Duration Formatting ───────────────────────────────────────────────
 
-/**
- * Formats a Date object into a readable date and/or time string.
- *
- * @param date    - The date to format
- * @param options - Whether to include the date, time, or both
- * @returns A formatted string, or an empty string if the date is invalid
- *
- * @example
- * to(new Date(), { date: true, time: true }) // "2025-01-15 14:30:00"
- * to(new Date(), { date: true })             // "2025-01-15"
- * to(new Date(), { time: true })             // "14:30:00"
- */
 export function to(
 	date: Date,
 	options: { date?: boolean; time?: boolean } = {}
@@ -122,17 +73,6 @@ export function to(
 	return result;
 }
 
-/**
- * Converts a duration in milliseconds to a human-readable string.
- *
- * @param ms - The duration in milliseconds
- * @returns A compact human-readable duration string
- *
- * @example
- * toDurationString(90000)        // "1m 30s"
- * toDurationString(3700000)      // "1h 1m"
- * toDurationString(172800000)    // "2d"
- */
 export function toDurationString(ms: number): string {
 	const seconds = Math.floor(ms / 1000);
 	const minutes = Math.floor(seconds / 60);
@@ -162,4 +102,31 @@ export function toDurationString(ms: number): string {
 		return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
 	}
 	return `${seconds}s`;
+}
+
+// ─── ELO ─────────────────────────────────────────────────────────────────────
+
+export function getExpectedScore(eloA: number, eloB: number): number {
+	return 1 / (1 + 10 ** ((eloB - eloA) / 400));
+}
+
+export function calculateElo(
+	winnerElo: number,
+	loserElo: number
+): [number, number, number] {
+	const expectedWinner = getExpectedScore(winnerElo, loserElo);
+	const eloChange = Math.max(MIN_ELO_CHANGE, Math.round(ELO_K_FACTOR * (1 - expectedWinner)));
+
+	const newWinnerElo = winnerElo + eloChange;
+	const newLoserElo = loserElo - eloChange;
+
+	return [newWinnerElo, newLoserElo, eloChange];
+}
+
+export function safeElo(elo: number | undefined): number {
+	return (typeof elo === 'number' && elo > 0) ? elo : DEFAULT_ELO;
+}
+
+export function displayElo(elo: number | undefined): number {
+	return Math.floor(safeElo(elo));
 }
