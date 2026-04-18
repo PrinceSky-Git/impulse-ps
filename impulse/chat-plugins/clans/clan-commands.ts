@@ -7,11 +7,11 @@
 import {
 	Clans, UserClans, ClanLogs, ClanPointsLogs,
 	ClanBattleLogs, ClanWars, ClanBans,
-} from '../database';
-import { hasMinRole, log, to, toDurationString } from '../utils';
-import { getClanContext, getClanById } from '../context';
-import { generateClanProfile } from '../html';
-import { displayElo } from '../utils';
+} from './database';
+import { hasMinRole, log, to, toDurationString } from './utils';
+import { getClanContext, getClanById } from './context';
+import { generateClanProfile } from './html';
+import { displayElo } from './utils';
 import { Table } from '../../impulse-utils';
 import { FS } from '../../../lib';
 import { Utils } from '../../../lib';
