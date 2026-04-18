@@ -7,7 +7,7 @@ import { FS } from '../../../lib';
 import { Table } from '../../impulse-utils';
 
 const ECONOMY_PATH = 'impulse/db/economy.json';
-const CURRENCY_NAME = 'coins';
+export const CURRENCY_NAME = 'coins';
 const STARTING_BALANCE = 0;
 
 /*************************************************************
