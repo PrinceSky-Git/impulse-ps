@@ -36,11 +36,11 @@ void (async () => {
 	await loadData();
 })();
 
-function getBalance(userid: string): number {
+export function getBalance(userid: string): number {
 	return data[userid] ?? STARTING_BALANCE;
 }
 
-function setBalance(userid: string, amount: number): void {
+export function setBalance(userid: string, amount: number): void {
 	data[userid] = amount;
 	saveData();
 }
