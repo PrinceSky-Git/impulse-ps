@@ -4,14 +4,14 @@
  * @author PrinceSky-Git
  */
 
-import { Clans, UserClans, ClanBans } from '../database';
-import { hasMinRole, log, to } from '../utils';
-import { getClanContext, getClanById, assertClanMember, assertNotOwner } from '../context';
-import { generateInvitePopup, generateAnnouncementPopup } from '../html';
+import { Clans, UserClans, ClanBans } from './database';
+import { hasMinRole, log, to } from './utils';
+import { getClanContext, getClanById, assertClanMember, assertNotOwner } from './context';
+import { generateInvitePopup, generateAnnouncementPopup } from './html';
 import { Table } from '../../impulse-utils';
 import { Utils } from '../../../lib';
-import { CLAN_ROLE_TO_ROOM_RANK } from '../constants';
-import type { ClanRole } from '../interface';
+import { CLAN_ROLE_TO_ROOM_RANK } from './constants';
+import type { ClanRole } from './interface';
 
 const esc = (v: string | number | undefined | null) => Utils.escapeHTML(String(v ?? ''));
 
