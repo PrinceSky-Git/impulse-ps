@@ -50,7 +50,7 @@ function setBalance(userid: string, amount: number): void {
  *************************************************************/
 
 export const commands: ChatCommands = {
-  balance(target, room, user) {
+	balance(target, room, user) {
 		if (!this.runBroadcast()) return;
 		const targetId = target.trim() ? toID(target) : user.id;
 		const displayName = target.trim() ? target.trim() : user.name;
@@ -86,21 +86,78 @@ export const commands: ChatCommands = {
 
 		const targetUserObj = Users.get(targetId);
 		if (targetUserObj?.connected) {
-			targetUserObj.send(`|pm|${user.name}|${targetUserObj.name}|/raw <strong>${Impulse.nameColor(user.name, true, true)}</strong> sent you <strong>${amount}</strong> ${CURRENCY_NAME}.`);
+			targetUserObj.popup(`|html|${Impulse.nameColor(user.name, true, true)} has sent you <strong>${amount}</strong> ${CURRENCY_NAME}.`);
 		}
 	},
-  
-	ecohelp(target, room, user) {
-		if (!this.runBroadcast()) return;
-		this.sendReplyBox(
-			`<div style="max-height: 350px; overflow-y: auto;"><center><strong><h4>Economy Commands</strong></h4><hr></center><hr>` +
-			`<b>/balance [user]</b> - Check your balance or another user's balance.<hr>` +
-			`<b>/transfer [user], [amount]</b> - Transfer ${CURRENCY_NAME} to another user.<hr>` +
-			`<b>/richestuser</b> - View the top 100 richest users.</div>`
-		);
+
+	givemoney(target, room, user) {
+		this.checkCan('roomowner');
+		const [targetArg, amountArg] = target.split(',').map(s => s.trim());
+		if (!targetArg || !amountArg) {
+			return this.errorReply(`Usage: /givemoney [user], [amount]`);
+		}
+
+		const amount = parseInt(amountArg);
+		if (isNaN(amount) || amount <= 0) {
+			return this.errorReply(`Amount must be a positive number.`);
+		}
+
+		const targetId = toID(targetArg);
+		const newBalance = getBalance(targetId) + amount;
+		setBalance(targetId, newBalance);
+
+		this.sendReply(`|raw|You gave <strong>${amount}</strong> ${CURRENCY_NAME} to <strong>${Impulse.nameColor(targetArg, true, true)}</strong>. Their new balance: <strong>${newBalance}</strong>.`);
+
+		const staffRoom = Rooms.get('staff');
+		if (staffRoom) {
+			staffRoom.add(
+				`|html|<div class="infobox">${Impulse.nameColor(user.name, true, true)} gave <strong>${amount}</strong> ${CURRENCY_NAME} to ${Impulse.nameColor(targetArg, true, false)}. New balance: <strong>${newBalance}</strong>.</div>`
+			).update();
+		}
+
+		const targetUserObj = Users.get(targetId);
+		if (targetUserObj?.connected) {
+			targetUserObj.popup(`|html|${Impulse.nameColor(user.name, true, true)} has given you <strong>${amount}</strong> ${CURRENCY_NAME}. Your new balance: <strong>${newBalance}</strong>.`);
+		}
 	},
 
-	richestuser(target, room, user) {
+	takemoney(target, room, user) {
+		this.checkCan('roomowner');
+		const [targetArg, amountArg] = target.split(',').map(s => s.trim());
+		if (!targetArg || !amountArg) {
+			return this.errorReply(`Usage: /takemoney [user], [amount]`);
+		}
+
+		const amount = parseInt(amountArg);
+		if (isNaN(amount) || amount <= 0) {
+			return this.errorReply(`Amount must be a positive number.`);
+		}
+
+		const targetId = toID(targetArg);
+		const currentBalance = getBalance(targetId);
+		if (currentBalance < amount) {
+			return this.errorReply(`${targetArg} only has ${currentBalance} ${CURRENCY_NAME}.`);
+		}
+
+		const newBalance = currentBalance - amount;
+		setBalance(targetId, newBalance);
+
+		this.sendReply(`|raw|You took <strong>${amount}</strong> ${CURRENCY_NAME} from <strong>${Impulse.nameColor(targetArg, true, true)}</strong>. Their new balance: <strong>${newBalance}</strong>.`);
+
+		const staffRoom = Rooms.get('staff');
+		if (staffRoom) {
+			staffRoom.add(
+				`|html|<div class="infobox">${Impulse.nameColor(user.name, true, true)} took <strong>${amount}</strong> ${CURRENCY_NAME} from ${Impulse.nameColor(targetArg, true, false)}. New balance: <strong>${newBalance}</strong>.</div>`
+			).update();
+		}
+
+		const targetUserObj = Users.get(targetId);
+		if (targetUserObj?.connected) {
+			targetUserObj.popup(`|html|${Impulse.nameColor(user.name, true, true)} has taken <strong>${amount}</strong> ${CURRENCY_NAME} from you. Your new balance: <strong>${newBalance}</strong>.`);
+		}
+	},
+
+	richestusers(target, room, user) {
 		if (!this.runBroadcast()) return;
 
 		const sorted = Object.entries(data)
@@ -122,5 +179,21 @@ export const commands: ChatCommands = {
 			['Rank', 'User', CURRENCY_NAME.charAt(0).toUpperCase() + CURRENCY_NAME.slice(1)],
 			rows
 		));
+	},
+
+	atm: 'balance',
+	bal: 'balance',
+	richestusers: 'richu',
+
+	ecohelp(target, room, user) {
+		if (!this.runBroadcast()) return;
+		this.sendReplyBox(
+			`<div style="max-height: 350px; overflow-y: auto;"><center><strong><h4>Economy Commands</strong></h4><hr><b>Commands Alias: /bal, /atm, /richu</b></center><hr>` +
+			`<b>/balance [user]</b> - Check your balance or another user's balance.<hr>` +
+			`<b>/transfer [user], [amount]</b> - Transfer ${CURRENCY_NAME} to another user.<hr>` +
+			`<b>/richestusers</b> - View the top 100 richest users.<hr>` +
+			`<b>/givemoney [user], [amount]</b> - Give ${CURRENCY_NAME} to a user. Requires: ~<hr>` +
+			`<b>/takemoney [user], [amount]</b> - Take ${CURRENCY_NAME} from a user. Requires: ~</div>`
+		);
 	},
 };
