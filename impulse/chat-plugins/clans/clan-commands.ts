@@ -31,8 +31,8 @@ import {
 	ROOM_RANK_MEMBER,
 	ROOM_RANK_MOTW,
 	DEFAULT_STATS,
-} from '../constants';
-import type { ClanRole } from '../interface';
+} from './constants';
+import type { ClanRole } from './interface';
 
 const esc = (v: string | number | undefined | null) => Utils.escapeHTML(String(v ?? ''));
 
