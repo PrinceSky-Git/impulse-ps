@@ -7,7 +7,6 @@ try {
     const rawData = FS('impulse/chat-plugins/tcg-test/base1.json').readIfExistsSync();
     if (rawData) {
         const parsed = JSON.parse(rawData);
-        // Safely handles both flat arrays and { data: [] } objects
         baseSetData = Array.isArray(parsed) ? parsed : (parsed.data || []);
     }
 } catch (e) {
@@ -17,33 +16,54 @@ try {
 const activeMatches = new Map<string, TCGMatch>();
 
 // --- UI Helper Functions ---
-function renderCard(card: InGameCard | null, isHand: boolean, uidOrIndex: number, isAi: boolean, isActive = false): string {
-    // Compact empty slot
-    if (!card) return `<div style="width: 75px; height: 104px; border: 1px dashed #888; border-radius: 4px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; line-height: 104px; color: #888; font-size: 10px;">Empty</div>`;
+function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench', targetSlot: number | 'active', isAi: boolean, match: TCGMatch): string {
+    const isSelected = card && context === 'hand' && card.uid === match.player.selectedUid;
+    const selectedCard = match.player.hand.find(c => c.uid === match.player.selectedUid);
 
-    // Compact card wrapper
-    let html = `<div style="width: 75px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; font-size: 10px;">`;
-    html += `<img src="${card.images.small}" style="width: 100%; border-radius: 4px;" alt="${card.name}" />`;
+    // Styling logic
+    const borderStyle = isSelected ? `2px solid #007bff` : `1px solid #ccc`;
+    const borderDashed = isSelected ? `2px dashed #007bff` : `1px dashed #888`;
+
+    // 1. Rendering an Empty Field Slot
+    if (!card) {
+        let html = `<div style="width: 75px; height: 104px; border: ${borderDashed}; border-radius: 4px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; color: #888; font-size: 10px; box-sizing: border-box; padding-top: 30px;">`;
+        html += `Empty<br/>`;
+        
+        // Show "Place Here" if the user has a Basic Pokémon selected
+        if (!isAi && selectedCard?.supertype === 'Pokémon' && selectedCard?.subtypes?.includes('Basic')) {
+            html += `<button class="button" name="send" value="/tcg place ${targetSlot}" style="margin-top: 5px; font-size: 9px; padding: 2px;">Place Here</button>`;
+        }
+        
+        html += `</div>`;
+        return html;
+    }
+
+    // 2. Rendering an Occupied Card Slot
+    let html = `<div style="width: 75px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; font-size: 10px; border: ${borderStyle}; border-radius: 5px; padding-bottom: 2px;">`;
+    html += `<img src="${card.images.small}" style="width: 100%; border-radius: 4px 4px 0 0;" alt="${card.name}" />`;
     
-    // Display Damage and Energy
-    if (card.currentDamage > 0) html += `<div style="color: white; background: red; font-weight: bold; border-radius: 3px; margin-top: 1px; font-size: 9px;">${card.currentDamage} DMG</div>`;
+    if (card.currentDamage > 0) html += `<div style="color: white; background: red; font-weight: bold; border-radius: 3px; margin: 1px; font-size: 9px;">${card.currentDamage} DMG</div>`;
     if (card.attachedEnergy?.length > 0) html += `<div style="font-size: 9px; margin-top: 1px;">⚡: ${card.attachedEnergy.length}</div>`;
 
-    // Render Hand Actions (compact buttons)
-    if (isHand && !isAi) {
-        if (card.supertype === 'Pokémon' && card.subtypes?.includes('Basic')) {
-            html += `<button class="button" name="send" value="/tcg playbasic ${uidOrIndex}" style="width: 100%; margin-top: 1px; font-size: 9px; padding: 2px 0;">Play</button>`;
-        }
-        if (card.supertype === 'Energy') {
-            html += `<button class="button" name="send" value="/tcg attach ${uidOrIndex} active" style="width: 100%; margin-top: 1px; font-size: 9px; padding: 2px 0;">Attach</button>`;
+    // Hand Buttons: Select or Deselect
+    if (context === 'hand' && !isAi) {
+        if (isSelected) {
+            html += `<button class="button" name="send" value="/tcg deselect" style="width: 90%; margin-top: 1px; font-size: 9px; padding: 2px 0; background: #ffe6e6;">Deselect</button>`;
+        } else {
+            html += `<button class="button" name="send" value="/tcg select ${card.uid}" style="width: 90%; margin-top: 1px; font-size: 9px; padding: 2px 0;">Select</button>`;
         }
     }
 
-    // Render Active Pokémon Attack Actions (compact buttons)
-    if (!isHand && !isAi && isActive && card.attacks) {
-        card.attacks.forEach((atk, atkIndex) => {
-            html += `<button class="button" name="send" value="/tcg attack ${atkIndex}" style="width: 100%; margin-top: 1px; font-size: 8px; padding: 2px 0;">⚔️ ${atk.name}</button>`;
-        });
+    // Field Buttons: Attach Energy or Attack
+    if ((context === 'active' || context === 'bench') && !isAi) {
+        if (selectedCard?.supertype === 'Energy') {
+            html += `<button class="button" name="send" value="/tcg attach ${targetSlot}" style="width: 90%; margin-top: 1px; font-size: 9px; padding: 2px 0; background: #e6f7ff;">Attach Here</button>`;
+        } else if (!selectedCard && context === 'active' && card.attacks) {
+            // Only show attacks if NO card is currently selected from the hand
+            card.attacks.forEach((atk, atkIndex) => {
+                html += `<button class="button" name="send" value="/tcg attack ${atkIndex}" style="width: 90%; margin-top: 1px; font-size: 8px; padding: 2px 0; white-space: normal;">⚔️ ${atk.name}</button>`;
+            });
+        }
     }
     
     html += `</div>`;
@@ -60,32 +80,44 @@ export const commands: Chat.ChatCommands = {
             this.parse('/join view-tcg-match');
         },
 
-        playbasic(target, room, user) {
+        select(target, room, user) {
             const match = activeMatches.get(user.id);
-            if (!match || match.turn !== 'player') return this.errorReply("Not your turn or no active match.");
+            if (!match || match.turn !== 'player') return this.errorReply("Not your turn.");
             
             const uid = parseInt(target);
-            if (isNaN(uid)) return this.errorReply("Invalid card ID.");
+            match.player.selectedUid = isNaN(uid) ? null : uid;
+            this.refreshPage('tcg-match');
+        },
 
-            if (match.playBasicPokemon(true, uid)) {
+        deselect(target, room, user) {
+            const match = activeMatches.get(user.id);
+            if (match) match.player.selectedUid = null;
+            this.refreshPage('tcg-match');
+        },
+
+        place(target, room, user) {
+            const match = activeMatches.get(user.id);
+            if (!match || match.turn !== 'player') return this.errorReply("Not your turn.");
+            if (match.player.selectedUid === null) return this.errorReply("No card selected.");
+            
+            const slot = target === 'active' ? 'active' : parseInt(target);
+            if (match.playBasicPokemon(true, match.player.selectedUid, slot)) {
                 this.refreshPage('tcg-match');
             } else {
-                this.errorReply("Cannot play that card right now.");
+                this.errorReply("Cannot place card there.");
             }
         },
 
         attach(target, room, user) {
             const match = activeMatches.get(user.id);
             if (!match || match.turn !== 'player') return this.errorReply("Not your turn.");
+            if (match.player.selectedUid === null) return this.errorReply("No card selected.");
             
-            const [uidStr, targetType] = target.split(' ');
-            const uid = parseInt(uidStr);
-            if (isNaN(uid)) return this.errorReply("Invalid card ID.");
-
-            if (match.attachEnergy(true, uid, targetType === 'active')) {
+            const slot = target === 'active' ? 'active' : parseInt(target);
+            if (match.attachEnergy(true, match.player.selectedUid, slot)) {
                 this.refreshPage('tcg-match');
             } else {
-                this.errorReply("Could not attach Energy. Do you have a valid target?");
+                this.errorReply("Cannot attach Energy there.");
             }
         },
 
@@ -107,6 +139,7 @@ export const commands: Chat.ChatCommands = {
             const match = activeMatches.get(user.id);
             if (!match || match.turn !== 'player') return this.errorReply("Not your turn or no active match.");
 
+            match.player.selectedUid = null; // Clear selection
             match.turn = 'ai';
             match.executeAITurn();
             this.refreshPage('tcg-match');
@@ -138,9 +171,9 @@ export const pages: Chat.PageTable = {
             html += `<div style="background: #e8e8e8; padding: 5px; border-radius: 6px; margin-bottom: 5px;">`;
             html += `<strong>AI Opponent</strong> (Hand: ${match.ai.hand.length} | Deck: ${match.ai.deck.length} | Prizes: ${match.ai.prizes.length})`;
             html += `<div style="display: flex; gap: 5px; margin-top: 3px;">`;
-            html += `<div><strong>Active:</strong><br/>${renderCard(match.ai.active, false, 0, true, true)}</div>`;
+            html += `<div><strong>Active:</strong><br/>${renderSlot(match.ai.active, 'active', 'active', true, match)}</div>`;
             html += `<div style="flex-grow: 1; overflow-x: auto; white-space: nowrap;"><strong>Bench:</strong><br/>`;
-            for (let i = 0; i < 5; i++) html += renderCard(match.ai.bench[i] || null, false, i, true);
+            for (let i = 0; i < 5; i++) html += renderSlot(match.ai.bench[i], 'bench', i, true, match);
             html += `</div></div></div>`;
 
             html += `<hr style="margin: 5px 0;"/>`;
@@ -149,16 +182,16 @@ export const pages: Chat.PageTable = {
             html += `<div style="background: #f0f8ff; padding: 5px; border-radius: 6px; margin-bottom: 5px;">`;
             html += `<strong>Your Field</strong> (Deck: ${match.player.deck.length} | Prizes: ${match.player.prizes.length})`;
             html += `<div style="display: flex; gap: 5px; margin-top: 3px;">`;
-            html += `<div><strong>Active:</strong><br/>${renderCard(match.player.active, false, 0, false, true)}</div>`;
+            html += `<div><strong>Active:</strong><br/>${renderSlot(match.player.active, 'active', 'active', false, match)}</div>`;
             html += `<div style="flex-grow: 1; overflow-x: auto; white-space: nowrap;"><strong>Bench:</strong><br/>`;
-            for (let i = 0; i < 5; i++) html += renderCard(match.player.bench[i] || null, false, i, false);
+            for (let i = 0; i < 5; i++) html += renderSlot(match.player.bench[i], 'bench', i, false, match);
             html += `</div></div></div>`;
 
             // --- Player Hand ---
             html += `<strong>Your Hand</strong>`;
             html += `<div style="overflow-x: auto; white-space: nowrap; padding-bottom: 5px;">`;
             match.player.hand.forEach((card) => {
-                html += renderCard(card, true, card.uid, false);
+                html += renderSlot(card, 'hand', card.uid, false, match);
             });
             html += `</div>`;
 
