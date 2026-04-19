@@ -143,12 +143,42 @@ export class TCGMatch {
 
     private generateDummyDeck(pool: TCGCard[]): InGameCard[] {
         const deck: InGameCard[] = [];
+        
+        // Filter the pool to grab specific cards for a functional "Mono-Fire Test Deck"
+        const charmander = pool.find(c => c.name === 'Charmander');
+        const charmeleon = pool.find(c => c.name === 'Charmeleon');
+        const fireEnergy = pool.find(c => c.name === 'Fire Energy');
+        const potion = pool.find(c => c.name === 'Potion');
+        const bill = pool.find(c => c.name === 'Bill');
+        
+        // Fallback to random if something is missing from the JSON
+        const fallback = pool[Math.floor(Math.random() * pool.length)];
+
         for (let i = 0; i < 60; i++) {
-            const randomCard = pool[Math.floor(Math.random() * pool.length)];
-            deck.push({ ...randomCard, uid: this.cardUidCounter++ });
+            let selectedCard = fallback;
+
+            // Build a structured deck: 20 Basic, 10 Evolution, 20 Energy, 10 Trainers
+            if (i < 20) selectedCard = charmander || fallback;
+            else if (i < 30) selectedCard = charmeleon || fallback;
+            else if (i < 50) selectedCard = fireEnergy || fallback;
+            else if (i < 55) selectedCard = potion || fallback;
+            else selectedCard = bill || fallback;
+
+            deck.push({ 
+                // We use structuredClone or spread to ensure we don't mutate the base JSON template
+                ...selectedCard, 
+                uid: this.cardUidCounter++ 
+            });
         }
+        
+        // Shuffle the deck!
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+
         return deck;
-    }
+	 }
 
     addLog(msg: string) {
         this.logs.unshift(msg);
