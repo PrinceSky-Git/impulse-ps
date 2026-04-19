@@ -1,3 +1,5 @@
+import { TrainerEffects } from './effects';
+
 export interface TCGCard {
     id: string;
     name: string;
@@ -50,7 +52,6 @@ export function isEvolutionPokemon(card: TCGCard): boolean {
     return !!card.subtypes?.some(s => s === 'Stage 1' || s === 'Stage 2');
 }
 
-// Energy Cost Parser
 export function hasEnoughEnergy(instance: PokemonInstance, attackIndex: number): boolean {
     const attack = instance.topCard.attacks?.[attackIndex];
     if (!attack || !attack.cost || attack.cost.length === 0) return true;
@@ -76,13 +77,11 @@ export function hasEnoughEnergy(instance: PokemonInstance, attackIndex: number):
         }
     }
 
-    // Verify specific type requirements first
     for (const [type, amount] of Object.entries(required)) {
         if ((provided[type] || 0) < amount) return false;
         totalProvided -= amount; 
     }
 
-    // Remaining attached energy goes towards Colorless requirements
     return totalProvided >= colorlessRequired;
 }
 
@@ -227,6 +226,34 @@ export class TCGMatch {
         return true;
     }
 
+    playTrainer(isPlayer: boolean, uid: number, targetSlot?: 'active' | number) {
+        if (this.winner) return false;
+
+        const activePlayer = isPlayer ? this.player : this.ai;
+        const handIndex = activePlayer.hand.findIndex(c => c.uid === uid);
+        if (handIndex === -1) return false;
+
+        const card = activePlayer.hand[handIndex];
+        if (card.supertype !== 'Trainer') return false;
+
+        const effect = TrainerEffects[card.name];
+        if (!effect) {
+            if (isPlayer) this.addLog(`Trainer card ${card.name} is not implemented yet!`);
+            return false;
+        }
+
+        if (effect.requiresTarget && targetSlot === undefined) return false;
+
+        const success = effect.execute(this, isPlayer, card, targetSlot);
+        if (success) {
+            activePlayer.hand.splice(handIndex, 1);
+            activePlayer.discard.push(card);
+            if (isPlayer) activePlayer.selectedUid = null;
+            return true;
+        }
+        return false;
+    }
+
     promote(isPlayer: boolean, benchIndex: number) {
         if (this.winner) return false;
 
@@ -277,7 +304,6 @@ export class TCGMatch {
         const defender = isPlayer ? this.ai : this.player;
 
         if (!attacker.active || !defender.active) return false;
-        
         if (!hasEnoughEnergy(attacker.active, attackIndex)) return false;
 
         const attackUse = attacker.active.topCard.attacks?.[attackIndex];
@@ -315,6 +341,17 @@ export class TCGMatch {
         if (!this.ai.draw(1)) {
             this.winner = 'player';
             return;
+        }
+
+        // AI Logic: Play untargeted Trainers (Bill, Oak)
+        for (let i = this.ai.hand.length - 1; i >= 0; i--) {
+            const card = this.ai.hand[i];
+            if (card.supertype === 'Trainer') {
+                const effect = TrainerEffects[card.name];
+                if (effect && !effect.requiresTarget) {
+                    this.playTrainer(false, card.uid);
+                }
+            }
         }
 
         if (!this.ai.active) {
