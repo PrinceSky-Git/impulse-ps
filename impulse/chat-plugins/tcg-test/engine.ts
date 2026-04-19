@@ -1,7 +1,7 @@
 export interface TCGCard {
     id: string;
     name: string;
-    supertype: 'Pokémon' | 'Trainer' | 'Energy';
+    supertype: string;
     subtypes?: string[];
     hp?: string;
     types?: string[];
@@ -15,17 +15,23 @@ export interface InGameCard extends TCGCard {
     attachedEnergy: TCGCard[];
 }
 
+// Helper to safely identify Basic Pokemon regardless of JSON capitalization
+export function isBasicPokemon(card: TCGCard): boolean {
+    if (!card.supertype?.includes('Pok') && !card.supertype?.includes('pok')) return false;
+    // Exclude evolutions
+    if (card.subtypes?.includes('Stage 1') || card.subtypes?.includes('Stage 2') || card.subtypes?.includes('MEGA') || card.subtypes?.includes('VMAX')) return false;
+    return true;
+}
+
 export class TCGPlayer {
     userid: string;
     deck: InGameCard[] = [];
     hand: InGameCard[] = [];
     active: InGameCard | null = null;
-    // Fixed array of 5 slots to allow targeting specific bench spots
     bench: (InGameCard | null)[] = [null, null, null, null, null]; 
     prizes: InGameCard[] = [];
     discard: InGameCard[] = [];
     
-    // UI State
     selectedUid: number | null = null; 
 
     constructor(userid: string) {
@@ -86,21 +92,23 @@ export class TCGMatch {
         if (handIndex === -1) return false; 
         
         const card = activePlayer.hand[handIndex];
-        if (!card || card.supertype !== 'Pokémon' || !card.subtypes?.includes('Basic')) return false;
+        
+        // Safer check using our helper function
+        if (!isBasicPokemon(card)) return false;
 
         if (slot === 'active') {
-            if (activePlayer.active) return false; // Already occupied
+            if (activePlayer.active) return false; 
             activePlayer.active = card;
             activePlayer.hand.splice(handIndex, 1);
             this.addLog(`${isPlayer ? 'Player' : 'AI'} set ${card.name} as Active Pokémon.`);
         } else {
-            if (activePlayer.bench[slot]) return false; // Bench slot occupied
+            if (activePlayer.bench[slot]) return false; 
             activePlayer.bench[slot] = card;
             activePlayer.hand.splice(handIndex, 1);
             this.addLog(`${isPlayer ? 'Player' : 'AI'} benched ${card.name}.`);
         }
 
-        if (isPlayer) activePlayer.selectedUid = null; // Clear selection after play
+        if (isPlayer) activePlayer.selectedUid = null; 
         return true;
     }
 
@@ -111,7 +119,7 @@ export class TCGMatch {
         if (handIndex === -1) return false;
 
         const card = activePlayer.hand[handIndex];
-        if (!card || card.supertype !== 'Energy') return false;
+        if (!card || !card.supertype?.includes('Energy')) return false;
 
         const target = slot === 'active' ? activePlayer.active : activePlayer.bench[slot];
         if (!target) return false;
@@ -164,7 +172,6 @@ export class TCGMatch {
             }
         }
 
-        // Clear selection to avoid visual bugs on turn switch
         if (isPlayer) this.player.selectedUid = null; 
 
         this.turn = isPlayer ? 'ai' : 'player';
@@ -177,12 +184,12 @@ export class TCGMatch {
         this.ai.draw(1);
 
         if (!this.ai.active) {
-            const basic = this.ai.hand.find(c => c.supertype === 'Pokémon' && c.subtypes?.includes('Basic'));
+            const basic = this.ai.hand.find(c => isBasicPokemon(c));
             if (basic) this.playBasicPokemon(false, basic.uid, 'active');
         }
 
         for (const card of [...this.ai.hand]) {
-            if (card.supertype === 'Pokémon' && card.subtypes?.includes('Basic')) {
+            if (isBasicPokemon(card)) {
                 const emptySlot = this.ai.bench.findIndex(c => c === null);
                 if (emptySlot !== -1) {
                     this.playBasicPokemon(false, card.uid, emptySlot);
