@@ -8,6 +8,7 @@ import { Table } from '../../impulse-utils';
 import { getBalance, setBalance, CURRENCY_NAME } from './economy';
 
 const SHOP_PATH = 'impulse/db/shop.json';
+const SHOP_LOGS_PATH = 'impulse/db/shop-logs.json';
 
 /*************************************************************
  * Data helpers
@@ -18,12 +19,23 @@ interface ShopItem {
 	cost: number;
 }
 
+interface ShopLogEntry {
+	user: string;
+	item: string;
+	timestamp: number;
+}
+
 type ShopData = Record<string, ShopItem>;
 
 let data: ShopData = {};
+let logsData: ShopLogEntry[] = [];
 
 const saveData = (): void => {
 	FS(SHOP_PATH).writeUpdate(() => JSON.stringify(data));
+};
+
+const saveLogs = (): void => {
+	FS(SHOP_LOGS_PATH).writeUpdate(() => JSON.stringify(logsData));
 };
 
 const loadData = async (): Promise<void> => {
@@ -36,8 +48,31 @@ const loadData = async (): Promise<void> => {
 	}
 };
 
+const loadLogs = async (): Promise<void> => {
+	try {
+		const raw = await FS(SHOP_LOGS_PATH).readIfExists();
+		if (raw) logsData = JSON.parse(raw);
+	} catch (e) {
+		console.error('Failed to load shop logs data:', e);
+		logsData = [];
+	}
+};
+
+const cleanOldLogs = (): void => {
+	const now = Date.now();
+	const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+	const initialLength = logsData.length;
+	
+	logsData = logsData.filter(log => (now - log.timestamp) <= sevenDaysMs);
+	
+	if (logsData.length !== initialLength) {
+		saveLogs();
+	}
+};
+
 void (async () => {
 	await loadData();
+	await loadLogs();
 })();
 
 /*************************************************************
@@ -81,6 +116,13 @@ export const commands: ChatCommands = {
 			}
 
 			setBalance(user.id, balance - item.cost);
+			
+			logsData.push({
+				user: user.name,
+				item: itemName,
+				timestamp: Date.now(),
+			});
+			saveLogs();
 
 			this.sendReply(`|raw|You purchased <strong>${itemName}</strong> for <strong>${item.cost}</strong> ${CURRENCY_NAME}. Your new balance: <strong>${balance - item.cost}</strong>.`);
 
@@ -154,6 +196,35 @@ export const commands: ChatCommands = {
 			this.sendReply(`|raw|Updated item <strong>${Impulse.nameColor(name, true, true)}</strong>: "${description}" for <strong>${cost}</strong> ${CURRENCY_NAME}.`);
 		},
 
+		logs(target, room, user) {
+			this.checkCan('roomowner');
+			
+			cleanOldLogs();
+
+			if (!logsData.length) {
+				return this.sendReplyBox(`<div style="max-height: 350px; overflow-y: auto;"><center><strong><h4>Shop Logs</h4></strong><hr></center>No recent shop logs found.</div>`);
+			}
+
+			const sortedLogs = [...logsData].sort((a, b) => b.timestamp - a.timestamp);
+
+			let html = `<div style="max-height: 350px; overflow-y: auto;">`;
+			html += `<center><strong><h4>Shop Logs</h4></strong><hr></center>`;
+			
+			const formattedLogs = sortedLogs.map(log => {
+				const dateObj = new Date(log.timestamp);
+				const day = String(dateObj.getDate()).padStart(2, '0');
+				const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+				const year = dateObj.getFullYear();
+				
+				return `<strong>${Chat.escapeHTML(log.user)}</strong> purchased <strong>${Chat.escapeHTML(log.item)}</strong> on ${day}-${month}-${year}`;
+			});
+
+			html += formattedLogs.join('<hr>');
+			html += `</div>`;
+
+			this.sendReplyBox(html);
+		},
+
 		help(target, room, user) {
 			if (!this.runBroadcast()) return;
 			this.sendReplyBox(
@@ -162,7 +233,8 @@ export const commands: ChatCommands = {
 				`<b>/shop buy [item name]</b> - Purchase an item from the shop.<hr>` +
 				`<b>/shop add [name], [description], [cost]</b> - Add an item to the shop. Requires: ~<hr>` +
 				`<b>/shop remove [item name]</b> - Remove an item from the shop. Requires: ~<hr>` +
-				`<b>/shop edit [name], [description], [cost]</b> - Edit an existing shop item. Requires: ~</div>`
+				`<b>/shop edit [name], [description], [cost]</b> - Edit an existing shop item. Requires: ~<hr>` +
+				`<b>/shop logs</b> - View shop purchase logs (Auto-deletes after 7 days). Requires: ~</div>`
 			);
 		},
 	},
