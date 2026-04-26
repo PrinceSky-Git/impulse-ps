@@ -413,7 +413,7 @@ export const commands: ChatCommands = {
 			`<b>/balance [user]</b> - Check your balance or another user's balance.<hr>` +
 			`<b>/transfer [user], [amount]</b> - Transfer ${CURRENCY_NAME} to another user.<hr>` +
 			`<b>/richestusers</b> - View the top 100 richest users.<hr>` +
-			`<b>/economy logs [user]</b> - View economy logs (transfer/give/take) for a user. Requires: %<hr>` +
+			`<b>/economy logs [user]</b> - View economy logs (transfer/give/take) for a user. Requires: ~<hr>` +
 			`<b>/givemoney [user], [amount]</b> - Give ${CURRENCY_NAME} to a user. Requires: ~<hr>` +
 			`<b>/takemoney [user], [amount]</b> - Take ${CURRENCY_NAME} from a user. Requires: ~</div>`
 		);
