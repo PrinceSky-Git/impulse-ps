@@ -694,7 +694,7 @@ export const commands: ChatCommands = {
 			if (!config || !config.enabled) return this.errorReply(`The shop is not enabled for this room.`);
 
 			if (!config.bank) {
-				return this.errorReply(`This room's shop does not have a bank set up yet. A Room Moderator must configure one using /roomshop bank before purchases can be made.`);
+				return this.errorReply(`This room's shop does not have a bank set up yet. A Room Owner must configure one using /roomshop bank before purchases can be made.`);
 			}
 
 			const itemName = target.trim();
@@ -754,7 +754,7 @@ export const commands: ChatCommands = {
 				`<div style="max-height: 350px; overflow-y: auto;"><center><strong><h4>Room Shop Commands</h4></strong><hr></center>` +
 				`<b>/roomshop</b> - View all available items in the current room's shop.<hr>` +
 				`<b>/roomshop buy [item name]</b> - Purchase an item from the current room's shop.<hr>` +
-				`<center><strong>Room Moderator Commands (%)</strong><hr></center>` +
+				`<center><strong>Room Owner Commands (#)</strong><hr></center>` +
 				`<b>/roomshop add [name], [description], [cost]</b> - Add an item to the room shop.<hr>` +
 				`<b>/roomshop remove [item name]</b> - Remove an item from the room shop.<hr>` +
 				`<b>/roomshop edit [name], [description], [cost]</b> - Edit an existing room shop item.<hr>` +
