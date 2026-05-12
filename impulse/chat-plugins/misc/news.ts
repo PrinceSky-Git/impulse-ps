@@ -3,7 +3,7 @@ import { toID } from '../../../sim/dex';
 import { nameColor } from '../customization/custom-color';
 
 const DATA_FILE = 'impulse/db/server-news.json';
-const SERVER_NAME = Config.Server_Name || 'Impulse';
+const SERVER_NAME = 'Impulse';
 
 interface NewsEntry {
 	id: string;
