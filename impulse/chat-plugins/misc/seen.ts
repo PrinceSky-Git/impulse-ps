@@ -84,7 +84,12 @@ export const commands: Chat.ChatCommands = {
 
 			const limit = Math.min(parseInt(target) || 25, 100);
 			const recent = Object.entries(seenData)
-				.sort((a, b) => b[1] - a[1])
+				.sort(([idA, dateA], [idB, dateB]) => {
+					const onlineA = !!Users.get(idA)?.connected;
+					const onlineB = !!Users.get(idB)?.connected;
+					if (onlineA !== onlineB) return onlineA ? -1 : 1;
+					return dateB - dateA;
+				})
 				.slice(0, limit);
 
 			if (!recent.length) return this.sendReply("No history found.");
