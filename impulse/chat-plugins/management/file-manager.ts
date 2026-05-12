@@ -20,6 +20,33 @@ const FileManager = {
 	getError(err: unknown): string {
 		return err instanceof Error ? err.message : String(err);
 	},
+
+	async collectFiles(dirPath: string, results: string[] = [], extFilter?: string): Promise<string[]> {
+		const entries = await FS(dirPath).readdir();
+		for (const entry of entries) {
+			const fullPath = `${dirPath}/${entry}`;
+			if (await FS(fullPath).isDirectory()) {
+				await FileManager.collectFiles(fullPath, results, extFilter);
+			} else if (!extFilter || entry.endsWith(extFilter)) {
+				results.push(fullPath);
+			}
+		}
+		return results;
+	},
+
+	async uploadTo0x0(fileName: string, content: string): Promise<string> {
+		const blob = new Blob([content], { type: 'text/plain' });
+		const form = new FormData();
+		form.append('file', blob, fileName);
+
+		const response = await fetch('https://0x0.st', {
+			method: 'POST',
+			headers: { 'User-Agent': 'Pokemon-Showdown' },
+			body: form,
+		});
+		if (!response.ok) throw new Error(`0x0.st responded with ${response.status}`);
+		return (await response.text()).trim();
+	},
 };
 
 export const commands: Chat.ChatCommands = {
@@ -188,6 +215,64 @@ export const commands: Chat.ChatCommands = {
 			}
 		},
 
+		async backup(target, room, user) {
+			this.checkCan('bypassall');
+			FileManager.checkAccess(user);
+
+			const backupDir = target.trim() || 'impulse/db';
+			const isDefault = backupDir === 'impulse/db';
+			// Default dir backs up all files; custom dirs only back up .json files
+			const extFilter = isDefault ? undefined : '.json';
+
+			this.sendReply(`Starting backup of ${backupDir}${extFilter ? ' (*.json)' : ''}...`);
+
+			let files: string[];
+			try {
+				const dir = FS(backupDir);
+				if (!await dir.exists()) throw new Error(`Directory not found: ${backupDir}`);
+				if (!await dir.isDirectory()) throw new Error(`${backupDir} is not a directory.`);
+				files = await FileManager.collectFiles(backupDir, [], extFilter);
+			} catch (err) {
+				throw new Chat.ErrorMessage(`Backup failed: ${FileManager.getError(err)}`);
+			}
+
+			if (!files.length) {
+				throw new Chat.ErrorMessage(`No ${extFilter ? extFilter + ' ' : ''}files found in ${backupDir}.`);
+			}
+
+			const results: { path: string; url: string }[] = [];
+			const failed: { path: string; error: string }[] = [];
+
+			for (const filePath of files) {
+				try {
+					const content = await FS(filePath).read();
+					const fileName = filePath.replace(/\//g, '_');
+					const url = await FileManager.uploadTo0x0(fileName, content);
+					results.push({ path: filePath, url });
+				} catch (err) {
+					failed.push({ path: filePath, error: FileManager.getError(err) });
+				}
+			}
+
+			let html = `<strong>Backup of ${Utils.escapeHTML(backupDir)}</strong> — ${results.length} uploaded, ${failed.length} failed<hr />`;
+
+			if (results.length) {
+				html += `<b>Uploaded:</b><br />`;
+				html += results.map(r =>
+					`<small>${Utils.escapeHTML(r.path)}</small> → <a href="${r.url}" target="_blank">${r.url}</a>`
+				).join('<br />');
+			}
+
+			if (failed.length) {
+				html += `<br /><br /><b style="color:red">Failed:</b><br />`;
+				html += failed.map(f =>
+					`<small>${Utils.escapeHTML(f.path)}: ${Utils.escapeHTML(f.error)}</small>`
+				).join('<br />');
+			}
+
+			this.sendReplyBox(`<div style="max-height: 400px; overflow-y: auto;">${html}</div>`);
+		},
+
 		help() {
 			this.runBroadcast();
 			this.sendReplyBox(
@@ -197,7 +282,8 @@ export const commands: Chat.ChatCommands = {
 				`<b>/file delete [path]</b>: Remove a file.<hr>` +
 				`<b>/file move [src], [dest]</b>: Move/Rename.<hr>` +
 				`<b>/file upload [path]</b>: Upload to Gist.<hr>` +
-				`<b>/file save [path], [url]</b>: Download from URL.`
+				`<b>/file save [path], [url]</b>: Download from URL.<hr>` +
+				`<b>/file backup [dir]</b>: Backup files to 0x0.st. Defaults to impulse/db (all files). Custom dirs upload .json files only.`
 			);
 		},
 	},
@@ -208,5 +294,6 @@ export const commands: Chat.ChatCommands = {
 	filecopy: 'file.copy',
 	fileupload: 'file.upload',
 	filesave: 'file.save',
+	filebackup: 'file.backup',
 	filehelp: 'file.help',
 };
