@@ -985,7 +985,7 @@ export function packPokemon(mon: PokemonEntry): string {
 export function packAIPokemon(set: AIPokemonSet, floor = 0): string {
 	const sp = Dex.species.get(toID(set.species));
 	const name = sp.exists ? sp.name : set.species;
-	const nickname = floor > 0 ? `FLOOR:${floor} | ${name}` : name;
+	const nickname = floor > 0 ? `FLOOR:${floor} ${name}` : name;
 	//const nickname = floor > 0 ? `FLOOR:${floor}` : name;
 	const ivStr = `${set.ivs.hp},${set.ivs.atk},${set.ivs.def},${set.ivs.spa},${set.ivs.spd},${set.ivs.spe}`;
 	const evStr = `${set.evs.hp},${set.evs.atk},${set.evs.def},${set.evs.spa},${set.evs.spd},${set.evs.spe}`;
