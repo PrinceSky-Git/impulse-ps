@@ -870,7 +870,7 @@ export function genAIPokemon(
 	quantity: number,
 	floor = 1,
 	luck = 0
-): AIPokemonSet[] {
+): { mons: AIPokemonSet[], isTrainer: boolean } {
 	const scale = levelScaleForFloor(floor);
 	const isBossFloor = floor % 10 === 0;
 
@@ -884,19 +884,33 @@ export function genAIPokemon(
 
 	let forcedTeam: (string | TrainerMon)[] | undefined = undefined;
 	let actualQuantity = quantity;
+	let isTrainer = false;
 
 	if (TRAINERS[floor.toString()]) {
 		const trainerNames = Object.keys(TRAINERS[floor.toString()]);
 		const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
 		const trainerData = TRAINERS[floor.toString()][selectedTrainer];
 
-		actualQuantity = trainerData.teamSize;
+		const trainerWins = trainerData.chance === undefined || Math.random() * 100 < trainerData.chance;
 
-		if (!trainerData.random && trainerData.pool) {
-			const shuffledPool = [...trainerData.pool].sort(() => 0.5 - Math.random());
-			forcedTeam = shuffledPool.slice(0, trainerData.teamSize);
-			actualQuantity = forcedTeam.length;
+		if (trainerWins) {
+			isTrainer = true;
+			actualQuantity = trainerData.teamSize;
+
+			if (!trainerData.random && trainerData.pool) {
+				const shuffledPool = [...trainerData.pool].sort(() => 0.5 - Math.random());
+				forcedTeam = shuffledPool.slice(0, trainerData.teamSize);
+				actualQuantity = forcedTeam.length;
+			}
+		} else if (isBossFloor && BOSSES[floor.toString()]) {
+			const bossNames = Object.keys(BOSSES[floor.toString()]);
+			const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];
+			const bossData = BOSSES[floor.toString()][selectedBoss];
+			const shuffledPool = [...bossData.pool].sort(() => 0.5 - Math.random());
+			forcedTeam = [shuffledPool[0]];
+			actualQuantity = 1;
 		}
+		// else: non-boss floor, chance failed → wild pokemon, isTrainer stays false
 	} else if (isBossFloor && BOSSES[floor.toString()]) {
 		const bossNames = Object.keys(BOSSES[floor.toString()]);
 		const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];
@@ -908,9 +922,9 @@ export function genAIPokemon(
 	}
 
 	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam);
-
 	mons.sort((a, b) => a.level - b.level);
-	return mons;
+
+	return { mons, isTrainer };
 }
 
 const EVO_TYPE_FALLBACK_LEVEL: Partial<Record<string, number>> = {
