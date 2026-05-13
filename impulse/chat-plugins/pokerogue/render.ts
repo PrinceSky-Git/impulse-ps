@@ -663,6 +663,29 @@ function renderGuideView(): string {
 	return buf;
 }
 
+function renderTrainerIntro(state: PokeRogueState): string {
+        const intro = state.pendingTrainerIntro!;
+        let buf = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;gap:16px">`;
+
+        buf += `<div style="font-size:13px;color:#8ab4f8;font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Trainer Battle!</div>`;
+
+        if (intro.sprite) {
+                buf += `<img src="${Utils.escapeHTML(intro.sprite)}" alt="${Utils.escapeHTML(intro.trainerName)}" style="width:80px;height:80px;image-rendering:pixelated" onerror="this.style.display='none'" />`;
+        }
+
+        buf += renderGuidePanel(
+                `<div style="text-align:center"><b style="color:#f4c842">${Utils.escapeHTML(intro.trainerName)}</b><br><br>` +
+                `<span style="font-style:italic;">"${Utils.escapeHTML(intro.dialog)}"</span></div>`
+        );
+
+        buf += `<div style="text-align:center">`;
+        buf += renderBtn('/pokerogue battleconfirm', 'Battle!', 'pr-btn primary', 'padding:10px 32px;font-size:14px');
+        buf += `</div>`;
+
+        buf += `</div>`;
+        return buf;
+}
+
 // ─── Page Entry Point ─────────────────────────────────────────────────────────
 
 export function renderGamePage(state: PokeRogueState, user: User): string {
@@ -688,6 +711,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'guide') return buf + renderGuideView() + `</div></div>`;
 	if (state.pendingMoveSlot !== undefined) return buf + renderMoveMon(state) + `</div></div>`;
 	if (state.pendingReleaseSlot !== undefined) return buf + renderReleaseMon(state) + `</div></div>`;
+	if (state.pendingTrainerIntro) return buf + renderTrainerIntro(state) + `</div></div>`;
 
 	return buf + renderMainView(state, user) + `</div></div>`;
 }
