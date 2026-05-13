@@ -102,10 +102,10 @@ function parseKillExp(
 	state: PokeRogueState,
 	floor: number,
 	isBossFloor: boolean,
+	isTrainerBattle: boolean
 ): { expMap: Map<number, number>, baseShareExpMap: Map<number, number> } {
 	const expMap = new Map<number, number>();
 	const baseShareExpMap = new Map<number, number>();
-	const isTrainerFloor = !!TRAINERS[floor.toString()];
 
 	for (const line of logLines) {
 		if (!line.includes('PR_EXP|')) continue;
@@ -128,7 +128,8 @@ function parseKillExp(
 
 		const validParticipantCount = Math.max(1, participantIndices.size);
 		const b = getExpYield(enemySpecies);
-		const a = (isBossFloor || isTrainerFloor) ? 1.5 : 1;
+		
+		const a = (isBossFloor || isTrainerBattle) ? 1.5 : 1; 
 		const rawKillExp = Math.floor(Math.floor((b * enemyLevel) / 5 + 1) * a);
 		const basePerParticipant = Math.max(1, Math.floor(rawKillExp / validParticipantCount));
 
@@ -136,7 +137,7 @@ function parseKillExp(
 			const mon = state.team[teamIdx];
 			if (!mon) continue;
 			const hasLuckyEgg = mon.heldItem === 'luckyegg';
-			const exp = calcKillExp(enemySpecies, enemyLevel, validParticipantCount, isBossFloor, hasLuckyEgg, isTrainerFloor);
+			const exp = calcKillExp(enemySpecies, enemyLevel, validParticipantCount, isBossFloor, hasLuckyEgg, isTrainerBattle);
 			expMap.set(teamIdx, (expMap.get(teamIdx) ?? 0) + exp);
 		}
 
@@ -318,10 +319,11 @@ function processBattleExperience(
 	logLines: string[],
 	state: PokeRogueState,
 	floor: number,
-	isBossFloor: boolean
+	isBossFloor: boolean,
+	isTrainerBattle: boolean
 ): string[] {
 	const detailMsgs: string[] = [];
-	const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(logLines, state, floor, isBossFloor);
+	const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(logLines, state, floor, isBossFloor, isTrainerBattle);
 	const expMap = applyExpShare(rawExpMap, baseShareExpMap, state);
 
 	const totalExpEarned = [...rawExpMap.values()].reduce((sum, v) => sum + v, 0);
@@ -354,27 +356,23 @@ function processFloorRewards(state: PokeRogueState, clearedFloor: number): { bpG
 	let bpGained = clearedFloor >= 100 ? 10 : BP_PER_WIN;
 	const extraNotifs: string[] = [];
 
-	// Update Record
 	if (clearedFloor > (state.highestFloor ?? 0)) {
 		state.highestFloor = clearedFloor;
 		state.recordTeam = state.team.map(m => ({ ...m }));
 	}
 
-	// Floor 50 Milestone
 	if (clearedFloor % 50 === 0) {
 		state.inventory = state.inventory || {};
 		state.inventory.masterball = (state.inventory.masterball || 0) + 1;
 		extraNotifs.push(`<br><b style="color:#aa55ff">Milestone Reward: Received 1x Master Ball for clearing Floor ${clearedFloor}!</b>`);
 	}
 
-	// Floor 10 Milestone
 	if (clearedFloor === 10) {
 		state.keyItems = state.keyItems ?? [];
 		state.keyItems.push('Exp. Charm');
 		extraNotifs.push(`<br><b style="color:#f4c842">Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b>`);
 	}
 
-	// Boss Floor Specifics
 	if (isBossFloorBoundary(clearedFloor)) {
 		bpGained += clearedFloor >= 100 ? 10 : BP_PER_BOSS;
 		for (const mon of state.team) {
@@ -928,7 +926,7 @@ export const commands: Chat.ChatCommands = {
 			if (state.caughtPokemon) return this.errorReply("You already caught this Pokémon!");
 
 			const floor = state.floor;
-			if (floor % 10 === 0 || TRAINERS[floor.toString()]) {
+			if (floor % 10 === 0 || catchMatch.isTrainerBattle) {
 				return this.errorReply("You cannot catch Trainer or Boss Pokémon!");
 			}
 
@@ -1063,7 +1061,7 @@ export const commands: Chat.ChatCommands = {
 				let p2SwitchIdx = 0;
 
 				for (let i = log.length - 1; i >= 0; i--) {
-					if (/^\|(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
+					if (/^(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
 						p2SwitchIdx = i;
 						break;
 					}
@@ -1307,7 +1305,6 @@ export const handlers: Chat.Handlers = {
 		const room = Rooms.get(battle.roomid);
 		const logLines: string[] = room?.log?.log ?? [];
 
-		// 1. Sync battle outcomes (HP, status, consumed items)
 		const { consumedItems } = syncBattleOutcome(logLines, state);
 		if (consumedItems.length) {
 			state.notification = (state.notification ?? '') +
@@ -1317,17 +1314,14 @@ export const handlers: Chat.Handlers = {
 		delete state.battleRoomId;
 
 		if (toID(winner) === match.userId) {
-			// -- WIN CONDITION --
+			const isTrainerBattle = match.isTrainerBattle ?? false; 
 			
-			// Process EXP & Level-ups
-			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor);
+			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle);
 
-			// Process Floor Progression & Rewards
 			const prevFloor = state.floor;
 			state.floor++;
 			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor);
 
-			// Handle Caught Pokémon
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;
 				const spName = Dex.species.get(toID(caughtMon.species)).name;
@@ -1342,23 +1336,19 @@ export const handlers: Chat.Handlers = {
 				delete state.caughtPokemon;
 			}
 
-			// Finalize state updates for the new floor
 			state.battlePoints = (state.battlePoints ?? 0) + bpGained;
 			state.displayName = Users.get(match.userId)?.name || match.userId;
 			state.timesRerolled = 0;
 
-			// Construct the final notification string
 			state.notification = (state.notification ?? '') +
 				`<br><b>Floor ${prevFloor} Cleared!</b> +${bpGained} BP.<br>` +
 				extraNotifs.join('') + 
 				(detailMsgs.length ? '<br>' + detailMsgs.join('<br>') : '');
 
 		} else {
-			// -- LOSS CONDITION --
 			handleBattleLoss(state, match.floor);
 		}
 
-		// Save and visually refresh
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);

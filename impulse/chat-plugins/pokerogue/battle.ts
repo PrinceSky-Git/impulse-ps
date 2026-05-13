@@ -618,11 +618,12 @@ interface ActiveRougeMatch {
 	botUserId: ID;
 	floor: number;
 	lastPanelTurn?: number;
+	isTrainerBattle?: boolean;
 }
 
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
-function buildBotTeam(state: PokeRogueState): string {
+function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean } {
 	const floor = state.floor;
 	const isBossFloor = floor % 10 === 0;
 
@@ -636,8 +637,8 @@ function buildBotTeam(state: PokeRogueState): string {
 	}
 
 	const luck = state.luck ?? 0;
-	const aiTeam = genAIPokemon(size, floor, luck);
-	return packAITeam(aiTeam);
+	const result = genAIPokemon(size, floor, luck);
+	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer };
 }
 
 export function startBattle(user: User, state: PokeRogueState): boolean {
@@ -649,7 +650,11 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	}
 
 	const playerTeam = packTeam(livingTeam);
-	const botTeam = buildBotTeam(state);
+	
+	const botTeamData = buildBotTeam(state);
+	const botTeam = botTeamData.packedTeam;
+	const isTrainer = botTeamData.isTrainer;
+
 	const isBoss = state.floor % 10 === 0;
 
 	const botUser = createBotUser(user.id);
@@ -659,6 +664,9 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 
 	let battleRoom: AnyObject | null = null;
 	try {
+		let opponentTitle = isTrainer ? TRAINER_NAME : 'Wild Encounter';
+		if (isBoss) opponentTitle = `BOSS ${opponentTitle}`;
+
 		battleRoom = Rooms.createBattle({
 			format,
 			players: [
@@ -666,7 +674,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 				{ user: botUser, team: botTeam },
 			],
 			rated: false,
-			title: `PokéRogue Battle - Floor ${state.floor}: ${user.name} vs ${isBoss ? 'BOSS ' : ''}${TRAINER_NAME}`,
+			title: `PokéRogue Battle - Floor ${state.floor}: ${user.name} vs ${opponentTitle}`,
 		});
 	} catch (e) {
 		destroyBotUser(botUser);
@@ -687,7 +695,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		const match = activeMatches.get(roomid as RoomID);
 		if (match) {
 			const activeState = getState(match.userId);
-			if (activeState && activeState.floor % 10 !== 0) {
+			if (activeState && activeState.floor % 10 !== 0 && !match.isTrainerBattle) {
 				const turn = room.battle.turn || 0;
 
 				if (turn > 0 && match.lastPanelTurn !== turn) {
@@ -729,6 +737,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		userId: user.id,
 		botUserId: botUser.id,
 		floor: state.floor,
+		isTrainerBattle: isTrainer,
 	});
 
 	clearMoveHistory(battleRoom.roomid);
