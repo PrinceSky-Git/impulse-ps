@@ -1,4 +1,4 @@
-export const Conditions: {[k: string]: ConditionData} = {
+export const Conditions: { [k: string]: ConditionData } = {
 	bossshield: {
 		name: 'Boss Shield',
 		noCopy: true,
@@ -29,15 +29,15 @@ export const Conditions: {[k: string]: ConditionData} = {
 			if (effect && effect.effectType !== 'Move') {
 				if (target.species.id === 'eternatus' && damage >= target.hp) {
 					target.m.readyToTransform = true;
-					return target.hp - 1; 
+					return target.hp - 1;
 				}
 				return damage;
 			}
-			
+
 			if (!target.m.maxShields) return damage;
 
 			const remainingShields = target.m.maxShields - (target.m.brokenShields || 0);
-			
+
 			let totalDamageDealt = 0;
 			let remainingDamage = damage;
 			let currentHP = target.hp;
@@ -46,9 +46,9 @@ export const Conditions: {[k: string]: ConditionData} = {
 			// If shields are left, calculate exponential damage drop-off
 			if (remainingShields > 0) {
 				while (remainingDamage > 0 && currentHP > 0) {
-					let shieldsLeft = target.m.maxShields - (target.m.brokenShields || 0) - brokenThisHit;
+					const shieldsLeft = target.m.maxShields - (target.m.brokenShields || 0) - brokenThisHit;
 					let nextThreshold = 0;
-					
+
 					if (shieldsLeft > 0) {
 						nextThreshold = Math.ceil((target.maxhp * shieldsLeft) / (target.m.maxShields + 1));
 					}
@@ -63,17 +63,17 @@ export const Conditions: {[k: string]: ConditionData} = {
 					if (remainingDamage < hpInCurrentSegment) {
 						totalDamageDealt += remainingDamage;
 						currentHP -= remainingDamage;
-						remainingDamage = 0; 
+						remainingDamage = 0;
 					} else {
 						totalDamageDealt += hpInCurrentSegment;
 						currentHP = nextThreshold;
 						remainingDamage -= hpInCurrentSegment;
-						
+
 						if (shieldsLeft > 0) {
 							brokenThisHit++;
-							remainingDamage = remainingDamage / 2; 
+							remainingDamage /= 2;
 						} else {
-							remainingDamage = 0; 
+							remainingDamage = 0;
 						}
 					}
 				}
@@ -85,7 +85,7 @@ export const Conditions: {[k: string]: ConditionData} = {
 			if (brokenThisHit > 0) {
 				target.m.brokenThisHit = brokenThisHit;
 			}
-      
+
 			// Prevents massive damage from one-shotting the boss and skipping Phase 2.
 			// It caps the total damage at HP - 1 and flags it for transformation.
 			if (target.species.id === 'eternatus' && totalDamageDealt >= target.hp) {
@@ -97,12 +97,12 @@ export const Conditions: {[k: string]: ConditionData} = {
 		},
 
 		onAfterMoveSecondary(target, source, move) {
-      // handles stat boosts from breaking shields
+			// handles stat boosts from breaking shields
 			if (target.m.brokenThisHit) {
 				const brokenCount = target.m.brokenThisHit;
 				target.m.brokenShields = (target.m.brokenShields || 0) + brokenCount;
 				const remaining = target.m.maxShields - target.m.brokenShields;
-				
+
 				this.add('-message', `A shield broke! BOSS SHIELDS: ${Math.max(0, remaining)}`);
 
 				// Grant 1 random stat boost PER broken shield
@@ -130,15 +130,15 @@ export const Conditions: {[k: string]: ConditionData} = {
 
 				this.add('-message', `Eternatus's health was fully depleted!`);
 				this.add('-message', `Eternatus is absorbing massive amounts of energy...`);
-				
+
 				// Transform into Eternamax
 				pokemon.formeChange('Eternatus-Eternamax', this.effect, true);
-				
+
 				// Fully heal and clear Phase 1 stat changes
 				this.heal(pokemon.maxhp, pokemon, pokemon);
 				pokemon.clearBoosts();
 				this.add('-clearboost', pokemon);
-				
+
 				// Hardcode Phase 2 Moveset (Eternamax)
 				const phase2Moves = ['eternabeam', 'sludgebomb', 'flamethrower', 'recover'];
 				pokemon.moveSlots = [];
@@ -164,10 +164,9 @@ export const Conditions: {[k: string]: ConditionData} = {
 				// Grant Phase 2 Shields (Eternamax gets 5)
 				pokemon.m.maxShields = 5;
 				pokemon.m.brokenShields = 0;
-				
+
 				this.add('-message', `Eternatus transformed into Eternamax Eternatus!`);
 				this.add('-message', ` PHASE 2 BOSS SHIELDS: ${pokemon.m.maxShields}`);
-				
 			} else if (pokemon.hp <= 0 && pokemon.species.id !== 'eternatus') {
 				// Standard boss dying cleanup
 				pokemon.removeVolatile('bossshield');

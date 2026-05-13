@@ -14,8 +14,8 @@ interface CustomSymbolEntry {
 }
 
 type ValidationResult =
-	| { valid: true }
-	| { valid: false; error: string };
+	| { valid: true } |
+	{ valid: false, error: string };
 
 let symbolData: Record<string, CustomSymbolEntry> = {};
 

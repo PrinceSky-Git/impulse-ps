@@ -240,8 +240,8 @@ export const commands: Chat.ChatCommands = {
 				throw new Chat.ErrorMessage(`No ${extFilter ? extFilter + ' ' : ''}files found in ${backupDir}.`);
 			}
 
-			const results: { path: string; url: string }[] = [];
-			const failed: { path: string; error: string }[] = [];
+			const results: { path: string, url: string }[] = [];
+			const failed: { path: string, error: string }[] = [];
 
 			for (const filePath of files) {
 				try {

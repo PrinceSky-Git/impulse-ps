@@ -20,8 +20,8 @@ interface IconEntry {
 }
 
 type ValidationResult =
-	| { valid: true; size: number }
-	| { valid: false; size: 0; error: string };
+	| { valid: true, size: number } |
+	{ valid: false, size: 0, error: string };
 
 let iconData: Record<string, IconEntry> = {};
 

@@ -22,7 +22,7 @@ export interface CustomizationModule {
 }
 
 export class CustomizationManager {
-	readonly modules: Map<string, CustomizationModule> = new Map();
+	readonly modules = new Map<string, CustomizationModule>();
 	private initialized = false;
 
 	register(module: CustomizationModule): void {
@@ -92,7 +92,7 @@ export class CustomizationManager {
 export const Customization = new CustomizationManager();
 
 declare global {
-	// eslint-disable-next-line no-var
+
 	var Customization: CustomizationManager;
 }
 

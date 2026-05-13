@@ -1,4 +1,4 @@
-export const Rulesets: {[k: string]: FormatData} = {
+export const Rulesets: { [k: string]: FormatData } = {
 	pokerogueclassic: {
 		effectType: 'Rule',
 		name: 'PokeRogue Classic',
@@ -12,7 +12,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 				// --- HARDCODE ETERNATUS PHASE 1 ---
 				if (pokemon.species.id === 'eternatus') {
 					pokemon.level = 200; // Force Level 200
-					
+
 					// Force canonical PokéRogue Phase 1 Moveset
 					const phase1Moves = ['dynamaxcannon', 'sludgebomb', 'flamethrower', 'cosmicpower'];
 					pokemon.moveSlots = [];
@@ -98,17 +98,17 @@ export const Rulesets: {[k: string]: FormatData} = {
 				let estimatedWave = 1;
 				let isBossWave = false;
 				const L = pokemon.level;
-				
+
 				if (L > 5) {
 					// Reverse PokéRogue's quadratic formula
 					const Y = (L - 2) / 1.2 - 1;
 					const exactWave = (-312.5 + Math.sqrt(97656.25 + 2500 * Y)) / 2;
-					
+
 					// Get the 10-wave bracket this level belongs to
-					estimatedWave = Math.ceil(Math.max(1, exactWave) / 10) * 10; 
-					
+					estimatedWave = Math.ceil(Math.max(1, exactWave) / 10) * 10;
+
 					// Forward-calculate the exact Boss Cap for this bracket
-					const baseLevel = (1 + estimatedWave / 2 + Math.pow(estimatedWave / 25, 2)) * 1.2;
+					const baseLevel = (1 + estimatedWave / 2 + (estimatedWave / 25) ** 2) * 1.2;
 					const cap = Math.ceil(baseLevel / 2) * 2 + 2;
 
 					// If the level EXACTLY matches the cap, we know for a fact it's a boss!
@@ -118,7 +118,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 				this.add('-message', `[System] Level ${L} recognized as Wave Bracket ${estimatedWave}. Boss Encounter: ${isBossWave}`);
 
 				// --- 2. ENDLESS TOKENS SETUP ---
-				// Enemies gain tokens every 50 waves. 
+				// Enemies gain tokens every 50 waves.
 				const tokenStacks = Math.floor(estimatedWave / 50);
 				if (tokenStacks > 0) {
 					pokemon.m.damageTokens = tokenStacks;
@@ -126,14 +126,14 @@ export const Rulesets: {[k: string]: FormatData} = {
 					pokemon.m.endureTokens = tokenStacks;
 					pokemon.m.recoveryTokens = tokenStacks;
 					pokemon.m.fullHealTokens = tokenStacks;
-					
+
 					this.add('-message', `[Endless Mode] Enemy has ${tokenStacks}x Token Stacks applied!`);
 				}
 
 				// --- 3. ETERNATUS 250-WAVE LOOP ---
 				// Only triggers if it's the exact Boss Wave AND a multiple of 250
 				const isEternatusWave = isBossWave && estimatedWave > 0 && estimatedWave % 250 === 0;
-				
+
 				if (isEternatusWave || pokemon.species.id === 'eternatus') {
 					if (pokemon.species.id !== 'eternatus') {
 						pokemon.formeChange('Eternatus', this.effect, true);
@@ -163,7 +163,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 
 				// --- 4. ENDLESS BOSS SHIELDS ---
 				// Endless bosses get 4 shields. Major Legendaries (BST >= 670) get 5.
-				let shields = 0; 
+				let shields = 0;
 				if (isBossWave) {
 					shields = 4;
 					const species = this.dex.species.get(pokemon.species.id);
@@ -187,11 +187,11 @@ export const Rulesets: {[k: string]: FormatData} = {
 			// Protection Token: Reduces damage taken by the P2 enemy (2.5% per stack)
 			if (defender.side.id === 'p2' && defender.m.protectionTokens) {
 				const tokens = Math.min(defender.m.protectionTokens, 999);
-				const reductionMultiplier = Math.max(0.05, 1 - (tokens * 0.025)); 
+				const reductionMultiplier = Math.max(0.05, 1 - (tokens * 0.025));
 				this.debug(`[Endless] Protection Token multiplier: ${reductionMultiplier}`);
 				return this.chainModify(reductionMultiplier);
 			}
-			
+
 			// Damage Token: Increases damage dealt by the P2 enemy (5% per stack)
 			if (attacker.side.id === 'p2' && attacker.m.damageTokens) {
 				const tokens = Math.min(attacker.m.damageTokens, 999);
@@ -226,7 +226,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 			if (pokemon.m.recoveryTokens) {
 				const tokens = Math.min(pokemon.m.recoveryTokens, 10);
 				const healPercent = tokens * 0.02; // 2% per stack, up to 20%
-				
+
 				if (pokemon.hp < pokemon.maxhp) {
 					this.heal(pokemon.maxhp * healPercent);
 					this.add('-message', `The wild ${pokemon.name} restored its health using its Recovery Tokens!`);
@@ -287,15 +287,15 @@ export const Rulesets: {[k: string]: FormatData} = {
 				const participants = Array.from((this as any).p1Participants || []).join(',');
 				const species = pokemon.species.id;
 				const level = pokemon.level;
-				
+
 				// Output a clean, easy-to-parse message to the battle log
 				this.add('-message', `PR_EXP|${species}|${level}|${participants}`);
-				
+
 				// Clear the participants for the next opponent
 				if ((this as any).p1Participants) {
 					(this as any).p1Participants.clear();
 				}
 			}
-		}
+		},
 	},
 };

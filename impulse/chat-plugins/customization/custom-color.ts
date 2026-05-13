@@ -46,12 +46,7 @@ const ColorManager = {
 		let r = 0, g = 0, b = 0;
 
 		const hCase = Math.floor(h / 60);
-		if (hCase === 0) { r = c; g = x; }
-		else if (hCase === 1) { r = x; g = c; }
-		else if (hCase === 2) { g = c; b = x; }
-		else if (hCase === 3) { g = x; b = c; }
-		else if (hCase === 4) { r = x; b = c; }
-		else if (hCase === 5) { r = c; b = x; }
+		if (hCase === 0) { r = c; g = x; } else if (hCase === 1) { r = x; g = c; } else if (hCase === 2) { g = c; b = x; } else if (hCase === 3) { g = x; b = c; } else if (hCase === 4) { r = x; b = c; } else if (hCase === 5) { r = c; b = x; }
 
 		const toHex = (val: number): string =>
 			Math.round((val + m) * 255).toString(16).padStart(2, '0');
@@ -91,9 +86,9 @@ export const hashColor = (name: string): string => {
 
 export const nameColor = (name: string, bold = true, userGroup = false): string => {
 	const userId = toID(name);
-	const symbol = userGroup && Users.globalAuth.get(userId)
-		? `<font color="#948A88">${Users.globalAuth.get(userId)}</font>`
-		: '';
+	const symbol = userGroup && Users.globalAuth.get(userId) ?
+		`<font color="#948A88">${Users.globalAuth.get(userId)}</font>` :
+		'';
 	const userName = Utils.escapeHTML(Users.getExact(name)?.name || name);
 	return `${symbol}${bold ? '<b>' : ''}<font color="${hashColor(name)}">${userName}</font>${bold ? '</b>' : ''}`;
 };
