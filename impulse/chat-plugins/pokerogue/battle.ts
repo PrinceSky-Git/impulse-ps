@@ -618,12 +618,11 @@ interface ActiveRougeMatch {
 	botUserId: ID;
 	floor: number;
 	lastPanelTurn?: number;
-	isTrainer: boolean;
 }
 
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
-function buildBotTeam(state: PokeRogueState): { team: string, isTrainer: boolean } {
+function buildBotTeam(state: PokeRogueState): string {
 	const floor = state.floor;
 	const isBossFloor = floor % 10 === 0;
 
@@ -637,8 +636,8 @@ function buildBotTeam(state: PokeRogueState): { team: string, isTrainer: boolean
 	}
 
 	const luck = state.luck ?? 0;
-	const { mons, isTrainer } = genAIPokemon(size, floor, luck);
-	return { team: packAITeam(mons), isTrainer };
+	const aiTeam = genAIPokemon(size, floor, luck);
+	return packAITeam(aiTeam);
 }
 
 export function startBattle(user: User, state: PokeRogueState): boolean {
@@ -650,7 +649,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	}
 
 	const playerTeam = packTeam(livingTeam);
-	const { team: botTeam, isTrainer } = buildBotTeam(state);
+	const botTeam = buildBotTeam(state);
 	const isBoss = state.floor % 10 === 0;
 
 	const botUser = createBotUser(user.id);
@@ -730,7 +729,6 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		userId: user.id,
 		botUserId: botUser.id,
 		floor: state.floor,
-		isTrainer,
 	});
 
 	clearMoveHistory(battleRoom.roomid);

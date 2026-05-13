@@ -102,10 +102,10 @@ function parseKillExp(
 	state: PokeRogueState,
 	floor: number,
 	isBossFloor: boolean,
-	isTrainer: boolean,
 ): { expMap: Map<number, number>, baseShareExpMap: Map<number, number> } {
 	const expMap = new Map<number, number>();
 	const baseShareExpMap = new Map<number, number>();
+	const isTrainerFloor = !!TRAINERS[floor.toString()];
 
 	for (const line of logLines) {
 		if (!line.includes('PR_EXP|')) continue;
@@ -128,7 +128,7 @@ function parseKillExp(
 
 		const validParticipantCount = Math.max(1, participantIndices.size);
 		const b = getExpYield(enemySpecies);
-		const a = (isBossFloor || isTrainer) ? 1.5 : 1;
+		const a = (isBossFloor || isTrainerFloor) ? 1.5 : 1;
 		const rawKillExp = Math.floor(Math.floor((b * enemyLevel) / 5 + 1) * a);
 		const basePerParticipant = Math.max(1, Math.floor(rawKillExp / validParticipantCount));
 
@@ -136,7 +136,7 @@ function parseKillExp(
 			const mon = state.team[teamIdx];
 			if (!mon) continue;
 			const hasLuckyEgg = mon.heldItem === 'luckyegg';
-			const exp = calcKillExp(enemySpecies, enemyLevel, validParticipantCount, isBossFloor, hasLuckyEgg, isTrainer);
+			const exp = calcKillExp(enemySpecies, enemyLevel, validParticipantCount, isBossFloor, hasLuckyEgg, isTrainerFloor);
 			expMap.set(teamIdx, (expMap.get(teamIdx) ?? 0) + exp);
 		}
 
@@ -1216,9 +1216,7 @@ export const handlers: Chat.Handlers = {
 		delete state.battleRoomId;
 
 		if (toID(winner) === match.userId) {
-			const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(
-				logLines, state, match.floor, isBossFloor, match.isTrainer
-			);
+			const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(logLines, state, match.floor, isBossFloor);
 			const expMap = applyExpShare(rawExpMap, baseShareExpMap, state);
 
 			const totalExpEarned = [...rawExpMap.values()].reduce((sum, v) => sum + v, 0);
