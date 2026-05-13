@@ -8,7 +8,7 @@ export const Formats: FormatList = [
 		ruleset: [
 			'Cancel Mod',
 			'HP Percentage Mod',
-			'PokeRogue Classic',
+			'PokeRogue Endless',
 			'PokeRogue EXP Tracker',
 		],
 		DefaultLevel: 1,
@@ -22,7 +22,7 @@ export const Formats: FormatList = [
 			//'Terastal Clause',
 			'Cancel Mod',
 			'HP Percentage Mod',
-			'PokeRogue Classic',
+			'PokeRogue Endless',
 			'PokeRogue EXP Tracker',
 		],
 		DefaultLevel: 1,
