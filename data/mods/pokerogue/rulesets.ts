@@ -171,10 +171,29 @@ export const Rulesets: {[k: string]: FormatData} = {
 					if (tokenMap.poison)     pokemon.m.poisonTokens     = tokenMap.poison;
 					if (tokenMap.burn)       pokemon.m.burnTokens       = tokenMap.burn;
 
-					const summary = (Object.entries(tokenMap) as [TokenType, number][])
-						.map(([k, v]) => `${k}x${v}`)
-						.join(', ');
-					this.add('-message', `[Endless Mode] Enemy tokens: ${summary}`);
+					if (Object.keys(tokenMap).length > 0) {
+						type TokenType = 'damage' | 'protection' | 'recovery' | 'fullheal' | 'endure' | 'paralyze' | 'poison' | 'burn';
+
+						const tokenNames: Record<TokenType, string> = {
+							damage:     'Damage',
+							protection: 'Protection',
+							recovery:   'Recovery',
+							fullheal:   'Full Heal',
+							endure:     'Endure',
+							paralyze:   'Paralyze',
+							poison:     'Poison',
+							burn:       'Burn',
+						};
+
+						const rows = (Object.entries(tokenMap) as [TokenType, number][])
+							.map(([k, v]) => `<tr><td style="padding:2px 8px 2px 4px">${tokenNames[k] ?? k}</td><td style="padding:2px 4px"><b>${v}</b></td></tr>`)
+							.join('');
+
+						this.add(`|-html|<table style="border-collapse:collapse;min-width:180px;margin-top:4px">` +
+							`<tr><th colspan="2" style="text-align:left;padding:3px 6px;border-bottom:1px solid #666;font-size:0.95em">Enemy Tokens</th></tr>` +
+							`${rows}` +
+							`</table>`);
+					}
 				}
 
 				// --- 3. ETERNATUS 250-FLOOR LOOP ---
