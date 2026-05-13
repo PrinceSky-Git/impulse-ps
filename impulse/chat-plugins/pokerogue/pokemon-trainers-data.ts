@@ -13,6 +13,8 @@ export interface TrainerData {
 	pool?: (string | TrainerMon)[];
 	random?: boolean;
 	chance?: number; // 0-100, optional. If omitted, trainer always appears
+	sprite?: string; // Trainer Sprite Url
+	dialog?: string; // Trainer Dialog
 }
 
 export const TRAINERS: Record<string, Record<string, TrainerData>> = {
