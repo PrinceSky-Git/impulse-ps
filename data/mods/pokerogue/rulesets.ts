@@ -87,7 +87,6 @@ export const Rulesets: {[k: string]: FormatData} = {
 				if (pokemon.volatiles['bossshield']) return;
 
 				// --- 1. IDENTIFY FLOOR FROM NICKNAME ---
-				//const floorMatch = pokemon.name.match(/^FLOOR:(\d+)$/);
 				const floorMatch = pokemon.name.match(/^FLOOR:(\d+)/);
 				if (!floorMatch) return;
 				const estimatedFloor = parseInt(floorMatch[1]);
@@ -169,13 +168,12 @@ export const Rulesets: {[k: string]: FormatData} = {
 					if (tokenMap.fullheal)   pokemon.m.fullHealTokens   = tokenMap.fullheal;
 					if (tokenMap.endure)     pokemon.m.endureTokens     = tokenMap.endure;
 					if (tokenMap.paralyze)   pokemon.m.paralyzeTokens   = tokenMap.paralyze;
-					if (tokenMap.poison)     pokemon.m.poisonTokens     = tokenMap.poison;
+					if (tokenMap.poison)     pokemon.m.poisonTokens     = tokenMap.burn;
 					if (tokenMap.burn)       pokemon.m.burnTokens       = tokenMap.burn;
 
-					if (Object.keys(tokenMap).length > 0) {
-						type TokenType = 'damage' | 'protection' | 'recovery' | 'fullheal' | 'endure' | 'paralyze' | 'poison' | 'burn';
-
-						const tokenNames: Record<TokenType, string> = {
+					const entries = Object.entries(tokenMap) as [string, number][];
+					if (entries.length > 0) {
+						const tokenNames: Record<string, string> = {
 							damage:     'Damage',
 							protection: 'Protection',
 							recovery:   'Recovery',
@@ -186,11 +184,11 @@ export const Rulesets: {[k: string]: FormatData} = {
 							burn:       'Burn',
 						};
 
-						const rows = (Object.entries(tokenMap) as [TokenType, number][])
-							.map(([k, v]) => `${tokenNames[k] ?? k}: ${v}`)
+						const lines = entries
+							.map(([k, v]) => tokenNames[k] ? `${tokenNames[k]}: ${v}` : `${k}: ${v}`)
 							.join(' | ');
 
-						this.add('-message', `[Enemy Tokens] ${rows}`);
+						this.add('-message', `[Enemy Tokens] ${lines}`);
 					}
 				}
 
