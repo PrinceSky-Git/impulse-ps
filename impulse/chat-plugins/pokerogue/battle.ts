@@ -623,21 +623,21 @@ interface ActiveRougeMatch {
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
 function buildBotTeam(state: PokeRogueState): string {
-	const floor = state.floor;
-	const isBossFloor = floor % 10 === 0;
+    const floor = state.floor;
+    const isBossFloor = floor % 10 === 0;
 
-	let size = 1;
+    let size = 1;
 
-	if (!isBossFloor) {
-		const hasLure = (state.keyItems ?? []).includes('Lure');
-		if (hasLure && Math.random() < 0.5) {
-			size = 2;
-		}
-	}
+    if (!isBossFloor) {
+        const hasLure = (state.keyItems ?? []).includes('Lure');
+        if (hasLure && Math.random() < 0.5) {
+            size = 2;
+        }
+    }
 
-	const luck = state.luck ?? 0;
-	const aiTeam = genAIPokemon(size, floor, luck);
-	return packAITeam(aiTeam);
+    const luck = state.luck ?? 0;
+    const aiTeam = genAIPokemon(size, floor, luck);
+    return packAITeam(aiTeam, floor);
 }
 
 export function startBattle(user: User, state: PokeRogueState): boolean {
