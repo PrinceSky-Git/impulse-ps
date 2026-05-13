@@ -388,7 +388,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				 state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
 				return this.errorReply("Resolve all pending choices before starting a battle.");
 			}
 
@@ -396,11 +396,46 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
 			}
 
+			const floorStr = state.floor.toString();
+			if (TRAINERS[floorStr]) {
+				const trainerNames = Object.keys(TRAINERS[floorStr]);
+				const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
+				const trainerData = TRAINERS[floorStr][selectedTrainer];
+				const sprite = trainerData.sprite;
+				const dialog = trainerData.dialog;
+
+				if (sprite || dialog) {
+					state.pendingTrainerIntro = {
+						sprite: sprite ?? '',
+						dialog: dialog ?? `I won't go easy on you!`,
+						trainerName: selectedTrainer,
+					};
+					(state as any).view = 'main';
+					setState(user.id, state);
+					refreshGamePage(user);
+					return;
+				}
+			}
+
 			if (startBattle(user, state)) {
 				(state as any).view = 'main';
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
+		},
+
+		battleconfirm(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+			if (!state.pendingTrainerIntro) return this.errorReply("No trainer battle pending.");
+
+			delete state.pendingTrainerIntro;
+
+			if (startBattle(user, state)) {
+				(state as any).view = 'main';
+			}
+			setState(user.id, state);
+			refreshGamePage(user);
 		},
 
 		choose(target, room, user) {
