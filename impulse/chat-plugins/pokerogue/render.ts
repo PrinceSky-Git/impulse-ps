@@ -170,7 +170,7 @@ function renderMoveList(moves: string[]): string {
 
 function renderExpBar(mon: PokemonEntry): string {
 	let pct = 100;
-	if (mon.level < 999) {
+	if (mon.level < 9999) {
 		const expType = mon.expType ?? 'Medium Fast';
 		const expAtCurrent = expForLevel(mon.level, expType);
 		const expAtNext = expForLevel(mon.level + 1, expType);
@@ -191,7 +191,7 @@ function renderHpBar(mon: PokemonEntry): string {
 
 function renderTeamTableRow(mon: PokemonEntry, actionButton?: string): string {
 	const spData = Dex.species.get(toID(mon.species));
-	const expNeeded = mon.level < 999 ? expForLevel(mon.level + 1) - mon.exp : 0;
+	const expNeeded = mon.level < 9999 ? expForLevel(mon.level + 1) - mon.exp : 0;
 	const abilities = spData.abilities as Record<string, string>;
 	const ability = abilities['0'] || '';
 
@@ -235,7 +235,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string): string {
 
 	buf += `<div class="pr-bars" style="margin-top:6px">${renderHpBar(mon)}<div class="pr-bar-row">`;
 	buf += `<div class="pr-bar-track">${renderExpBar(mon).replace('pr-expbar', 'pr-bar-track').replace('<div class="pr-expbar"><', '<').replace('</div></div>', '</div>')}</div>`;
-	if (mon.level < 999) {
+	if (mon.level < 9999) {
 		buf += `<span class="pr-bar-label" style="min-width:36px;font-size:8px">${expNeeded} to Lv</span>`;
 	}
 	buf += `</div></div></td>`;
