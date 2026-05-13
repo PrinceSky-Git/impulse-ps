@@ -190,7 +190,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 							.map(([k, v]) => `<tr><td style="padding:2px 8px 2px 4px">${tokenNames[k] ?? k}</td><td style="padding:2px 4px"><b>${v}</b></td></tr>`)
 							.join('');
 
-						this.add(`|-html|<table style="border-collapse:collapse;min-width:180px;margin-top:4px">` +
+						this.add(`|html|<table style="border-collapse:collapse;min-width:180px;margin-top:4px">` +
 							`<tr><th colspan="2" style="text-align:left;padding:3px 6px;border-bottom:1px solid #666;font-size:0.95em">Enemy Tokens</th></tr>` +
 							`${rows}` +
 							`</table>`);
