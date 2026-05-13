@@ -990,7 +990,7 @@ export function packAIPokemon(set: AIPokemonSet, floor = 0): string {
 	const evStr = `${set.evs.hp},${set.evs.atk},${set.evs.def},${set.evs.spa},${set.evs.spd},${set.evs.spe}`;
 	const movesStr = set.moves.map(m => Dex.moves.get(m).name || m).join(',');
 	const shinyStr = set.shiny ? 'S' : '';
-	return `${name}|${nickname}|${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|,,,${set.teraType}`;
+	return `${nickname}|${name}|${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|,,,${set.teraType}`;
 }
 
 export function packTeam(mons: PokemonEntry[]): string {
