@@ -470,37 +470,6 @@ export function clearMoveHistory(roomid: string): void {
 	recentMoveHistory.delete(roomid);
 }
 
-function buildTokenPanel(enemyPokemon: any): string {
-	const tokenNames: Record<string, string> = {
-		damageTokens:     'Damage',
-		protectionTokens: 'Protection',
-		recoveryTokens:   'Recovery',
-		fullHealTokens:   'Full Heal',
-		endureTokens:     'Endure',
-		paralyzeTokens:   'Paralyze',
-		poisonTokens:     'Poison',
-		burnTokens:       'Burn',
-	};
-
-	const rows = Object.entries(tokenNames)
-		.filter(([key]) => enemyPokemon.m[key])
-		.map(([key, label]) =>
-			`<tr>` +
-			`<td style="padding:2px 12px 2px 6px;color:#ccc">${label}</td>` +
-			`<td style="padding:2px 6px;font-weight:bold;color:#fff">${enemyPokemon.m[key]}</td>` +
-			`</tr>`
-		).join('');
-
-	if (!rows) return '';
-
-	return `<div style="padding:8px;background:rgba(0,0,0,0.25);border-radius:6px;margin-top:5px">` +
-		`<div style="font-weight:bold;margin-bottom:6px;color:#ddd;font-size:0.9em">&#x26A1; Enemy Tokens</div>` +
-		`<table style="border-collapse:collapse">` +
-		`${rows}` +
-		`</table>` +
-		`</div>`;
-}
-
 function makeAIChoice(requestJson: string, roomid: string, turn: number): string {
 	let request: any;
 	try {
@@ -649,7 +618,6 @@ interface ActiveRougeMatch {
 	botUserId: ID;
 	floor: number;
 	lastPanelTurn?: number;
-	tokenPanelSent?: boolean;
 }
 
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
@@ -669,7 +637,7 @@ function buildBotTeam(state: PokeRogueState): string {
 
 	const luck = state.luck ?? 0;
 	const aiTeam = genAIPokemon(size, floor, luck);
-	return packAITeam(aiTeam, floor);
+	return packAITeam(aiTeam);
 }
 
 export function startBattle(user: User, state: PokeRogueState): boolean {
@@ -719,23 +687,9 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		const match = activeMatches.get(roomid as RoomID);
 		if (match) {
 			const activeState = getState(match.userId);
-			const turn = room.battle.turn || 0;
-			const playerUser = Users.get(match.userId);
-
-			// Send token panel once on turn 1 for endless mode (floors with tokens start at 50)
-			if (turn === 1 && !match.tokenPanelSent) {
-				match.tokenPanelSent = true;
-				const enemyPokemon = (room.battle as any).p2?.active?.[0];
-				if (enemyPokemon?.m) {
-					const tokenHTML = buildTokenPanel(enemyPokemon);
-					if (tokenHTML && playerUser) {
-						playerUser.sendTo(room, `|uhtml|tokenpanel|${tokenHTML}`);
-					}
-				}
-			}
-
-			// Send catch panel on every turn for non-boss floors
 			if (activeState && activeState.floor % 10 !== 0) {
+				const turn = room.battle.turn || 0;
+
 				if (turn > 0 && match.lastPanelTurn !== turn) {
 					const inv = activeState.inventory || {};
 					const pb = inv['pokeball'] || 0;
@@ -751,6 +705,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 						`<button name="send" value="/pokerogue catch masterball" class="button" ${mb ? '' : 'disabled'}>Master Ball (${mb})</button>` +
 						`</div>`;
 
+					const playerUser = Users.get(match.userId);
 					if (playerUser) {
 						if (match.lastPanelTurn) {
 							playerUser.sendTo(room, `|uhtmlchange|catchpanel-${match.lastPanelTurn}|`);
@@ -774,7 +729,6 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		userId: user.id,
 		botUserId: botUser.id,
 		floor: state.floor,
-		tokenPanelSent: false,
 	});
 
 	clearMoveHistory(battleRoom.roomid);
