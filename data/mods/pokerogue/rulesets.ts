@@ -87,7 +87,8 @@ export const Rulesets: {[k: string]: FormatData} = {
 				if (pokemon.volatiles['bossshield']) return;
 
 				// --- 1. IDENTIFY FLOOR FROM NICKNAME ---
-				const floorMatch = pokemon.name.match(/^FLOOR:(\d+)$/);
+				//const floorMatch = pokemon.name.match(/^FLOOR:(\d+)$/);
+				const floorMatch = pokemon.name.match(/^FLOOR:(\d+)/);
 				if (!floorMatch) return;
 				const estimatedFloor = parseInt(floorMatch[1]);
 				const isBossWave = estimatedFloor % 10 === 0;
