@@ -16,6 +16,12 @@ export interface TrainerData {
 }
 
 export const TRAINERS: Record<string, Record<string, TrainerData>> = {
+	'5': {
+		'Youngster Sky' {
+			teamSize: 2,
+			random: true,
+		},
+	},
 	// wave 165: evil team boss 2
 	'165': {
 		'Giovanni (Final)': {
