@@ -12,7 +12,7 @@ export const Formats: FormatList = [
 			'PokeRogue EXP Tracker',
 		],
 		DefaultLevel: 1,
-		MaxLevel: 999999,
+		MaxLevel: 9999,
 		banlist: [],
 	},
 	{
@@ -26,7 +26,7 @@ export const Formats: FormatList = [
 			'PokeRogue EXP Tracker',
 		],
 		DefaultLevel: 1,
-		MaxLevel: 999999,
+		MaxLevel: 9999,
 		banlist: [],
 	},
 ];
