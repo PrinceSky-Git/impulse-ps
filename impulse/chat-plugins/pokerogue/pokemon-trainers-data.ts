@@ -17,7 +17,7 @@ export interface TrainerData {
 
 export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	'5': {
-		'Youngster Sky' {
+		'Youngster Sky': {
 			teamSize: 2,
 			random: true,
 		},
