@@ -54,7 +54,6 @@ export interface PokeRogueState {
 	pendingChoiceFloor?: number;
 	pendingMoveSlot?: number;
 	pendingReleaseSlot?: number;
-	pendingTrainerIntro?: { sprite: string; dialog: string; trainerName: string };
 }
 
 export type SavedData = Record<string, PokeRogueState>;
