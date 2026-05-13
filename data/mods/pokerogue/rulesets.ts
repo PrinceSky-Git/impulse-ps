@@ -11,7 +11,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 
 				if (pokemon.species.id === 'eternatus') {
 					pokemon.level = 200;
-					
+
 					const phase1Moves = ['dynamaxcannon', 'sludgebomb', 'flamethrower', 'cosmicpower'];
 					pokemon.moveSlots = [];
 					pokemon.baseMoveSlots = [];
@@ -92,8 +92,6 @@ export const Rulesets: {[k: string]: FormatData} = {
 				const estimatedFloor = parseInt(floorMatch[1]);
 				const isBossWave = estimatedFloor % 10 === 0;
 
-				this.add('-message', `[System] Floor ${estimatedFloor}. Boss Encounter: ${isBossWave}`);
-
 				// --- 2. ENDLESS TOKENS SETUP ---
 				// Base count: 1 per 50 floors, +1 bonus per Eternatus fight (every 250 floors)
 				const baseTokenCount = Math.floor(estimatedFloor / 50) + Math.floor(estimatedFloor / 250);
@@ -168,28 +166,8 @@ export const Rulesets: {[k: string]: FormatData} = {
 					if (tokenMap.fullheal)   pokemon.m.fullHealTokens   = tokenMap.fullheal;
 					if (tokenMap.endure)     pokemon.m.endureTokens     = tokenMap.endure;
 					if (tokenMap.paralyze)   pokemon.m.paralyzeTokens   = tokenMap.paralyze;
-					if (tokenMap.poison)     pokemon.m.poisonTokens     = tokenMap.burn;
+					if (tokenMap.poison)     pokemon.m.poisonTokens     = tokenMap.poison;
 					if (tokenMap.burn)       pokemon.m.burnTokens       = tokenMap.burn;
-
-					const entries = Object.entries(tokenMap) as [string, number][];
-					if (entries.length > 0) {
-						const tokenNames: Record<string, string> = {
-							damage:     'Damage',
-							protection: 'Protection',
-							recovery:   'Recovery',
-							fullheal:   'Full Heal',
-							endure:     'Endure',
-							paralyze:   'Paralyze',
-							poison:     'Poison',
-							burn:       'Burn',
-						};
-
-						const lines = entries
-							.map(([k, v]) => tokenNames[k] ? `${tokenNames[k]}: ${v}` : `${k}: ${v}`)
-							.join(' | ');
-
-						this.add('-message', `[Enemy Tokens] ${lines}`);
-					}
 				}
 
 				// --- 3. ETERNATUS 250-FLOOR LOOP ---
@@ -369,9 +347,9 @@ export const Rulesets: {[k: string]: FormatData} = {
 				const participants = Array.from((this as any).p1Participants || []).join(',');
 				const species = pokemon.species.id;
 				const level = pokemon.level;
-				
+
 				this.add('-message', `PR_EXP|${species}|${level}|${participants}`);
-				
+
 				if ((this as any).p1Participants) {
 					(this as any).p1Participants.clear();
 				}
