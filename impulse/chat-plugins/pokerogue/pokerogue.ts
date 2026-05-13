@@ -314,6 +314,104 @@ function syncBattleOutcome(
 	return { consumedItems };
 }
 
+function processBattleExperience(
+	logLines: string[],
+	state: PokeRogueState,
+	floor: number,
+	isBossFloor: boolean
+): string[] {
+	const detailMsgs: string[] = [];
+	const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(logLines, state, floor, isBossFloor);
+	const expMap = applyExpShare(rawExpMap, baseShareExpMap, state);
+
+	const totalExpEarned = [...rawExpMap.values()].reduce((sum, v) => sum + v, 0);
+	const expShareActive = (state.keyItems ?? []).includes(EXP_SHARE_NAME);
+
+	if (expMap.size > 0) {
+		for (const [teamIdx, expGained] of expMap) {
+			const mon = state.team[teamIdx];
+			if (!mon || (mon.currentHp ?? 100) === 0) continue;
+			
+			const oldSpecies = mon.species;
+			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor);
+			detailMsgs.push(...processLevelUp(mon, oldLevel, oldSpecies, evolved, teamIdx, state));
+		}
+
+		if (expShareActive && totalExpEarned > 0) {
+			const benchedCount = [...expMap.entries()].filter(([idx]) => !rawExpMap.has(idx)).length;
+			if (benchedCount > 0) {
+				const expAllStacks = Math.min(5, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length);
+				const sharedAmt = Math.floor((totalExpEarned / Math.max(1, [...rawExpMap.keys()].length)) * (0.20 * expAllStacks));
+				detailMsgs.push(`<span style="color:#8ab4f8">Exp. All: ${benchedCount} benched Pokémon each received <b>${sharedAmt}</b> EXP.</span>`);
+			}
+		}
+	}
+
+	return detailMsgs;
+}
+
+function processFloorRewards(state: PokeRogueState, clearedFloor: number): { bpGained: number, extraNotifs: string[] } {
+	let bpGained = clearedFloor >= 100 ? 10 : BP_PER_WIN;
+	const extraNotifs: string[] = [];
+
+	// Update Record
+	if (clearedFloor > (state.highestFloor ?? 0)) {
+		state.highestFloor = clearedFloor;
+		state.recordTeam = state.team.map(m => ({ ...m }));
+	}
+
+	// Floor 50 Milestone
+	if (clearedFloor % 50 === 0) {
+		state.inventory = state.inventory || {};
+		state.inventory.masterball = (state.inventory.masterball || 0) + 1;
+		extraNotifs.push(`<br><b style="color:#aa55ff">Milestone Reward: Received 1x Master Ball for clearing Floor ${clearedFloor}!</b>`);
+	}
+
+	// Floor 10 Milestone
+	if (clearedFloor === 10) {
+		state.keyItems = state.keyItems ?? [];
+		state.keyItems.push('Exp. Charm');
+		extraNotifs.push(`<br><b style="color:#f4c842">Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b>`);
+	}
+
+	// Boss Floor Specifics
+	if (isBossFloorBoundary(clearedFloor)) {
+		bpGained += clearedFloor >= 100 ? 10 : BP_PER_BOSS;
+		for (const mon of state.team) {
+			mon.currentHp = 100;
+			delete mon.status;
+			fullHealPP(mon);
+		}
+		extraNotifs.push(`<br><b style="color:#4caf50">Zone Boss Defeated! Full heal!</b>`);
+	}
+
+	return { bpGained, extraNotifs };
+}
+
+function handleBattleLoss(state: PokeRogueState, floor: number): void {
+	delete state.pendingMoves;
+	delete state.pendingSwap;
+	delete state.moveToLearn;
+	delete state.pendingItemName;
+	delete state.itemOptions;
+	delete state.purchasedItem;
+	delete state.caughtPokemon;
+
+	if ((state.keyItems ?? []).includes('Revive')) {
+		state.keyItems = state.keyItems.filter(k => k !== 'Revive');
+		state.notification = (state.notification ?? '') +
+			`<br><b>Revive used!</b> Retrying Floor ${floor}`;
+	} else {
+		if (floor > (state.highestFloor ?? 0)) {
+			state.highestFloor = floor;
+			state.recordTeam = state.team.map(m => ({ ...m }));
+		}
+		state.gameOver = true;
+		state.lastRunFloor = floor;
+		state.team = [];
+	}
+}
+
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
 
@@ -1197,9 +1295,11 @@ export const handlers: Chat.Handlers = {
 	onBattleEnd(battle, winner, players) {
 		const match = activeMatches.get(battle.roomid);
 		if (!match) return;
+		
 		activeMatches.delete(battle.roomid);
 		const botUser = Users.get(match.botUserId);
 		if (botUser) destroyBotUser(botUser);
+		
 		const state = getState(match.userId);
 		if (!state) return;
 
@@ -1207,6 +1307,7 @@ export const handlers: Chat.Handlers = {
 		const room = Rooms.get(battle.roomid);
 		const logLines: string[] = room?.log?.log ?? [];
 
+		// 1. Sync battle outcomes (HP, status, consumed items)
 		const { consumedItems } = syncBattleOutcome(logLines, state);
 		if (consumedItems.length) {
 			state.notification = (state.notification ?? '') +
@@ -1216,71 +1317,21 @@ export const handlers: Chat.Handlers = {
 		delete state.battleRoomId;
 
 		if (toID(winner) === match.userId) {
-			const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(logLines, state, match.floor, isBossFloor);
-			const expMap = applyExpShare(rawExpMap, baseShareExpMap, state);
+			// -- WIN CONDITION --
+			
+			// Process EXP & Level-ups
+			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor);
 
-			const totalExpEarned = [...rawExpMap.values()].reduce((sum, v) => sum + v, 0);
-			const expShareActive = (state.keyItems ?? []).includes(EXP_SHARE_NAME);
-			const detailMsgs: string[] = [];
-
-			if (expMap.size > 0) {
-				for (const [teamIdx, expGained] of expMap) {
-					const mon = state.team[teamIdx];
-					if (!mon || (mon.currentHp ?? 100) === 0) continue;
-					const oldSpecies = mon.species;
-					const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, match.floor);
-					detailMsgs.push(...processLevelUp(mon, oldLevel, oldSpecies, evolved, teamIdx, state));
-				}
-
-				if (expShareActive && totalExpEarned > 0) {
-					const benchedCount = [...expMap.entries()].filter(
-						([idx]) => !rawExpMap.has(idx)
-					).length;
-					if (benchedCount > 0) {
-						const sharedAmt = Math.floor((totalExpEarned / Math.max(1, [...rawExpMap.keys()].length)) * (0.20 * Math.min(5, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length)));
-						detailMsgs.push(
-							`<span style="color:#8ab4f8">Exp. All: ${benchedCount} benched Pokémon each received <b>${sharedAmt}</b> EXP.</span>`
-						);
-					}
-				}
-			}
-
+			// Process Floor Progression & Rewards
 			const prevFloor = state.floor;
 			state.floor++;
-			const bpPerWin = prevFloor >= 100 ? 10 : BP_PER_WIN;
-			const bpPerBoss = prevFloor >= 100 ? 10 : BP_PER_BOSS;
-			let bpGained = bpPerWin;
+			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor);
 
-			if (prevFloor % 50 === 0) {
-				state.inventory = state.inventory || {};
-				state.inventory.masterball = (state.inventory.masterball || 0) + 1;
-				state.notification = (state.notification ?? '') + `<br><b style="color:#aa55ff">Milestone Reward: Received 1x Master Ball for clearing Floor ${prevFloor}!</b>`;
-			}
-
-			if (prevFloor === 10) {
-				state.keyItems = state.keyItems ?? [];
-				state.keyItems.push('Exp. Charm');
-				state.notification = (state.notification ?? '') + `<br><b style="color:#f4c842">Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b>`;
-			}
-
-			if (prevFloor > (state.highestFloor ?? 0)) {
-				state.highestFloor = prevFloor;
-				state.recordTeam = state.team.map(m => ({ ...m }));
-			}
-
-			if (isBossFloorBoundary(prevFloor)) {
-				bpGained += bpPerBoss;
-				for (const mon of state.team) {
-					mon.currentHp = 100;
-					delete mon.status;
-					fullHealPP(mon);
-				}
-				state.notification = (state.notification ?? '') + `<br><b style="color:#4caf50">Zone Boss Defeated! Full heal!</b>`;
-			}
-
+			// Handle Caught Pokémon
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;
 				const spName = Dex.species.get(toID(caughtMon.species)).name;
+				
 				if (state.team.length < 6) {
 					state.team.push(caughtMon);
 					detailMsgs.push(`<b style="color:#4caf50">Added ${spName} to your team!</b>`);
@@ -1291,39 +1342,23 @@ export const handlers: Chat.Handlers = {
 				delete state.caughtPokemon;
 			}
 
+			// Finalize state updates for the new floor
 			state.battlePoints = (state.battlePoints ?? 0) + bpGained;
-
 			state.displayName = Users.get(match.userId)?.name || match.userId;
+			state.timesRerolled = 0;
 
+			// Construct the final notification string
 			state.notification = (state.notification ?? '') +
 				`<br><b>Floor ${prevFloor} Cleared!</b> +${bpGained} BP.<br>` +
-				detailMsgs.join('<br>');
+				extraNotifs.join('') + 
+				(detailMsgs.length ? '<br>' + detailMsgs.join('<br>') : '');
 
-			state.timesRerolled = 0;
 		} else {
-			delete state.pendingMoves;
-			delete state.pendingSwap;
-			delete state.moveToLearn;
-			delete state.pendingItemName;
-			delete state.itemOptions;
-			delete state.purchasedItem;
-			delete state.caughtPokemon;
-
-			if ((state.keyItems ?? []).includes('Revive')) {
-				state.keyItems = state.keyItems.filter(k => k !== 'Revive');
-				state.notification = (state.notification ?? '') +
-					'<br><b>Revive used!</b> Retrying Floor ' + String(match.floor);
-			} else {
-				if (match.floor > (state.highestFloor ?? 0)) {
-					state.highestFloor = match.floor;
-					state.recordTeam = state.team.map(m => ({ ...m }));
-				}
-				state.gameOver = true;
-				state.lastRunFloor = match.floor;
-				state.team = [];
-			}
+			// -- LOSS CONDITION --
+			handleBattleLoss(state, match.floor);
 		}
 
+		// Save and visually refresh
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
