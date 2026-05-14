@@ -53,10 +53,14 @@ function processLevelUp(
 ): string[] {
 	const detailMsgs: string[] = [];
 
+	// Fetch the proper display names to fix the capitalization bug
+	const oldName = Dex.species.get(toID(oldSpecies)).name;
+	const currentName = Dex.species.get(toID(mon.species)).name;
+
 	if (evolved) {
-		detailMsgs.push(`<b>${oldSpecies}</b> evolved into <b>${mon.species}</b> and reached Lv. ${mon.level}!`);
+		detailMsgs.push(`&nbsp;&nbsp;↳ <b>${oldName}</b> evolved into <b>${currentName}</b> and reached Lv. ${mon.level}!`);
 	} else if (mon.level > oldLevel) {
-		detailMsgs.push(`<b>${mon.species}</b> reached Lv. ${mon.level}!`);
+		detailMsgs.push(`&nbsp;&nbsp;↳ <b>${currentName}</b> reached Lv. ${mon.level}!`);
 	}
 
 	if (!mon.moves) mon.moves = getLevelUpMoves(mon.species, oldLevel);
@@ -75,7 +79,7 @@ function processLevelUp(
 
 		if (mon.moves.length < 4) {
 			mon.moves.push(move);
-			detailMsgs.push(`<b>${mon.species}</b> learned <b>${Dex.moves.get(move).name}</b>!`);
+			detailMsgs.push(`&nbsp;&nbsp;↳ <b>${currentName}</b> learned <b>${Dex.moves.get(move).name}</b>!`);
 		} else {
 			state.pendingMoves.push({ pokemonIndex: teamIdx, move, speciesName: mon.species });
 		}
