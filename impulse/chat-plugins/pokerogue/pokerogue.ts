@@ -335,6 +335,15 @@ function processBattleExperience(
 			if (!mon || (mon.currentHp ?? 100) === 0) continue;
 			
 			const oldSpecies = mon.species;
+			const spName = Dex.species.get(toID(oldSpecies)).name;
+			
+			// Distinguish active participants from bench/Exp. All receivers
+			const isActive = rawExpMap.has(teamIdx);
+			const sourceTag = !isActive ? ' <span style="color:#8ab4f8;font-size:10px">(Exp. All)</span>' : '';
+			
+			// Explicitly log the EXP gain for every Pokémon
+			detailMsgs.push(`<b>${spName}</b> gained ${expGained} Exp.${sourceTag}`);
+
 			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor);
 			detailMsgs.push(...processLevelUp(mon, oldLevel, oldSpecies, evolved, teamIdx, state));
 		}
@@ -344,7 +353,7 @@ function processBattleExperience(
 			if (benchedCount > 0) {
 				const expAllStacks = Math.min(5, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length);
 				const sharedAmt = Math.floor((totalExpEarned / Math.max(1, [...rawExpMap.keys()].length)) * (0.20 * expAllStacks));
-				detailMsgs.push(`<span style="color:#8ab4f8">Exp. All: ${benchedCount} benched Pokémon each received <b>${sharedAmt}</b> EXP.</span>`);
+				detailMsgs.push(`<span style="color:#8ab4f8; font-style: italic;">Summary: ${benchedCount} benched Pokémon received <b>${sharedAmt}</b> EXP via Exp. All stacks.</span>`);
 			}
 		}
 	}
