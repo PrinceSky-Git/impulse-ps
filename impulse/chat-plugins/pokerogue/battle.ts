@@ -205,7 +205,7 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
 }
 
 /* * Dev Note: Move Scoring Heuristic
- * Calculates an effective priority score for each move. Factors in STAB, 
+ * Calculates an effective priority score for each move. Factors in STAB,
  * type effectiveness, recoil, multi-hit, and basic ability immunities.
  */
 function scoreMove(
@@ -236,6 +236,7 @@ function scoreMove(
 	if (basePower === 0) {
 		basePower = estimateVariablePower(move.id);
 	}
+	// Truly 0-power moves that aren't status (struggle edge case) get minimal score
 	if (basePower === 0) return 5;
 
 	let score = basePower;
@@ -318,7 +319,7 @@ function estimateVariablePower(moveId: string): number {
 		powertrip: 40, storedpower: 40, punishment: 60,
 		knockoff: 65, acrobatics: 55, fling: 50,
 	};
-	return estimates[moveId] ?? 60;
+	return estimates[moveId] ?? 0;
 }
 
 function parseHpRatio(condition: string | undefined): number {
@@ -354,13 +355,15 @@ function shouldSwitch(
 	targetSpecies: string,
 	targetAbility: string,
 	room: AnyObject | null | undefined,
+	alreadyChosen: number[],
 ): number {
 	const pokemon = request.side?.pokemon ?? [];
 	const currentPokemon = pokemon[activeIdx];
 	if (!currentPokemon) return 0;
 
 	const active = (request.active as any[])[activeIdx];
-	if (active?.trapped || active?.maybeTrapped) return 0;
+	// Bug fix: respect all forms of trapping including partiallyTrapped
+	if (active?.trapped || active?.maybeTrapped || active?.partiallyTrapped) return 0;
 
 	const hpRatio = parseHpRatio(currentPokemon.condition);
 	const userSpecies = toID(currentPokemon.details?.split(',')[0] ?? '');
@@ -398,11 +401,13 @@ function shouldSwitch(
 	const numActive = (request.active as any[]).length;
 	const oppMoveTypes = getOpponentMoveTypes(room, activeIdx);
 
+	// Bug fix: exclude active slots AND already-chosen bench slots to prevent doubles from doubling up
 	const bench = pokemon
 		.map((p: any, idx: number) => ({ p, idx: idx + 1 }))
 		.filter(({ p, idx }: { p: any, idx: number }) =>
 			idx > numActive &&
-			!p.condition?.endsWith(' fnt')
+			!p.condition?.endsWith(' fnt') &&
+			!alreadyChosen.includes(idx)
 		);
 
 	if (!bench.length) return 0;
@@ -478,17 +483,20 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 		const choices: string[] = [];
 		const pokemon = request.side?.pokemon ?? [];
 		const chosen: number[] = [];
-		const switchStart = (request.forceSwitch as boolean[]).length;
+		// Number of active slots = forceSwitch array length
+		const numActive = (request.forceSwitch as boolean[]).length;
 
 		for (const forceSwitchEntry of (request.forceSwitch as boolean[])) {
 			if (!forceSwitchEntry) {
 				choices.push('pass');
 				continue;
 			}
+
+			// Bug fix: bench starts after all active slots, and exclude already-chosen to prevent duplicate switches in doubles
 			const available = pokemon
 				.map((p: any, idx: number) => ({ p, idx: idx + 1 }))
 				.filter(({ p, idx }: { p: any, idx: number }) =>
-					idx > switchStart &&
+					idx > numActive &&
 					!p.condition?.endsWith(' fnt') &&
 					!chosen.includes(idx)
 				)
@@ -511,16 +519,19 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 
 	if (request.active) {
 		const choicesList: string[] = [];
+		const chosenSwitchTargets: number[] = [];
 
 		const room = Rooms.get(roomid as RoomID);
 		const match = activeMatches.get(roomid as RoomID);
 		const currentFloor = match?.floor ?? 1;
+		const numActive = (request.active as any[]).length;
 
-		for (let i = 0; i < (request.active as any[]).length; i++) {
+		for (let i = 0; i < numActive; i++) {
 			const active = (request.active as any[])[i];
 			const pokemon = request.side?.pokemon?.[i];
 
-			if (!pokemon || pokemon.condition?.endsWith(' fnt') || pokemon.commanding) {
+			// Bug fix: guard against missing active slot or fainted/commanding pokemon
+			if (!active || !pokemon || pokemon.condition?.endsWith(' fnt') || pokemon.commanding) {
 				choicesList.push('pass');
 				continue;
 			}
@@ -529,50 +540,63 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			const targetSpecies = getOpponentSpecies(room, i);
 			const targetAbility = getOpponentAbility(room, i);
 
-			const switchIdx = shouldSwitch(request, i, targetSpecies, targetAbility, room);
+			// Pass already-chosen switch targets so doubles won't pick the same slot
+			const switchIdx = shouldSwitch(request, i, targetSpecies, targetAbility, room, chosenSwitchTargets);
 			if (switchIdx > 0) {
+				chosenSwitchTargets.push(switchIdx);
 				choicesList.push(`switch ${switchIdx}`);
 				continue;
 			}
 
 			const moves: any[] = active?.moves ?? [];
+
+			// Bug fix: also filter out moves with 0 pp explicitly (pp can be 0, not just missing)
 			const usableMoves = moves.filter((m: any) => !m.disabled && (m.pp ?? 1) > 0);
 
-			let chosen = '';
-			if (usableMoves.length > 0) {
-				const scored = usableMoves.map((m: any) => {
-					let score = scoreMove(m, userSpecies, targetSpecies, targetAbility, pokemon, turn);
-
-					const lastUsed = getLastUsedTurn(roomid, i, m.id);
-					const turnsSince = turn - lastUsed;
-					if (turnsSince === 1) score *= 0.55;
-					else if (turnsSince === 2) score *= 0.75;
-					else if (turnsSince === 3) score *= 0.9;
-
-					return { m, originalIdx: moves.indexOf(m) + 1, score };
-				});
-
-				scored.sort((a: any, b: any) => b.score - a.score);
-
-				let pickIdx = 0;
-				if (scored.length > 1 && scored[0].score > 0) {
-					const ratio = scored[1].score / scored[0].score;
-					if (ratio >= 0.85 && Math.random() < 0.1) pickIdx = 1;
-				}
-
-				const pick = scored[pickIdx];
-				if (pick.score === -Infinity || pick.score <= 0) {
-					const fallback = scored.find((s: any) => s.score > -Infinity);
-					chosen = fallback ? `move ${fallback.originalIdx}` : 'move 1';
-					if (fallback) recordMoveUsed(roomid, i, fallback.m.id, turn);
-				} else {
-					chosen = `move ${pick.originalIdx}`;
-					recordMoveUsed(roomid, i, pick.m.id, turn);
-				}
-			} else {
-				chosen = 'move 1';
+			// Bug fix: if no usable moves, fall back to struggle (move 1) immediately
+			if (!usableMoves.length) {
+				choicesList.push('move 1');
+				continue;
 			}
 
+			const scored = usableMoves.map((m: any) => {
+				let score = scoreMove(m, userSpecies, targetSpecies, targetAbility, pokemon, turn);
+
+				const lastUsed = getLastUsedTurn(roomid, i, m.id);
+				const turnsSince = turn - lastUsed;
+				if (turnsSince === 1) score *= 0.55;
+				else if (turnsSince === 2) score *= 0.75;
+				else if (turnsSince === 3) score *= 0.9;
+
+				return { m, originalIdx: moves.indexOf(m) + 1, score };
+			});
+
+			scored.sort((a: any, b: any) => b.score - a.score);
+
+			let pickIdx = 0;
+			if (scored.length > 1 && scored[0].score > 0) {
+				const ratio = scored[1].score / scored[0].score;
+				if (ratio >= 0.85 && Math.random() < 0.1) pickIdx = 1;
+			}
+
+			const pick = scored[pickIdx];
+			let chosen: string;
+
+			if (pick.score === -Infinity || pick.score <= 0) {
+				const fallback = scored.find((s: any) => s.score > -Infinity && s.score > 0);
+				if (fallback) {
+					chosen = `move ${fallback.originalIdx}`;
+					recordMoveUsed(roomid, i, fallback.m.id, turn);
+				} else {
+					// All moves are blocked/0 score — use move 1 (triggers struggle if truly out of PP)
+					chosen = 'move 1';
+				}
+			} else {
+				chosen = `move ${pick.originalIdx}`;
+				recordMoveUsed(roomid, i, pick.m.id, turn);
+			}
+
+			// Bug fix: only append battle mechanic suffixes to move choices, never to switches
 			if (active.canMegaEvo) {
 				chosen += ' mega';
 			} else if (active.canTerastallize && currentFloor > 25) {
