@@ -1348,9 +1348,12 @@ export const handlers: Chat.Handlers = {
 		const logLines: string[] = room?.log?.log ?? [];
 
 		const { consumedItems } = syncBattleOutcome(logLines, state);
+		
+		// 1. Create a local array to hold all battle-related messages
+		let battleLogMsgs: string[] = [];
+
 		if (consumedItems.length) {
-			state.notification = (state.notification ?? '') +
-				`<br><b style="color:#ffb84d">Consumed items:</b> ${consumedItems.join(', ')}`;
+			battleLogMsgs.push(`<b style="color:#ffb84d">Consumed items:</b> ${consumedItems.join(', ')}`);
 		}
 
 		delete state.battleRoomId;
@@ -1382,13 +1385,25 @@ export const handlers: Chat.Handlers = {
 			state.displayName = Users.get(match.userId)?.name || match.userId;
 			state.timesRerolled = 0;
 
-			state.notification = (state.notification ?? '') +
-				`<br><b>Floor ${prevFloor} Cleared!</b> +${bpGained} BP.<br>` +
-				extraNotifs.join('') + 
-				(detailMsgs.length ? '<br>' + detailMsgs.join('<br>') : '');
+			// 2. Push all rewards and level ups into our local array instead of state.notification
+			battleLogMsgs.push(`<b>Floor ${prevFloor} Cleared!</b> +${bpGained} BP.`);
+			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
+			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 
 		} else {
 			handleBattleLoss(state, match.floor);
+			// Note: handleBattleLoss may still set state.notification for Revives, 
+			// which is desired so it displays when they return to the main menu.
+		}
+
+		// 3. Inject the compiled messages directly into the battle chatroom
+		if (battleLogMsgs.length > 0 && room) {
+			const infoboxHtml = `<div class="infobox" style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1);">` +
+								`<div style="font-weight: bold; margin-bottom: 6px; font-size: 13px; color: #8ab4f8;">Post-Battle Report</div>` +
+								`<div style="font-size: 12px; line-height: 1.5;">${battleLogMsgs.join('<br>')}</div>` +
+								`</div>`;
+			
+			room.add(`|html|${infoboxHtml}`).update();
 		}
 
 		setState(match.userId, state);
