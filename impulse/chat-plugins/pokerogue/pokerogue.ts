@@ -1392,16 +1392,18 @@ export const handlers: Chat.Handlers = {
 			// ORDER 3: Milestones & Boss Rewards
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
             
-			// ORDER 4: Floor Cleared & BP
-			battleLogMsgs.push(`<b>Floor ${prevFloor} Cleared!</b> +${bpGained} BP.`);
+			// ORDER 4: Floor Cleared & BP (with a subtle dividing line)
+			battleLogMsgs.push(`<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 6px 0;">`);
+			battleLogMsgs.push(`<b>You've gained ${bpGained} battle points for clearing the floor!</b>`);
 
 		} else {
 			handleBattleLoss(state, match.floor);
 		}
 
 		if (battleLogMsgs.length > 0 && room) {
+			// Updated Title to dynamically include the Floor number
 			const infoboxHtml = `<div class="infobox" style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1);">` +
-								`<div style="font-weight: bold; margin-bottom: 6px; font-size: 13px;">Post-Battle Report</div>` +
+								`<div style="font-weight: bold; margin-bottom: 6px; font-size: 13px;">Floor ${match.floor} - Battle Report</div>` +
 								`<div style="font-size: 12px; line-height: 1.5;">${battleLogMsgs.join('<br>')}</div>` +
 								`</div>`;
 			
