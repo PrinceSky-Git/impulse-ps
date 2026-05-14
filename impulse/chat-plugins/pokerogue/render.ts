@@ -489,19 +489,22 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 	
 	let buf = `<div style="text-align:center; padding: 40px 10px; display:flex; flex-direction:column; align-items:center; justify-content:center;">`;
 	
-	buf += `<h2 style="font-size:24px; font-weight:bold; margin-bottom: 25px; color: #fff;">${Utils.escapeHTML(trainerName)}</h2>`;
+	buf += `<h2 style="font-size:20px; font-weight:bold; color: #fff;">${Utils.escapeHTML(trainerName)}</h2>`;
+	buf += `<br>`;
 	
 	if (trainerData?.spriteUrl) {
-		buf += `<img src="${Utils.escapeHTML(trainerData.spriteUrl)}" alt="${Utils.escapeHTML(trainerName)}" style="max-height: 200px; max-width: 200px; margin-bottom: 25px; image-rendering: pixelated;">`;
+		buf += `<img src="${Utils.escapeHTML(trainerData.spriteUrl)}" alt="${Utils.escapeHTML(trainerName)}" style="width: 96px; height: 96px; image-rendering: pixelated;">`;
+		buf += `<br>`;
 	}
 	
 	if (trainerData?.dialog) {
-		buf += `<div style="background: rgba(0,0,0,0.3); padding: 18px 24px; border-radius: 8px; font-style: italic; max-width: 450px; margin-bottom: 30px; border-left: 4px solid #8ab4f8; font-size: 15px; line-height: 1.5;">`;
+		buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 450px; border-left: 4px solid #8ab4f8; font-size: 12px; line-height: 1.4;">`;
 		buf += `"${Utils.escapeHTML(trainerData.dialog)}"`;
 		buf += `</div>`;
+		buf += `<br>`;
 	}
 	
-	buf += renderBtn('/pokerogue battle', 'Start Battle', 'pr-btn primary', 'padding: 12px 35px; font-size: 16px; font-weight: bold;');
+	buf += renderBtn('/pokerogue battle', 'Start Battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	buf += `</div>`;
 	
 	return buf;
