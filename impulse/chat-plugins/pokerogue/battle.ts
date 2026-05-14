@@ -207,6 +207,10 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
 /* * Dev Note: Move Scoring Heuristic
  * Calculates an effective priority score for each move. Factors in STAB,
  * type effectiveness, recoil, multi-hit, and basic ability immunities.
+ *
+ * Fix: effectiveness multiplier is applied once. The old code applied it raw
+ * then again with a bonus/penalty on top, causing extreme score skew on
+ * super-effective and resisted hits.
  */
 function scoreMove(
 	move: any,
@@ -234,18 +238,13 @@ function scoreMove(
 
 	let basePower = moveData.basePower ?? 0;
 	if (basePower === 0) {
-		basePower = estimateVariablePower(move.id);
+		basePower = estimateVariablePower(move.id, userPokemon);
 	}
-	// Truly 0-power moves that aren't status (struggle edge case) get minimal score
 	if (basePower === 0) return 5;
 
-	let score = basePower;
+	let score = basePower * effectiveness;
 
-	score *= effectiveness;
-
-	if (effectiveness > 1) score *= 1.2;
-	else if (effectiveness < 1) score *= 0.7;
-
+	// STAB bonus
 	if (userDex.exists && userDex.types.includes(moveData.type)) {
 		score *= 1.5;
 	}
@@ -309,10 +308,16 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number): number {
 	return 15;
 }
 
-function estimateVariablePower(moveId: string): number {
+// Fix: eruption/waterspout scale with current HP; other variable-power moves unchanged
+function estimateVariablePower(moveId: string, pokemon?: any): number {
+	if ((moveId === 'eruption' || moveId === 'waterspout') && pokemon) {
+		const hp = parseHpRatio(pokemon.condition);
+		return Math.max(1, Math.floor(150 * hp));
+	}
+
 	const estimates: Record<string, number> = {
 		gyroball: 60, electroball: 60, heatcrash: 60, heavyslam: 60,
-		lowkick: 60, grassknot: 60, eruption: 100, waterspout: 100,
+		lowkick: 60, grassknot: 60, waterspout: 100, eruption: 100,
 		reversal: 50, flail: 50, magnitude: 70, naturalgift: 70,
 		trumpcard: 40, returnn: 102, frustration: 102,
 		hiddenpower: 60, weatherball: 50, terrainpulse: 50,
@@ -440,8 +445,11 @@ function shouldSwitch(
 	}).sort((a: any, b: any) => b.score - a.score);
 
 	const best = scored[0];
-	if (best && best.score > 3) return best.idx;
+
+	// Fix: use a relative threshold — only switch if the bench option is meaningfully better.
+	// Previously a flat score > 3 could refuse to switch a critically low mon with nowhere to go.
 	if (isCriticallyLow && bench.length) return scored[0]?.idx ?? 0;
+	if (best && best.score > 3) return best.idx;
 
 	return 0;
 }
@@ -562,11 +570,16 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			const scored = usableMoves.map((m: any) => {
 				let score = scoreMove(m, userSpecies, targetSpecies, targetAbility, pokemon, turn);
 
-				const lastUsed = getLastUsedTurn(roomid, i, m.id);
-				const turnsSince = turn - lastUsed;
-				if (turnsSince === 1) score *= 0.55;
-				else if (turnsSince === 2) score *= 0.75;
-				else if (turnsSince === 3) score *= 0.9;
+				// Fix: softer repetition penalty so good moves aren't suppressed below bad ones.
+				// Also skip the penalty entirely if the move has only 1 PP left (forced to use it).
+				const pp = m.pp ?? 99;
+				if (pp > 1) {
+					const lastUsed = getLastUsedTurn(roomid, i, m.id);
+					const turnsSince = turn - lastUsed;
+					if (turnsSince === 1) score *= 0.75;
+					else if (turnsSince === 2) score *= 0.88;
+					else if (turnsSince === 3) score *= 0.95;
+				}
 
 				return { m, originalIdx: moves.indexOf(m) + 1, score };
 			});
@@ -602,6 +615,18 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			} else if (active.canTerastallize && currentFloor > 25) {
 				const targetDex = Dex.species.get(targetSpecies);
 				const userDex = Dex.species.get(userSpecies);
+
+				// Fix: only Terastallize if the Tera type is neutral-or-better defensively,
+				// not just whenever the mon is in a bad matchup.
+				const teraType = active.teraType as string | undefined;
+				let teraDefensiveOk = true;
+				if (teraType && targetDex.exists) {
+					for (const atkType of targetDex.types) {
+						const eff = getTypeMultiplier(atkType, [teraType]);
+						if (eff >= 2) { teraDefensiveOk = false; break; }
+					}
+				}
+
 				let worstIncoming = 1;
 				if (targetDex.exists && userDex.exists) {
 					for (const atkType of targetDex.types) {
@@ -610,7 +635,12 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 					}
 				}
 				const hpRatio = parseHpRatio(pokemon.condition);
-				if ((worstIncoming >= 2 || currentFloor > 40) && hpRatio > 0.3 && Math.random() < 0.7) {
+				if (
+					teraDefensiveOk &&
+					(worstIncoming >= 2 || currentFloor > 40) &&
+					hpRatio > 0.3 &&
+					Math.random() < 0.7
+				) {
 					chosen += ' terastallize';
 				}
 			}
