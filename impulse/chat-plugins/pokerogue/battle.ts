@@ -77,7 +77,7 @@ function createBotUser(playerId: string): User {
 		if (typeof data === 'string') {
 			const lines = data.split('\n');
 			const roomidStr = typeof roomid === 'string' ? roomid : (roomid as any)?.roomid ?? '';
-			
+
 			for (const line of lines) {
 				if (line.startsWith('|request|')) {
 					setTimeout(() => {
@@ -95,6 +95,56 @@ function createBotUser(playerId: string): User {
 	};
 
 	return botUser;
+}
+
+// ─── Hardcoded Gen 9 Type Chart ───────────────────────────────────────────────
+// Values: 0 = immune, 0.5 = not very effective, 1 = neutral (omitted), 2 = super effective
+// Row = attacking type, Col = defending type
+
+const TYPES = [
+	'Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice',
+	'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug',
+	'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy',
+] as const;
+
+type TypeName = typeof TYPES[number];
+
+const TYPE_CHART: Record<TypeName, Partial<Record<TypeName, number>>> = {
+	Normal:   { Rock: 0.5, Ghost: 0, Steel: 0.5 },
+	Fire:     { Fire: 0.5, Water: 0.5, Grass: 2, Ice: 2, Bug: 2, Rock: 0.5, Dragon: 0.5, Steel: 2 },
+	Water:    { Fire: 2, Water: 0.5, Grass: 0.5, Ground: 2, Rock: 2, Dragon: 0.5 },
+	Electric: { Water: 2, Electric: 0.5, Grass: 0.5, Ground: 0, Flying: 2, Dragon: 0.5 },
+	Grass:    { Fire: 0.5, Water: 2, Grass: 0.5, Poison: 0.5, Ground: 2, Flying: 0.5, Bug: 0.5, Rock: 2, Dragon: 0.5, Steel: 0.5 },
+	Ice:      { Water: 0.5, Grass: 2, Ice: 0.5, Ground: 2, Flying: 2, Dragon: 2, Steel: 0.5 },
+	Fighting: { Normal: 2, Ice: 2, Poison: 0.5, Flying: 0.5, Psychic: 0.5, Bug: 0.5, Rock: 2, Ghost: 0, Dark: 2, Steel: 2, Fairy: 0.5 },
+	Poison:   { Grass: 2, Poison: 0.5, Ground: 0.5, Rock: 0.5, Ghost: 0.5, Steel: 0, Fairy: 2 },
+	Ground:   { Fire: 2, Electric: 2, Grass: 0.5, Poison: 2, Flying: 0, Bug: 0.5, Rock: 2, Steel: 2 },
+	Flying:   { Electric: 0.5, Grass: 2, Fighting: 2, Bug: 2, Rock: 0.5, Steel: 0.5 },
+	Psychic:  { Fighting: 2, Poison: 2, Psychic: 0.5, Dark: 0, Steel: 0.5 },
+	Bug:      { Fire: 0.5, Grass: 2, Fighting: 0.5, Flying: 0.5, Psychic: 2, Ghost: 0.5, Dark: 2, Steel: 0.5, Fairy: 0.5 },
+	Rock:     { Fire: 2, Ice: 2, Fighting: 0.5, Ground: 0.5, Flying: 2, Bug: 2, Steel: 0.5 },
+	Ghost:    { Normal: 0, Psychic: 2, Ghost: 2, Dark: 0.5 },
+	Dragon:   { Dragon: 2, Steel: 0.5, Fairy: 0 },
+	Dark:     { Fighting: 0.5, Psychic: 2, Ghost: 2, Dark: 0.5, Fairy: 0.5 },
+	Steel:    { Fire: 0.5, Water: 0.5, Electric: 0.5, Ice: 2, Rock: 2, Steel: 0.5, Fairy: 2 },
+	Fairy:    { Fire: 0.5, Fighting: 2, Poison: 0.5, Dragon: 2, Dark: 2, Steel: 0.5 },
+};
+
+/**
+ * Returns the combined type multiplier for an attacking type against one or two defending types.
+ * Handles dual-type defenders correctly (e.g. Water/Flying vs Electric = 2*0.5 = 1... wait, no:
+ * Electric vs Water = 2, Electric vs Flying = 2, so combined = 4).
+ * Immunities short-circuit immediately and return 0.
+ */
+function getTypeMultiplier(atkType: string, defTypes: string[]): number {
+	const chart = TYPE_CHART[atkType as TypeName];
+	let multiplier = 1;
+	for (const defType of defTypes) {
+		const val = chart?.[defType as TypeName] ?? 1;
+		if (val === 0) return 0; // immune — short-circuit
+		multiplier *= val;
+	}
+	return multiplier;
 }
 
 const ABILITY_IMMUNITIES: Record<string, string[]> = {
@@ -131,19 +181,6 @@ const SOUNDPROOF_MOVES = new Set([
 	'perishsong', 'relicsong', 'roar', 'round', 'screech', 'shadowball',
 	'sing', 'snarl', 'snore', 'sparklingsurge', 'supersonic', 'uproar',
 ]);
-
-function getTypeMultiplier(atkType: string, defTypes: string[]): number {
-	let multiplier = 1;
-	for (const defType of defTypes) {
-		if (!Dex.getImmunity(atkType, defType)) {
-			return 0;
-		}
-		const eff = Dex.getEffectiveness(atkType, defType);
-		if (eff === 1) multiplier *= 2;
-		else if (eff === -1) multiplier *= 0.5;
-	}
-	return multiplier;
-}
 
 function getMoveEffectiveness(
 	moveData: any,
@@ -763,10 +800,10 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	}
 
 	const luck = state.luck ?? 0;
-	const trainerKey = state.pendingTrainerKey; 
-	
+	const trainerKey = state.pendingTrainerKey;
+
 	const result = genAIPokemon(size, floor, luck, state.pendingTrainer, trainerKey);
-	
+
 	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer, trainerName: result.trainerName };
 }
 
@@ -779,7 +816,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	}
 
 	const playerTeam = packTeam(livingTeam);
-	
+
 	const botTeamData = buildBotTeam(state);
 	const botTeam = botTeamData.packedTeam;
 	const isTrainer = botTeamData.isTrainer;
@@ -794,14 +831,14 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 
 	const isBoss = state.floor % 10 === 0;
 	const botUser = createBotUser(user.id);
-	
+
 	let opponentTitle = isTrainer && trainerName ? trainerName : (isTrainer ? TRAINER_NAME : 'Wild Encounter');
 	if (isBoss && !isTrainer) opponentTitle = `BOSS ${opponentTitle}`;
 
 	if (isTrainer && trainerName) {
-		botUser.name = trainerName; 
+		botUser.name = trainerName;
 	}
-	
+
 	const botSlot = 'p2' as const;
 	const format = state.floor >= 15 ? '[Gen 9] PokeRogue' : '[Gen 9] PokeRogue Early';
 
