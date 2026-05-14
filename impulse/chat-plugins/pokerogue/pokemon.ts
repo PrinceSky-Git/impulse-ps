@@ -51,6 +51,10 @@ function getMediumFastExp(level: number): number {
 	return Math.floor(level ** 3);
 }
 
+/* * Dev Note: Level & EXP Extrapolation 
+ * Uses a closed-form polynomial evaluation for levels > 100 to map directly 
+ * onto official core series EXP scaling equations at limitless levels.
+ */
 export function expForLevel(level: number, expType = 'Medium Fast'): number {
 	if (level <= 1) return 0;
 
@@ -72,7 +76,6 @@ export function expForLevel(level: number, expType = 'Medium Fast'): number {
 		return levelExp;
 	}
 
-	// Above level 100: closed-form polynomial extrapolation matching official getLevelTotalExp
 	let raw: number;
 	switch (expType) {
 	case 'Erratic':
@@ -106,10 +109,6 @@ export function calcKillExp(
 	hasLuckyEgg = false,
 	isTrainer = false
 ): number {
-	// Official formula: expValue = (baseExp * level) / 5 + 1
-	// Trainer/Boss battles multiply by 1.5
-	// Then split by participant count
-	// Exp. Charm is handled globally downstream in applyExpShare
 	const b = getExpYield(enemySpeciesId);
 	const L = enemyLevel;
 	const s = Math.max(1, participantsCount);
@@ -120,7 +119,6 @@ export function calcKillExp(
 	expValue = Math.floor(expValue * a);
 	expValue = Math.floor(expValue / s);
 
-	// Apply Lucky Egg directly to the participant
 	if (hasLuckyEgg) {
 		expValue = Math.floor(expValue * 1.5);
 	}
@@ -233,13 +231,11 @@ export function getMovesLearnedBetween(speciesId: string, oldLevel: number, newL
 	return Array.from(new Set(learned));
 }
 
-// detrimental abilities — never assign to ai
 const BANNED_ABILITIES = new Set([
 	'truant', 'slowstart', 'defeatist', 'stall', 'klutz', 'illuminate',
 	'runaway', 'honeygather', 'pickup', 'frisk',
 ]);
 
-// abilities to weight higher
 const STRONG_ABILITIES = new Set([
 	'speedboost', 'drizzle', 'drought', 'sandstream', 'snowwarning',
 	'intimidate', 'download', 'protean', 'libero', 'magicguard',
@@ -317,7 +313,6 @@ function calcEVSpread(_species: Species, _floor: number): Record<string, number>
 	return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 }
 
-// status moves allowed in movesets
 const GOOD_STATUS_MOVES = new Set([
 	'thunderwave', 'willowisp', 'toxic', 'spore', 'sleeppowder',
 	'swordsdance', 'nastyplot', 'dragondance', 'calmmind', 'quiverdance',
@@ -380,6 +375,11 @@ function calculateEffectivePower(move: Move): number {
 	return Math.floor((bp * acc) / turns);
 }
 
+/* * Dev Note: AI Move Heuristics
+ * Filters the viable full-learnset of a given species down to 4 optimal moves.
+ * Prefers STAB, penalizes status moves unless specifically flagged as 'GOOD_STATUS_MOVES',
+ * and prioritizes type coverage to avoid monotype walls.
+ */
 function pickBestMoves(speciesId: string, chosenLevel: number, genNumber: number, floor: number): string[] {
 	const species = Dex.species.get(toID(speciesId));
 	const fullLearn = Dex.species.getFullLearnset(toID(speciesId));
@@ -816,28 +816,23 @@ export function genPokemon(
 	return gennedMons;
 }
 
-// Official formula: Math.ceil(((1 + waveIndex/2 + (waveIndex/25)^2) * 1.2) / 2) * 2 + 2
-// where waveIndex = ceil(floor / 10) * 10
+/* * Dev Note: Level Scale Formula
+ * Implements the core mathematical progression equation mapping wave integers
+ * to dynamic level brackets spanning from level 10 to limits exceeding 10,000.
+ */
 export function levelScaleForFloor(floor: number): [number, number] {
-	// 1. Calculate the Level Cap (The ceiling for the current 10-floor bracket)
 	const waveIndex = Math.ceil(Math.max(1, floor) / 10) * 10;
 	const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
 	const cap = Math.ceil(baseLevel / 2) * 2 + 2;
 	const clampedCap = Math.max(2, cap);
 
-	// 2. BOSS WAVE OVERRIDE:
-	// If it is the end of a biome (Wave 10, 20, 30, etc.), the boss is EXACTLY the level cap.
-	// This ensures our Showdown Ruleset successfully detects the boss and applies shields!
 	if (floor % 10 === 0) {
 		return [clampedCap, clampedCap];
 	}
 
-	// 3. Calculate the Target Level for normal wild encounters
 	const currentBase = (1 + floor / 2 + (floor / 25) ** 2) * 1.2;
 	const currentTargetLevel = Math.ceil(currentBase / 2) * 2;
 
-	// 4. Generate the actual Min/Max level range for the encounter
-	// Normal enemies spawn slightly below the hard cap (clampedCap - 1)
 	const minLevel = Math.max(2, currentTargetLevel - 1);
 	const maxLevel = Math.max(minLevel, Math.min(clampedCap - 1, currentTargetLevel + 1));
 
@@ -866,11 +861,16 @@ export function pickStarterOptions(): string[] {
 	return shuffled.slice(0, 5);
 }
 
+/* * Dev Note: Trainer/AI Instantiation
+ * Serves as the master handler for translating state instructions (e.g. `gym_leader_tier_2`)
+ * into concrete, generated opposing teams, properly scaling levels via `levelScaleForFloor`.
+ */
 export function genAIPokemon(
 	quantity: number,
 	floor = 1,
 	luck = 0,
-	forcedTrainer?: string
+	forcedTrainer?: string,
+	trainerKey?: string
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
 	const scale = levelScaleForFloor(floor);
 	const isBossFloor = floor % 10 === 0;
@@ -887,11 +887,12 @@ export function genAIPokemon(
 	let actualQuantity = quantity;
 	let isTrainerBattle = false;
 	let trainerName: string | undefined = undefined;
+	const lookupKey = trainerKey || floor.toString();
 
-	if (forcedTrainer && TRAINERS[floor.toString()] && TRAINERS[floor.toString()][forcedTrainer]) {
+	if (forcedTrainer && TRAINERS[lookupKey] && TRAINERS[lookupKey][forcedTrainer]) {
 		isTrainerBattle = true;
 		trainerName = forcedTrainer;
-		const trainerData = TRAINERS[floor.toString()][forcedTrainer];
+		const trainerData = TRAINERS[lookupKey][forcedTrainer];
 		
 		actualQuantity = trainerData.teamSize;
 
@@ -947,7 +948,6 @@ export function applyExpAndLevelUp(
 
 	const bracketFloor = Math.ceil(currentFloor / 10) * 10;
 
-	// Level cap uses the official formula directly
 	const waveIndex = Math.ceil(Math.max(1, bracketFloor) / 10) * 10;
 	const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
 	const levelCap = Math.min(10000, Math.ceil(baseLevel / 2) * 2 + 2);

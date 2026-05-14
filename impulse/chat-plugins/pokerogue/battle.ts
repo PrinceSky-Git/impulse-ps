@@ -27,6 +27,11 @@ export function destroyBotUser(botUser: User): void {
 	}
 }
 
+/* * Dev Note: Bot User Initialization
+ * Creates a ghost User object hooked directly into the Showdown connection layer.
+ * We override `sendTo` to intercept `|request|` messages, allowing the bot to automatically 
+ * process battle states and fire off `makeAIChoice` without needing a real client.
+ */
 function createBotUser(playerId: string): User {
 	const uid = ++botCounter;
 	const connId = `pokerogue-bot-${uid}`;
@@ -107,7 +112,6 @@ const ABILITY_IMMUNITIES: Record<string, string[]> = {
 	soundproof: [],
 };
 
-// bulletproof-blocked moves
 const BULLETPROOF_MOVES = new Set([
 	'aurasphere', 'barrage', 'beachballfall', 'beedrillrage', 'cannonball',
 	'electroball', 'energyball', 'focusblast', 'gyroball', 'iceball',
@@ -116,7 +120,6 @@ const BULLETPROOF_MOVES = new Set([
 	'seedbomb', 'shadowball', 'sludgebomb', 'weatherball', 'zingzap',
 ]);
 
-// soundproof-blocked moves
 const SOUNDPROOF_MOVES = new Set([
 	'boomburst', 'bugbuzz', 'chatter', 'clangingscales', 'clangoroussoul',
 	'disarmingvoice', 'echoedvoice', 'grasswhistle', 'growl', 'healbell',
@@ -125,22 +128,18 @@ const SOUNDPROOF_MOVES = new Set([
 	'sing', 'snarl', 'snore', 'sparklingsurge', 'supersonic', 'uproar',
 ]);
 
-// --- NEW GLOBAL HELPER FUNCTION ---
 function getTypeMultiplier(atkType: string, defTypes: string[]): number {
 	let multiplier = 1;
 	for (const defType of defTypes) {
-		// 1. Check absolute immunities first (e.g., Normal vs Ghost)
 		if (!Dex.getImmunity(atkType, defType)) {
 			return 0;
 		}
-		// 2. Translate Showdown's scale (-1, 0, 1) into real math (0.5x, 1x, 2x)
 		const eff = Dex.getEffectiveness(atkType, defType);
 		if (eff === 1) multiplier *= 2;
 		else if (eff === -1) multiplier *= 0.5;
 	}
 	return multiplier;
 }
-// ----------------------------------
 
 function getMoveEffectiveness(
 	moveData: any,
@@ -150,7 +149,6 @@ function getMoveEffectiveness(
 	const moveType = moveData.type as string;
 	const moveId = moveData.id as string;
 
-	// wonder guard: only super-effective hits
 	if (targetAbility === 'wonderguard') {
 		const eff = getTypeMultiplier(moveType, targetDex.types);
 		return eff > 1 ? eff : 0;
@@ -178,7 +176,6 @@ function getStatCategoryModifier(moveData: any, pokemon: any): number {
 	}
 }
 
-// defensive score vs opponent move types
 function getDefensiveScore(switchInSpecies: string, oppMoveTypes: string[]): number {
 	const dex = Dex.species.get(switchInSpecies);
 	if (!dex.exists) return 0;
@@ -203,6 +200,10 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
 	}
 }
 
+/* * Dev Note: Move Scoring Heuristic
+ * Calculates an effective priority score for each move. Factors in STAB, 
+ * type effectiveness, recoil, multi-hit, and basic ability immunities.
+ */
 function scoreMove(
 	move: any,
 	userSpecies: string,
@@ -237,7 +238,6 @@ function scoreMove(
 
 	score *= effectiveness;
 
-	// super-effective bonus / resisted penalty
 	if (effectiveness > 1) score *= 1.2;
 	else if (effectiveness < 1) score *= 0.7;
 
@@ -252,30 +252,24 @@ function scoreMove(
 		score *= acc / 100;
 	}
 
-	// Recoil penalty
 	if (moveData.recoil || moveData.mindBlownRecoil) score *= 0.85;
 	if (moveData.struggle) score *= 0.5;
 
-	// Multi-hit bonus
 	if (moveData.multihit) score *= 1.25;
 
-	// Priority bonus
 	if ((moveData.priority ?? 0) > 0) {
 		const hpRatio = parseHpRatio(userPokemon?.condition);
 		if (hpRatio < 0.35) score *= 1.3;
 		else score *= 1.05;
 	}
 
-	// Two-turn charge move penalty
 	if (moveData.flags?.charge && !moveData.flags?.recharge) score *= 0.75;
 
-	// Recharge next turn penalty
 	if (moveData.flags?.recharge) score *= 0.8;
 
 	return score;
 }
 
-// score status moves
 function scoreStatusMove(moveId: string, pokemon: any, turn: number): number {
 	if (['thunderwave', 'glare', 'stunspore'].includes(moveId)) return 55;
 
@@ -310,7 +304,6 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number): number {
 	return 15;
 }
 
-// estimate variable move bp
 function estimateVariablePower(moveId: string): number {
 	const estimates: Record<string, number> = {
 		gyroball: 60, electroball: 60, heatcrash: 60, heavyslam: 60,
@@ -324,7 +317,6 @@ function estimateVariablePower(moveId: string): number {
 	return estimates[moveId] ?? 60;
 }
 
-// parse "hp/max" or "hp/max status" string
 function parseHpRatio(condition: string | undefined): number {
 	if (!condition || condition.endsWith(' fnt')) return 0;
 	const match = /^(\d+)\/(\d+)/.exec(condition);
@@ -368,7 +360,6 @@ function shouldSwitch(
 	const userDex = Dex.species.get(userSpecies);
 	const targetDex = Dex.species.get(targetSpecies);
 
-	// Check if current mon is fully walled (all moves immune/resisted)
 	const active = (request.active as any[])[activeIdx];
 	const moves: any[] = active?.moves ?? [];
 	const usableMoves = moves.filter((m: any) => !m.disabled && (m.pp ?? 1) > 0);
@@ -395,10 +386,8 @@ function shouldSwitch(
 	const isLowHp = hpRatio < 0.25;
 	const isCriticallyLow = hpRatio < 0.15;
 
-	// Only switch if there's a real reason
 	if (!isWalled && !inBadMatchup && !isLowHp) return 0;
 
-	// Don't switch if HP is fine and matchup is only slightly bad
 	if (hpRatio > 0.65 && !isWalled) return 0;
 
 	const numActive = (request.active as any[]).length;
@@ -418,10 +407,8 @@ function shouldSwitch(
 		const benchDex = Dex.species.get(benchSpecies);
 		let score = 0;
 
-		// Defensive score
 		score += getDefensiveScore(benchSpecies, oppMoveTypes) * 1.5;
 
-		// Offensive score vs opponent
 		if (benchDex.exists && targetDex.exists) {
 			for (const atkType of benchDex.types) {
 				const eff = getTypeMultiplier(atkType, targetDex.types);
@@ -431,7 +418,6 @@ function shouldSwitch(
 
 		score += parseHpRatio(p.condition) * 8;
 
-		// Penalize switching into a bad matchup
 		if (targetDex.exists && benchDex.exists) {
 			for (const atkType of targetDex.types) {
 				const eff = getTypeMultiplier(atkType, benchDex.types);
@@ -444,15 +430,12 @@ function shouldSwitch(
 	}).sort((a: any, b: any) => b.score - a.score);
 
 	const best = scored[0];
-	// only switch if clearly better
 	if (best && best.score > 3) return best.idx;
-	// force switch at critically low hp
 	if (isCriticallyLow && bench.length) return scored[0]?.idx ?? 0;
 
 	return 0;
 }
 
-// move history per battle room
 const recentMoveHistory = new Map<string, Map<number, Map<string, number>>>();
 
 function recordMoveUsed(roomid: string, slot: number, moveId: string, turn: number): void {
@@ -555,7 +538,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 				const scored = usableMoves.map((m: any) => {
 					let score = scoreMove(m, userSpecies, targetSpecies, targetAbility, pokemon, turn);
 
-					// penalize recently used moves
 					const lastUsed = getLastUsedTurn(roomid, i, m.id);
 					const turnsSince = turn - lastUsed;
 					if (turnsSince === 1) score *= 0.55;
@@ -628,17 +610,16 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	const isBossFloor = floor % 10 === 0;
 
 	let size = 1;
-
 	if (!isBossFloor) {
 		const hasLure = (state.keyItems ?? []).includes('Lure');
-		if (hasLure && Math.random() < 0.5) {
-			size = 2;
-		}
+		if (hasLure && Math.random() < 0.5) size = 2;
 	}
 
 	const luck = state.luck ?? 0;
-	// Pass the pendingTrainer from state
-	const result = genAIPokemon(size, floor, luck, state.pendingTrainer);
+	const trainerKey = state.pendingTrainerKey; 
+	
+	const result = genAIPokemon(size, floor, luck, state.pendingTrainer, trainerKey);
+	
 	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer, trainerName: result.trainerName };
 }
 
@@ -657,25 +638,24 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	const isTrainer = botTeamData.isTrainer;
 	const trainerName = botTeamData.trainerName;
 
-	// CLEAR the pending trainer now that the team is built
 	if (state.pendingTrainer) {
 		delete state.pendingTrainer;
 	}
+	if (state.pendingTrainerKey) {
+		delete state.pendingTrainerKey;
+	}
 
 	const isBoss = state.floor % 10 === 0;
-
 	const botUser = createBotUser(user.id);
 	
-	// Set the Bot's actual name to the Trainer's Name!
 	let opponentTitle = isTrainer && trainerName ? trainerName : (isTrainer ? TRAINER_NAME : 'Wild Encounter');
-	if (isBoss) opponentTitle = `BOSS ${opponentTitle}`;
+	if (isBoss && !isTrainer) opponentTitle = `BOSS ${opponentTitle}`;
 
 	if (isTrainer && trainerName) {
 		botUser.name = trainerName; 
 	}
 	
 	const botSlot = 'p2' as const;
-
 	const format = state.floor >= 15 ? '[Gen 9] PokeRogue' : '[Gen 9] PokeRogue Early';
 
 	let battleRoom: AnyObject | null = null;
@@ -708,7 +688,6 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		const match = activeMatches.get(roomid as RoomID);
 		if (match) {
 			const activeState = getState(match.userId);
-			// Added !match.isTrainerBattle check here
 			if (activeState && activeState.floor % 10 !== 0 && !match.isTrainerBattle) {
 				const turn = room.battle.turn || 0;
 

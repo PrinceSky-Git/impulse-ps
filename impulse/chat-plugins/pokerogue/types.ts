@@ -55,6 +55,20 @@ export interface PokeRogueState {
 	pendingMoveSlot?: number;
 	pendingReleaseSlot?: number;
 	pendingTrainer?: string;
+
+	// --- NEW ADDITIONS FOR TRAINER PROGRESSION ---
+	
+	/**
+	 * Tracks the wave the player encountered their first Gym Leader (either 20 or 30).
+	 * Used to calculate the strict 30-wave interval for all subsequent Gym Leaders.
+	 */
+	firstGymLeaderWave?: number;
+	
+	/**
+	 * Stores the specific database key (e.g., 'fixed_8', 'gym_leader_tier_2', 'random_mid')
+	 * so the battle builder knows exactly which pool to pull the trainer's team from.
+	 */
+	pendingTrainerKey?: string;
 }
 
 export type SavedData = Record<string, PokeRogueState>;

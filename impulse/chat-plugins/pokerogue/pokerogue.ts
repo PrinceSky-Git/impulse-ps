@@ -53,7 +53,6 @@ function processLevelUp(
 ): string[] {
 	const detailMsgs: string[] = [];
 
-	// Fetch the proper display names to fix capitalization
 	const oldName = Dex.species.get(toID(oldSpecies)).name;
 	const currentName = Dex.species.get(toID(mon.species)).name;
 
@@ -101,6 +100,10 @@ const SELF_KO_MOVES = new Set([
 	'healingwish', 'lunardance', 'finalgambit',
 ]);
 
+/* * Dev Note: EXP Distribution Logic
+ * Parses the Showdown battle log PR_EXP messages to distribute base EXP 
+ * evenly among active participants, accounting for boss/trainer multipliers.
+ */
 function parseKillExp(
 	logLines: string[],
 	state: PokeRogueState,
@@ -188,6 +191,10 @@ function applyExpShare(
 	return result;
 }
 
+/* * Dev Note: State Synchronization
+ * Parses end-of-battle Showdown logs sequentially to reconstruct the exact HP percentages, 
+ * faint states, and status conditions of the virtual party without relying on simulator memory.
+ */
 function syncBattleOutcome(
 	logLines: string[],
 	state: PokeRogueState,
@@ -338,11 +345,9 @@ function processBattleExperience(
 			const oldSpecies = mon.species;
 			const spName = Dex.species.get(toID(oldSpecies)).name;
 			
-			// Distinguish active participants from bench/Exp. All receivers (Color restored for visibility)
 			const isActive = rawExpMap.has(teamIdx);
 			const sourceTag = !isActive ? ' <span style="color:#8ab4f8;font-size:10px">(Exp. All)</span>' : '';
 			
-			// Explicitly log the EXP gain for every Pokémon
 			detailMsgs.push(`<b>${spName}</b> gained ${expGained} Exp.${sourceTag}`);
 
 			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor);
@@ -396,6 +401,7 @@ function handleBattleLoss(state: PokeRogueState, floor: number): void {
 	delete state.purchasedItem;
 	delete state.caughtPokemon;
 	delete state.pendingTrainer;
+	delete state.pendingTrainerKey;
 
 	if ((state.keyItems ?? []).includes('Revive')) {
 		state.keyItems = state.keyItems.filter(k => k !== 'Revive');
@@ -486,6 +492,7 @@ export const commands: Chat.ChatCommands = {
 			if (!user.named) return this.errorReply("Login required.");
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+			
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
 				return this.errorReply("Resolve all pending choices before starting a battle.");
@@ -496,29 +503,54 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			const floor = state.floor;
-			
-			if (TRAINERS[floor.toString()]) {
-				const trainerNames = Object.keys(TRAINERS[floor.toString()]);
-				const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
-				const trainerData = TRAINERS[floor.toString()][selectedTrainer];
-				
-				const chance = trainerData.chance ?? 100;
+			const isBossFloor = floor % 10 === 0;
+			let trainerKey: string | null = null;
+			let selectedTrainer: string | null = null;
 
-				if (Math.random() * 100 < chance) {
-					state.pendingTrainer = selectedTrainer;
-					
-					if (trainerData.spriteUrl || trainerData.dialog) {
-						(state as any).view = 'trainer';
-						setState(user.id, state);
-						refreshGamePage(user);
-						return;
-					} else {
-						setState(user.id, state);
-						return this.parse('/pokerogue battle');
-					}
+			const fixedWaves = new Set([5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200]);
+			
+			/*
+			 * Dev Note: Trainer Spawning Logic
+			 * 1. Checks specific hardcoded progression waves (Rivals, Evil Teams).
+			 * 2. Processes Gym Leader intervals. Leaders have a 50/50 chance to appear on wave 20 or 30.
+			 * Once decided, they rigidly appear every 30 waves, scaling in team size.
+			 * 3. Fallback: 15% random chance on standard floors to trigger basic trainers.
+			 */
+			if (fixedWaves.has(floor)) {
+				trainerKey = `fixed_${floor}`;
+			} else if (isBossFloor) {
+				if (!state.firstGymLeaderWave && (floor === 20 || floor === 30)) {
+					if (Math.random() < 0.5 || floor === 30) state.firstGymLeaderWave = floor;
+				}
+				if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % 30 === 0) {
+					const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / 30);
+					trainerKey = `gym_leader_tier_${Math.min(5, encounterNum)}`;
+				}
+			} else {
+				if (Math.random() < 0.15) {
+					if (floor <= 30) trainerKey = 'random_early';
+					else if (floor <= 100) trainerKey = 'random_mid';
+					else trainerKey = 'random_late';
+				}
+			}
+
+			if (trainerKey && TRAINERS[trainerKey]) {
+				const trainerNames = Object.keys(TRAINERS[trainerKey]);
+				selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
+				
+				const trainerData = TRAINERS[trainerKey][selectedTrainer];
+				state.pendingTrainer = selectedTrainer;
+				state.pendingTrainerKey = trainerKey;
+
+				if (trainerData.spriteUrl || trainerData.dialog) {
+					(state as any).view = 'trainer';
+					setState(user.id, state);
+					refreshGamePage(user);
+					return;
 				}
 			}
 			
+			setState(user.id, state);
 			return this.parse('/pokerogue battle');
 		},
 
@@ -1286,6 +1318,7 @@ export const commands: Chat.ChatCommands = {
 				delete s.purchasedItem;
 				delete s.pendingConsumableType;
 				delete s.pendingTrainer;
+				delete s.pendingTrainerKey;
 				setState(user.id, s);
 			}
 			refreshGamePage(user);
@@ -1367,7 +1400,6 @@ export const handlers: Chat.Handlers = {
 			state.floor++;
 			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor);
 
-			// ORDER 1: Caught Pokémon
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;
 				const spName = Dex.species.get(toID(caughtMon.species)).name;
@@ -1386,13 +1418,9 @@ export const handlers: Chat.Handlers = {
 			state.displayName = Users.get(match.userId)?.name || match.userId;
 			state.timesRerolled = 0;
 
-			// ORDER 2: EXP & Level Ups
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
-            
-			// ORDER 3: Milestones & Boss Rewards
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
             
-			// ORDER 4: Floor Cleared & BP (Now Wrapped in a centered div)
 			battleLogMsgs.push(
 				`<hr style="border: 0; border-top: 1px solid currentColor; opacity: 0.2; margin: 8px 0;">` +
 				`<div style="text-align: center;"><b>You've gained ${bpGained} battle points for clearing the floor!</b></div>`
@@ -1403,7 +1431,6 @@ export const handlers: Chat.Handlers = {
 		}
 
 		if (battleLogMsgs.length > 0 && room) {
-			// Added text-align: center to the pr-choice-heading style
 			const infoboxHtml = `<div class="pr" style="background:transparent; border:none; min-height:0; max-width:100%; margin:4px 0;">` +
 								`<div class="pr-card" style="margin: 0; padding: 10px 14px;">` +
 								`<div class="pr-choice-heading" style="font-size: 14px; margin-bottom: 6px; text-align: center;">Floor ${match.floor} - Battle Report</div>` +
