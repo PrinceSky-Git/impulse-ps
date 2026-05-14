@@ -491,11 +491,11 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
 	
 	// 1. Trainer Name
-	buf += `<div style="font-size:20px; font-weight:bold; color: #fff; margin-bottom: 16px;">${Utils.escapeHTML(trainerName)}</div>`;
+	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">${Utils.escapeHTML(trainerName)}</div>`;
 	
 	// 2. Sprite
 	if (trainerData?.spriteUrl) {
-		buf += `<div style="margin-bottom: 16px;">`;
+		buf += `<div style="margin-bottom: 8px;">`;
 		buf += `<img src="${Utils.escapeHTML(trainerData.spriteUrl)}" alt="${Utils.escapeHTML(trainerName)}" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
 		buf += `</div>`;
 	}
