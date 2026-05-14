@@ -502,6 +502,17 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
 			}
 
+			/* * Dev Note: Anti-Exploit Lock
+			 * If a trainer is already pending for this floor, bypass the selection logic 
+			 * to prevent users from re-rolling the encounter pool via the 'Back' button or commands.
+			 */
+			if (state.pendingTrainer && state.pendingTrainerKey) {
+				(state as any).view = 'trainer';
+				setState(user.id, state);
+				refreshGamePage(user);
+				return;
+			}
+
 			const floor = state.floor;
 			const isBossFloor = floor % 10 === 0;
 			let trainerKey: string | null = null;
@@ -509,9 +520,8 @@ export const commands: Chat.ChatCommands = {
 
 			const fixedWaves = new Set([5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200]);
 			
-			/*
-			 * Dev Note: Trainer Spawning Logic
-			 * 1. Checks specific hardcoded progression waves (Rivals, Evil Teams).
+			/* * Dev Note: Trainer Spawning Logic
+			 * 1. Checks specific hardcoded progression waves (Rivals, Evil Teams, E4, Champions).
 			 * 2. Processes Gym Leader intervals. Leaders have a 50/50 chance to appear on wave 20 or 30.
 			 * Once decided, they rigidly appear every 30 waves, scaling in team size.
 			 * 3. Fallback: 15% random chance on standard floors to trigger basic trainers.
