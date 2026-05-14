@@ -37,33 +37,37 @@ function createBotUser(playerId: string): User {
 			if (line.startsWith('|request|')) {
 				setTimeout(async () => {
 					const roomObj = Rooms.get(roomidStr as RoomID);
-					if (roomObj?.battle) {
-						// ROBUST STAT MAPPING: Explicitly mapping all keys to avoid undefined in simulation
-						const playerTeam: SimPokemon[] = roomObj.battle.p1.pokemon.map(p => {
-							const stats = p.getStats();
-							return {
-								species: p.species.id,
-								hpRatio: p.maxhp > 0 ? (p.hp / p.maxhp) : 0,
-								types: p.species.types,
-								baseStats: {
-									hp: p.maxhp || 100,
-									atk: stats.atk || 50,
-									def: stats.def || 50,
-									spa: stats.spa || 50,
-									spd: stats.spd || 50,
-									spe: stats.spe || 50,
-								},
-								isActive: !!p.active,
-								isFainted: !!p.fainted,
-								moves: p.moveSlots.map(m => m.id),
-								ability: p.getAbility().id
-							};
-						});
+					const battle = roomObj?.battle;
+					if (!battle) return;
 
-						const choice = await getBestMove(line, playerTeam);
-						// FAILSAFE: Ensure the turn advances even if the AI engine stalls
-						void roomObj.battle?.stream.write(`>p2 ${choice || "move 1"}`);
-					}
+					// SCRAPE OMNISCIENT DATA: Using sides[0] to avoid alias issues
+					const playerSide = battle.sides[0];
+					if (!playerSide || !playerSide.pokemon || !playerSide.pokemon.length) return;
+
+					const playerTeam: SimPokemon[] = playerSide.pokemon.map(p => {
+						const stats = p.getStats();
+						return {
+							species: p.species.id,
+							hpRatio: p.maxhp > 0 ? (p.hp / p.maxhp) : 0,
+							types: p.species.types,
+							baseStats: {
+								hp: p.maxhp || 100,
+								atk: stats.atk || 50,
+								def: stats.def || 50,
+								spa: stats.spa || 50,
+								spd: stats.spd || 50,
+								spe: stats.spe || 50,
+							},
+							isActive: !!p.active,
+							isFainted: !!p.fainted,
+							moves: p.moveSlots.map(m => m.id),
+							ability: p.getAbility().id
+						};
+					});
+
+					const choice = await getBestMove(line, playerTeam);
+					// FAILSAFE: Ensure the turn advances even if the AI engine stalls
+					void battle.stream.write(`>p2 ${choice || "move 1"}`);
 				}, 150);
 				break;
 			} else if (line.startsWith('|error|[Invalid choice]')) {
@@ -87,7 +91,7 @@ interface ActiveRougeMatch {
 }
 
 function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string } {
-	const result = genAIPokemon(state.floor % 10 === 0 ? 1 : 1, state.floor, state.luck ?? 0, state.pendingTrainer, state.pendingTrainerKey);
+	const result = genAIPokemon(1, state.floor, state.luck ?? 0, state.pendingTrainer, state.pendingTrainerKey);
 	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer, trainerName: result.trainerName };
 }
 
