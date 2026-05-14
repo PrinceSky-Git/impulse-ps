@@ -32,17 +32,16 @@ function createBotUser(playerId: string): User {
 		if (typeof data !== 'string') return;
 		const lines = data.split('\n');
 		const roomidStr = typeof roomid === 'string' ? roomid : (roomid as any)?.roomid ?? '';
-		
+
 		for (const line of lines) {
 			if (line.startsWith('|request|')) {
 				setTimeout(async () => {
 					const roomObj = Rooms.get(roomidStr as RoomID);
 					const battle = roomObj?.battle;
-					if (!battle) return;
+					if (!battle || !battle.sides?.length) return;
 
-					// SCRAPE OMNISCIENT DATA: Using sides[0] to avoid alias issues
 					const playerSide = battle.sides[0];
-					if (!playerSide || !playerSide.pokemon || !playerSide.pokemon.length) return;
+					if (!playerSide?.pokemon?.length) return;
 
 					const playerTeam: SimPokemon[] = playerSide.pokemon.map(p => {
 						const stats = p.getStats();
@@ -66,8 +65,7 @@ function createBotUser(playerId: string): User {
 					});
 
 					const choice = await getBestMove(line, playerTeam);
-					// FAILSAFE: Ensure the turn advances even if the AI engine stalls
-					void battle.stream.write(`>p2 ${choice || "move 1"}`);
+					void battle.stream.write(`>p2 ${choice || 'move 1'}`);
 				}, 150);
 				break;
 			} else if (line.startsWith('|error|[Invalid choice]')) {
