@@ -207,10 +207,6 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
 /* * Dev Note: Move Scoring Heuristic
  * Calculates an effective priority score for each move. Factors in STAB,
  * type effectiveness, recoil, multi-hit, and basic ability immunities.
- *
- * Fix: effectiveness multiplier is applied once. The old code applied it raw
- * then again with a bonus/penalty on top, causing extreme score skew on
- * super-effective and resisted hits.
  */
 function scoreMove(
 	move: any,
@@ -219,12 +215,13 @@ function scoreMove(
 	targetAbility: string,
 	userPokemon: any,
 	turn: number,
+	battleContext: BattleContext,
 ): number {
 	const moveData = Dex.moves.get(move.id);
 	if (!moveData.exists) return 0;
 
 	if (moveData.category === 'Status') {
-		return scoreStatusMove(move.id, userPokemon, turn);
+		return scoreStatusMove(move.id, userPokemon, turn, battleContext);
 	}
 
 	const userDex = Dex.species.get(userSpecies);
@@ -261,28 +258,108 @@ function scoreMove(
 
 	if (moveData.multihit) score *= 1.25;
 
+	// Priority moves: good finishers at low HP, minor bonus otherwise
 	if ((moveData.priority ?? 0) > 0) {
 		const hpRatio = parseHpRatio(userPokemon?.condition);
-		if (hpRatio < 0.35) score *= 1.3;
-		else score *= 1.05;
+		const targetHpRatio = parseHpRatio(battleContext.targetCondition);
+		// Most useful when we can finish off a weakened opponent
+		if (targetHpRatio < 0.25) score *= 1.4;
+		else if (hpRatio < 0.35) score *= 1.2;
+		else score *= 0.95; // slight penalty when not needed — prefer full-power moves
 	}
 
 	if (moveData.flags?.charge && !moveData.flags?.recharge) score *= 0.75;
 
 	if (moveData.flags?.recharge) score *= 0.8;
 
+	// Drain moves get a bonus when HP is low since they recover health
+	if (moveData.drain && parseHpRatio(userPokemon?.condition) < 0.5) score *= 1.15;
+
 	return score;
 }
 
-function scoreStatusMove(moveId: string, pokemon: any, turn: number): number {
-	if (['thunderwave', 'glare', 'stunspore'].includes(moveId)) return 55;
+interface BattleContext {
+	boosts: Record<string, number>;
+	oppStatus: string;
+	targetCondition: string;
+	hazardsSet: Set<string>;
+	screensSet: Set<string>;
+	allyFainted: boolean;
+}
 
-	if (['spore', 'sleeppowder', 'hypnosis', 'lovelykiss', 'sing', 'darkvoid'].includes(moveId)) return 65;
+function getBattleContext(room: AnyObject | null | undefined, slot: number, pokemon: any): BattleContext {
+	const boosts: Record<string, number> = pokemon?.boosts ?? {};
+	let oppStatus = '';
+	let targetCondition = '';
+	try {
+		const oppActive = (room?.battle)?.p1?.active?.[slot];
+		oppStatus = oppActive?.status ?? '';
+		targetCondition = oppActive?.condition ?? '';
+	} catch {}
 
-	if (['willowisp', 'scald'].includes(moveId)) return 50;
+	// Track which hazards/screens are already active on the opponent's side
+	const hazardsSet = new Set<string>();
+	const screensSet = new Set<string>();
+	try {
+		const p1SideConditions = (room?.battle)?.p1?.sideConditions ?? {};
+		for (const cond of Object.keys(p1SideConditions)) {
+			hazardsSet.add(cond);
+		}
+		const p2SideConditions = (room?.battle)?.p2?.sideConditions ?? {};
+		for (const cond of Object.keys(p2SideConditions)) {
+			screensSet.add(cond);
+		}
+	} catch {}
 
-	if (['toxic', 'toxicspikes', 'poisongas', 'poisonpowder'].includes(moveId)) return 45;
+	const allyFainted = (room?.battle)?.p2?.pokemon?.some((p: any) => p?.fainted) ?? false;
 
+	return { boosts, oppStatus, targetCondition, hazardsSet, screensSet, allyFainted };
+}
+
+function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: BattleContext): number {
+	const hpRatio = parseHpRatio(pokemon?.condition);
+	const boosts = ctx.boosts;
+
+	// Don't re-apply a status that's already on the opponent
+	const alreadyStatused = !!ctx.oppStatus;
+
+	if (['thunderwave', 'glare', 'stunspore'].includes(moveId)) {
+		return alreadyStatused ? -Infinity : 55;
+	}
+
+	if (['spore', 'sleeppowder', 'hypnosis', 'lovelykiss', 'sing', 'darkvoid'].includes(moveId)) {
+		return alreadyStatused ? -Infinity : 65;
+	}
+
+	if (['willowisp', 'scald'].includes(moveId)) {
+		return alreadyStatused ? -Infinity : 50;
+	}
+
+	if (['toxic', 'poisongas', 'poisonpowder'].includes(moveId)) {
+		return alreadyStatused ? -Infinity : 45;
+	}
+
+	// Entry hazards: skip if already set
+	if (moveId === 'stealthrock') {
+		return ctx.hazardsSet.has('stealthrock') ? -Infinity : 40;
+	}
+	if (moveId === 'spikes') {
+		const count = (ctx.hazardsSet.has('spikes') ? 1 : 0); // simplified; avoid stacking beyond 3
+		return count >= 3 ? -Infinity : 38;
+	}
+	if (moveId === 'toxicspikes') {
+		return ctx.hazardsSet.has('toxicspikes') ? -Infinity : 35;
+	}
+	if (moveId === 'stickyweb') {
+		return ctx.hazardsSet.has('stickyweb') ? -Infinity : 36;
+	}
+
+	// Screens: skip if already active on our side
+	if (moveId === 'reflect') return ctx.screensSet.has('reflect') ? -Infinity : 35;
+	if (moveId === 'lightscreen') return ctx.screensSet.has('lightscreen') ? -Infinity : 35;
+	if (moveId === 'auroraveil') return ctx.screensSet.has('auroraveil') ? -Infinity : 38;
+
+	// Setup moves: diminishing returns if already boosted, worthless if very boosted
 	const setupMoves: Record<string, number> = {
 		swordsdance: 75, nastyplot: 75, calmmind: 70, dragondance: 80,
 		quiverdance: 80, shellsmash: 85, growth: 60, bulkup: 65,
@@ -290,18 +367,28 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number): number {
 		agility: 55, rockpolish: 55,
 	};
 	if (setupMoves[moveId] !== undefined) {
-		return turn <= 3 ? setupMoves[moveId] : setupMoves[moveId] * 0.5;
+		// Primary offensive stat boost for this move
+		const relevantBoost = ['calmmind', 'nastyplot', 'quiverdance', 'growth'].includes(moveId)
+			? (boosts['spa'] ?? 0)
+			: (boosts['atk'] ?? 0);
+
+		// Hard cap: don't set up past +3 (it's already very strong, use the turns to attack)
+		if (relevantBoost >= 3) return -Infinity;
+
+		// Reduce value the more we've already boosted
+		const boostPenalty = relevantBoost * 15;
+		const baseScore = turn <= 3 ? setupMoves[moveId] : setupMoves[moveId] * 0.5;
+		return Math.max(0, baseScore - boostPenalty);
 	}
 
-	if (['stealthrock', 'spikes', 'toxicspikes', 'stickyweb'].includes(moveId)) return 40;
-
+	// Recovery: scale with how badly we need it; don't heal at nearly full HP
 	if (['recover', 'roost', 'moonlight', 'morningsun', 'synthesis', 'slackoff',
 		'milkdrink', 'softboiled', 'shoreup', 'lifedew', 'healorder'].includes(moveId)) {
-		const hpRatio = parseHpRatio(pokemon?.condition);
-		return hpRatio < 0.6 ? 60 : 10;
+		if (hpRatio > 0.75) return -5; // actively discourage wasting a turn at high HP
+		if (hpRatio < 0.35) return 80;  // urgent
+		if (hpRatio < 0.55) return 60;
+		return 30;
 	}
-
-	if (['reflect', 'lightscreen', 'auroraveil'].includes(moveId)) return 35;
 
 	if (moveId === 'taunt') return 30;
 
@@ -367,7 +454,7 @@ function shouldSwitch(
 	if (!currentPokemon) return 0;
 
 	const active = (request.active as any[])[activeIdx];
-	// Bug fix: respect all forms of trapping including partiallyTrapped
+	// Respect all forms of trapping
 	if (active?.trapped || active?.maybeTrapped || active?.partiallyTrapped) return 0;
 
 	const hpRatio = parseHpRatio(currentPokemon.condition);
@@ -406,7 +493,6 @@ function shouldSwitch(
 	const numActive = (request.active as any[]).length;
 	const oppMoveTypes = getOpponentMoveTypes(room, activeIdx);
 
-	// Bug fix: exclude active slots AND already-chosen bench slots to prevent doubles from doubling up
 	const bench = pokemon
 		.map((p: any, idx: number) => ({ p, idx: idx + 1 }))
 		.filter(({ p, idx }: { p: any, idx: number }) =>
@@ -424,6 +510,7 @@ function shouldSwitch(
 
 		score += getDefensiveScore(benchSpecies, oppMoveTypes) * 1.5;
 
+		// Offensive coverage against the current opponent
 		if (benchDex.exists && targetDex.exists) {
 			for (const atkType of benchDex.types) {
 				const eff = getTypeMultiplier(atkType, targetDex.types);
@@ -441,13 +528,15 @@ function shouldSwitch(
 			}
 		}
 
+		// Penalise switching into a bench mon that is already low HP — not a real improvement
+		const benchHp = parseHpRatio(p.condition);
+		if (benchHp < 0.3) score -= 4;
+
 		return { idx, score };
 	}).sort((a: any, b: any) => b.score - a.score);
 
 	const best = scored[0];
 
-	// Fix: use a relative threshold — only switch if the bench option is meaningfully better.
-	// Previously a flat score > 3 could refuse to switch a critically low mon with nowhere to go.
 	if (isCriticallyLow && bench.length) return scored[0]?.idx ?? 0;
 	if (best && best.score > 3) return best.idx;
 
@@ -491,7 +580,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 		const choices: string[] = [];
 		const pokemon = request.side?.pokemon ?? [];
 		const chosen: number[] = [];
-		// Number of active slots = forceSwitch array length
 		const numActive = (request.forceSwitch as boolean[]).length;
 
 		for (const forceSwitchEntry of (request.forceSwitch as boolean[])) {
@@ -500,7 +588,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 				continue;
 			}
 
-			// Bug fix: bench starts after all active slots, and exclude already-chosen to prevent duplicate switches in doubles
 			const available = pokemon
 				.map((p: any, idx: number) => ({ p, idx: idx + 1 }))
 				.filter(({ p, idx }: { p: any, idx: number }) =>
@@ -538,7 +625,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			const active = (request.active as any[])[i];
 			const pokemon = request.side?.pokemon?.[i];
 
-			// Bug fix: guard against missing active slot or fainted/commanding pokemon
 			if (!active || !pokemon || pokemon.condition?.endsWith(' fnt') || pokemon.commanding) {
 				choicesList.push('pass');
 				continue;
@@ -548,7 +634,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			const targetSpecies = getOpponentSpecies(room, i);
 			const targetAbility = getOpponentAbility(room, i);
 
-			// Pass already-chosen switch targets so doubles won't pick the same slot
 			const switchIdx = shouldSwitch(request, i, targetSpecies, targetAbility, room, chosenSwitchTargets);
 			if (switchIdx > 0) {
 				chosenSwitchTargets.push(switchIdx);
@@ -557,26 +642,24 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			}
 
 			const moves: any[] = active?.moves ?? [];
-
-			// Bug fix: also filter out moves with 0 pp explicitly (pp can be 0, not just missing)
 			const usableMoves = moves.filter((m: any) => !m.disabled && (m.pp ?? 1) > 0);
 
-			// Bug fix: if no usable moves, fall back to struggle (move 1) immediately
 			if (!usableMoves.length) {
 				choicesList.push('move 1');
 				continue;
 			}
 
-			const scored = usableMoves.map((m: any) => {
-				let score = scoreMove(m, userSpecies, targetSpecies, targetAbility, pokemon, turn);
+			const battleCtx = getBattleContext(room, i, pokemon);
 
-				// Fix: softer repetition penalty so good moves aren't suppressed below bad ones.
-				// Also skip the penalty entirely if the move has only 1 PP left (forced to use it).
+			const scored = usableMoves.map((m: any) => {
+				let score = scoreMove(m, userSpecies, targetSpecies, targetAbility, pokemon, turn, battleCtx);
+
+				// Softer repetition penalty; skip entirely if only 1 PP left (forced)
 				const pp = m.pp ?? 99;
 				if (pp > 1) {
 					const lastUsed = getLastUsedTurn(roomid, i, m.id);
 					const turnsSince = turn - lastUsed;
-					if (turnsSince === 1) score *= 0.75;
+					if (turnsSince === 1) score *= 0.72;
 					else if (turnsSince === 2) score *= 0.88;
 					else if (turnsSince === 3) score *= 0.95;
 				}
@@ -586,6 +669,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 
 			scored.sort((a: any, b: any) => b.score - a.score);
 
+			// Small chance to pick the 2nd-best move if scores are close (avoids being predictable)
 			let pickIdx = 0;
 			if (scored.length > 1 && scored[0].score > 0) {
 				const ratio = scored[1].score / scored[0].score;
@@ -601,7 +685,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 					chosen = `move ${fallback.originalIdx}`;
 					recordMoveUsed(roomid, i, fallback.m.id, turn);
 				} else {
-					// All moves are blocked/0 score — use move 1 (triggers struggle if truly out of PP)
 					chosen = 'move 1';
 				}
 			} else {
@@ -609,15 +692,13 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 				recordMoveUsed(roomid, i, pick.m.id, turn);
 			}
 
-			// Bug fix: only append battle mechanic suffixes to move choices, never to switches
+			// Only append battle mechanic suffixes to move choices, never to switches
 			if (active.canMegaEvo) {
 				chosen += ' mega';
 			} else if (active.canTerastallize && currentFloor > 25) {
 				const targetDex = Dex.species.get(targetSpecies);
 				const userDex = Dex.species.get(userSpecies);
 
-				// Fix: only Terastallize if the Tera type is neutral-or-better defensively,
-				// not just whenever the mon is in a bad matchup.
 				const teraType = active.teraType as string | undefined;
 				let teraDefensiveOk = true;
 				if (teraType && targetDex.exists) {
@@ -627,6 +708,11 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 					}
 				}
 
+				// Also check if Tera gives an offensive STAB boost on the chosen move
+				const chosenMoveId = pick.m?.id ?? '';
+				const chosenMoveData = Dex.moves.get(chosenMoveId);
+				const teraOffensiveBoost = teraType && chosenMoveData.exists && chosenMoveData.type === teraType;
+
 				let worstIncoming = 1;
 				if (targetDex.exists && userDex.exists) {
 					for (const atkType of targetDex.types) {
@@ -635,9 +721,11 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 					}
 				}
 				const hpRatio = parseHpRatio(pokemon.condition);
+
+				// Terastallize if defensively safe AND (bad matchup, late game, or offensive STAB boost)
 				if (
 					teraDefensiveOk &&
-					(worstIncoming >= 2 || currentFloor > 40) &&
+					(worstIncoming >= 2 || currentFloor > 40 || teraOffensiveBoost) &&
 					hpRatio > 0.3 &&
 					Math.random() < 0.7
 				) {
