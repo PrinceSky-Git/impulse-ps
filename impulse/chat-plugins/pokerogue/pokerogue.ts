@@ -394,6 +394,7 @@ function handleBattleLoss(state: PokeRogueState, floor: number): void {
 	delete state.itemOptions;
 	delete state.purchasedItem;
 	delete state.caughtPokemon;
+	delete state.pendingTrainer;
 
 	if ((state.keyItems ?? []).includes('Revive')) {
 		state.keyItems = state.keyItems.filter(k => k !== 'Revive');
@@ -478,6 +479,46 @@ export const commands: Chat.ChatCommands = {
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
+		},
+
+		prebattle(target, room, user) {
+			if (!user.named) return this.errorReply("Login required.");
+			const state = getState(user.id);
+			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				return this.errorReply("Resolve all pending choices before starting a battle.");
+			}
+
+			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
+				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
+			}
+
+			const floor = state.floor;
+			
+			if (TRAINERS[floor.toString()]) {
+				const trainerNames = Object.keys(TRAINERS[floor.toString()]);
+				const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
+				const trainerData = TRAINERS[floor.toString()][selectedTrainer];
+				
+				const chance = trainerData.chance ?? 100;
+
+				if (Math.random() * 100 < chance) {
+					state.pendingTrainer = selectedTrainer;
+					
+					if (trainerData.spriteUrl || trainerData.dialog) {
+						(state as any).view = 'trainer';
+						setState(user.id, state);
+						refreshGamePage(user);
+						return;
+					} else {
+						setState(user.id, state);
+						return this.parse('/pokerogue battle');
+					}
+				}
+			}
+			
+			return this.parse('/pokerogue battle');
 		},
 
 		battle(target, room, user) {
@@ -1243,6 +1284,7 @@ export const commands: Chat.ChatCommands = {
 				delete s.itemOptions;
 				delete s.purchasedItem;
 				delete s.pendingConsumableType;
+				delete s.pendingTrainer;
 				setState(user.id, s);
 			}
 			refreshGamePage(user);

@@ -3,7 +3,7 @@ import { Table } from '../../utils';
 import { SHOP_ITEMS } from './items';
 import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { savedData } from './state';
-import { expForLevel, getLevelUpMoves } from './pokemon';
+import { expForLevel, getLevelUpMoves, TRAINERS } from './pokemon';
 
 export function refreshGamePage(user: User): void {
 	for (const conn of user.connections) {
@@ -481,6 +481,32 @@ function renderReleaseMon(state: PokeRogueState): string {
 	return buf;
 }
 
+// ─── Trainer Intro View ───────────────────────────────────────────────────────
+
+function renderTrainerIntroView(state: PokeRogueState): string {
+	const trainerName = state.pendingTrainer!;
+	const trainerData = TRAINERS[state.floor.toString()]?.[trainerName];
+	
+	let buf = `<div style="text-align:center; padding: 40px 10px; display:flex; flex-direction:column; align-items:center; justify-content:center;">`;
+	
+	buf += `<h2 style="font-size:24px; font-weight:bold; margin-bottom: 25px; color: #fff;">${Utils.escapeHTML(trainerName)}</h2>`;
+	
+	if (trainerData?.spriteUrl) {
+		buf += `<img src="${Utils.escapeHTML(trainerData.spriteUrl)}" alt="${Utils.escapeHTML(trainerName)}" style="max-height: 200px; max-width: 200px; margin-bottom: 25px; image-rendering: pixelated;">`;
+	}
+	
+	if (trainerData?.dialog) {
+		buf += `<div style="background: rgba(0,0,0,0.3); padding: 18px 24px; border-radius: 8px; font-style: italic; max-width: 450px; margin-bottom: 30px; border-left: 4px solid #8ab4f8; font-size: 15px; line-height: 1.5;">`;
+		buf += `"${Utils.escapeHTML(trainerData.dialog)}"`;
+		buf += `</div>`;
+	}
+	
+	buf += renderBtn('/pokerogue battle', 'Start Battle', 'pr-btn primary', 'padding: 12px 35px; font-size: 16px; font-weight: bold;');
+	buf += `</div>`;
+	
+	return buf;
+}
+
 // ─── Full Page Views ──────────────────────────────────────────────────────────
 
 function renderMainView(state: PokeRogueState, user: User): string {
@@ -491,7 +517,7 @@ function renderMainView(state: PokeRogueState, user: User): string {
 	let buf = renderStatBar(state);
 
 	buf += `<div class="pr-actions">`;
-	buf += renderBtn('/pokerogue battle', 'Start battle', 'pr-btn primary');
+	buf += renderBtn('/pokerogue prebattle', 'Start battle', 'pr-btn primary');
 	buf += renderBtn('/pokerogue view bag', 'Bag');
 	buf += renderBtn('/pokerogue view shop', 'Shop');
 	buf += `<br>`;
@@ -686,6 +712,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'shop') return buf + renderShopView(state) + `</div></div>`;
 	if (view === 'bag') return buf + renderBagView(state) + `</div></div>`;
 	if (view === 'guide') return buf + renderGuideView() + `</div></div>`;
+	if (view === 'trainer' && state.pendingTrainer) return buf + renderTrainerIntroView(state) + `</div></div>`;
 	if (state.pendingMoveSlot !== undefined) return buf + renderMoveMon(state) + `</div></div>`;
 	if (state.pendingReleaseSlot !== undefined) return buf + renderReleaseMon(state) + `</div></div>`;
 

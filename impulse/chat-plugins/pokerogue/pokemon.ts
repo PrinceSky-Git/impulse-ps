@@ -869,8 +869,9 @@ export function pickStarterOptions(): string[] {
 export function genAIPokemon(
 	quantity: number,
 	floor = 1,
-	luck = 0
-): { team: AIPokemonSet[], isTrainer: boolean } {
+	luck = 0,
+	forcedTrainer?: string
+): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
 	const scale = levelScaleForFloor(floor);
 	const isBossFloor = floor % 10 === 0;
 
@@ -885,23 +886,19 @@ export function genAIPokemon(
 	let forcedTeam: (string | TrainerMon)[] | undefined = undefined;
 	let actualQuantity = quantity;
 	let isTrainerBattle = false;
+	let trainerName: string | undefined = undefined;
 
-	if (TRAINERS[floor.toString()]) {
-		const trainerNames = Object.keys(TRAINERS[floor.toString()]);
-		const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
-		const trainerData = TRAINERS[floor.toString()][selectedTrainer];
+	if (forcedTrainer && TRAINERS[floor.toString()] && TRAINERS[floor.toString()][forcedTrainer]) {
+		isTrainerBattle = true;
+		trainerName = forcedTrainer;
+		const trainerData = TRAINERS[floor.toString()][forcedTrainer];
 		
-		const chance = trainerData.chance ?? 100;
+		actualQuantity = trainerData.teamSize;
 
-		if (Math.random() * 100 < chance) {
-			isTrainerBattle = true;
-			actualQuantity = trainerData.teamSize;
-
-			if (!trainerData.random && trainerData.pool) {
-				const shuffledPool = [...trainerData.pool].sort(() => 0.5 - Math.random());
-				forcedTeam = shuffledPool.slice(0, trainerData.teamSize);
-				actualQuantity = forcedTeam.length;
-			}
+		if (!trainerData.random && trainerData.pool) {
+			const shuffledPool = [...trainerData.pool].sort(() => 0.5 - Math.random());
+			forcedTeam = shuffledPool.slice(0, trainerData.teamSize);
+			actualQuantity = forcedTeam.length;
 		}
 	} 
 	
@@ -918,7 +915,7 @@ export function genAIPokemon(
 	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam);
 
 	mons.sort((a, b) => a.level - b.level);
-	return { team: mons, isTrainer: isTrainerBattle };
+	return { team: mons, isTrainer: isTrainerBattle, trainerName };
 }
 
 const EVO_TYPE_FALLBACK_LEVEL: Partial<Record<string, number>> = {

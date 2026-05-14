@@ -623,7 +623,7 @@ interface ActiveRougeMatch {
 
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
-function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean } {
+function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string } {
 	const floor = state.floor;
 	const isBossFloor = floor % 10 === 0;
 
@@ -637,8 +637,9 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	}
 
 	const luck = state.luck ?? 0;
-	const result = genAIPokemon(size, floor, luck);
-	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer };
+	// Pass the pendingTrainer from state
+	const result = genAIPokemon(size, floor, luck, state.pendingTrainer);
+	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer, trainerName: result.trainerName };
 }
 
 export function startBattle(user: User, state: PokeRogueState): boolean {
@@ -654,19 +655,31 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	const botTeamData = buildBotTeam(state);
 	const botTeam = botTeamData.packedTeam;
 	const isTrainer = botTeamData.isTrainer;
+	const trainerName = botTeamData.trainerName;
+
+	// CLEAR the pending trainer now that the team is built
+	if (state.pendingTrainer) {
+		delete state.pendingTrainer;
+	}
 
 	const isBoss = state.floor % 10 === 0;
 
 	const botUser = createBotUser(user.id);
+	
+	// Set the Bot's actual name to the Trainer's Name!
+	let opponentTitle = isTrainer && trainerName ? trainerName : (isTrainer ? TRAINER_NAME : 'Wild Encounter');
+	if (isBoss) opponentTitle = `BOSS ${opponentTitle}`;
+
+	if (isTrainer && trainerName) {
+		botUser.name = trainerName; 
+	}
+	
 	const botSlot = 'p2' as const;
 
 	const format = state.floor >= 15 ? '[Gen 9] PokeRogue' : '[Gen 9] PokeRogue Early';
 
 	let battleRoom: AnyObject | null = null;
 	try {
-		let opponentTitle = isTrainer ? TRAINER_NAME : 'Wild Encounter';
-		if (isBoss) opponentTitle = `BOSS ${opponentTitle}`;
-
 		battleRoom = Rooms.createBattle({
 			format,
 			players: [
@@ -695,6 +708,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		const match = activeMatches.get(roomid as RoomID);
 		if (match) {
 			const activeState = getState(match.userId);
+			// Added !match.isTrainerBattle check here
 			if (activeState && activeState.floor % 10 !== 0 && !match.isTrainerBattle) {
 				const turn = room.battle.turn || 0;
 
