@@ -1,13 +1,9 @@
 import { Utils } from '../../../lib';
 
-/* * Dev Note: Omniscient Minimax Engine
- * This AI operates with "Full Knowledge," simulating futures based on the 
- * player's actual movesets and stats retrieved from the server side.
- * * Logic Flow:
- * 1. Root: Evaluate all legal AI actions (Moves and Switches).
- * 2. Min Node (Player Turn): Simulate the player's optimal response using their real moves.
- * 3. Max Node (AI Turn): Search for the AI's best counter-play to that response.
- * 4. Evaluation: Score based on HP preservation, Speed-tier advantage, and KO potential.
+/* * Dev Note: Minimax Engine
+ * This AI simulates outcomes using the player's actual movesets and stats.
+ * Guardrails have been added to the damage formula to prevent NaN errors 
+ * from collapsing the search tree.
  */
 
 export type ActionType = 'move' | 'switch';
@@ -51,9 +47,6 @@ export class PokeRogueAI {
 		}
 	}
 
-	/**
-	 * Main Entry Point
-	 */
 	public async decide(): Promise<string> {
 		if (!this.request || this.request.wait) return 'pass';
 		if (this.request.teamPreview) return this.handleTeamPreview();
@@ -70,9 +63,9 @@ export class PokeRogueAI {
 		let bestScore = -Infinity;
 
 		for (const action of aiActions) {
-			// Start Alpha-Beta Pruning search
 			const score = this.minNode(state, action, 0, -Infinity, Infinity);
-			if (score > bestScore) {
+			// NaN check to prevent tree collapse
+			if (!isNaN(score) && score > bestScore) {
 				bestScore = score;
 				bestAction = action;
 			}
@@ -81,7 +74,6 @@ export class PokeRogueAI {
 	}
 
 	private minNode(state: SimState, aiAction: Action, depth: number, alpha: number, beta: number): number {
-		// Player's turn: We assume the player will choose the action that results in the LOWEST score for the AI.
 		const playerActions = this.getPlayerActions(state);
 		let minScore = Infinity;
 
@@ -90,57 +82,45 @@ export class PokeRogueAI {
 			const score = this.maxNode(nextState, depth + 1, alpha, beta);
 			
 			if (score < minScore) minScore = score;
-			if (minScore <= alpha) return minScore; // Alpha Cut-off
+			if (minScore <= alpha) return minScore;
 			if (minScore < beta) beta = minScore;
 		}
 		return minScore;
 	}
 
 	private maxNode(state: SimState, depth: number, alpha: number, beta: number): number {
-		// Terminal node check
 		if (depth >= this.MAX_DEPTH || state.aiActive.isFainted || state.playerActive.isFainted) {
 			return this.evaluateState(state);
 		}
 
-		// AI's turn: The AI chooses the action that results in the HIGHEST score.
 		const aiActions = this.generateSimActions(state.aiActive, state.aiBench);
 		let maxScore = -Infinity;
 
 		for (const action of aiActions) {
 			const score = this.minNode(state, action, depth, alpha, beta);
-			
 			if (score > maxScore) maxScore = score;
-			if (maxScore >= beta) return maxScore; // Beta Cut-off
+			if (maxScore >= beta) return maxScore;
 			if (maxScore > alpha) alpha = maxScore;
 		}
 		return maxScore;
 	}
 
-	/**
-	 * The Heuristic Evaluator
-	 */
 	private evaluateState(state: SimState): number {
-		// Immediate win/loss conditions
 		if (state.playerActive.isFainted) return 10000;
 		if (state.aiActive.isFainted) return -10000;
 
-		// 1. HP Resource Valuation
 		let score = (state.aiActive.hpRatio * 100) - (state.playerActive.hpRatio * 100);
-		
-		// 2. Bench Health
 		for (const p of state.aiBench) score += p.hpRatio * 30;
 		for (const p of state.playerBench) score -= p.hpRatio * 30;
 
-		// 3. Positional Advantage: Being faster is a huge plus in Rogue-likes
 		if (state.aiActive.baseStats.spe > state.playerActive.baseStats.spe) score += 20;
 
-		return score;
+		return isNaN(score) ? 0 : score;
 	}
 
 	private simulateTurn(state: SimState, aiAction: Action, pAction: Action): SimState {
 		const nextState: SimState = JSON.parse(JSON.stringify(state));
 
-		// Resolve Switches (Switches happen before attacks)
 		if (aiAction.type === 'switch') {
 			const newActive = nextState.aiBench.find(p => p.species === aiAction.id);
 			if (newActive) nextState.aiActive = newActive;
@@ -150,47 +130,37 @@ export class PokeRogueAI {
 			if (newActive) nextState.playerActive = newActive;
 		}
 
-		// Resolve Attacks
 		if (aiAction.type === 'move' && pAction.type === 'move') {
 			const aiM = Dex.moves.get(aiAction.id);
 			const pM = Dex.moves.get(pAction.id);
-
 			const aiFirst = nextState.aiActive.baseStats.spe >= nextState.playerActive.baseStats.spe;
 			
 			if (aiFirst) {
 				this.applyDamage(nextState.aiActive, nextState.playerActive, aiM);
-				if (!nextState.playerActive.isFainted) {
-					this.applyDamage(nextState.playerActive, nextState.aiActive, pM);
-				}
+				if (!nextState.playerActive.isFainted) this.applyDamage(nextState.playerActive, nextState.aiActive, pM);
 			} else {
 				this.applyDamage(nextState.playerActive, nextState.aiActive, pM);
-				if (!nextState.aiActive.isFainted) {
-					this.applyDamage(nextState.aiActive, nextState.playerActive, aiM);
-				}
+				if (!nextState.aiActive.isFainted) this.applyDamage(nextState.aiActive, nextState.playerActive, aiM);
 			}
 		} else if (aiAction.type === 'move') {
 			this.applyDamage(nextState.aiActive, nextState.playerActive, Dex.moves.get(aiAction.id));
 		} else if (pAction.type === 'move') {
 			this.applyDamage(nextState.playerActive, nextState.aiActive, Dex.moves.get(pAction.id));
 		}
-
 		return nextState;
 	}
 
 	private applyDamage(attacker: SimPokemon, defender: SimPokemon, move: any): void {
 		if (move.category === 'Status') return;
-
 		let power = move.basePower || 60;
-		const A = move.category === 'Physical' ? attacker.baseStats.atk : attacker.baseStats.spa;
-		const D = move.category === 'Physical' ? defender.baseStats.def : defender.baseStats.spd;
 		
-		// Simplified Standard Damage Formula
-		let dmg = (((42 * power * (A / D)) / 50) + 2) / 2;
+		// Guard against undefined stats
+		const A = move.category === 'Physical' ? (attacker.baseStats?.atk || 50) : (attacker.baseStats?.spa || 50);
+		const D = move.category === 'Physical' ? (defender.baseStats?.def || 50) : (defender.baseStats?.spd || 50);
+		
+		let dmg = (((42 * power * (A / Math.max(1, D))) / 50) + 2) / 2;
 
-		// STAB Bonus
 		if (attacker.types.includes(move.type)) dmg *= 1.5;
-
-		// Type Effectiveness
 		for (const t of defender.types) {
 			const eff = Dex.getEffectiveness(move.type, t);
 			if (eff > 0) dmg *= 2;
@@ -198,6 +168,7 @@ export class PokeRogueAI {
 			if (!Dex.getImmunity(move.type, t)) dmg = 0;
 		}
 
+		if (isNaN(dmg)) dmg = 10;
 		defender.hpRatio = Math.max(0, defender.hpRatio - (dmg / 100));
 		if (defender.hpRatio <= 0) defender.isFainted = true;
 	}
@@ -205,18 +176,16 @@ export class PokeRogueAI {
 	private buildSimState(): SimState {
 		const aiMons = this.request.side?.pokemon ?? [];
 		const playerActive = this.playerTeamData.find(p => p.isActive) || this.playerTeamData[0];
-		
 		return {
 			aiActive: this.parseSimPokemon(aiMons[0], true),
 			aiBench: aiMons.slice(1).map((p: any) => this.parseSimPokemon(p, false)),
-			playerActive: playerActive,
+			playerActive,
 			playerBench: this.playerTeamData.filter(p => !p.isActive)
 		};
 	}
 
 	private getPlayerActions(state: SimState): Action[] {
 		const actions: Action[] = [];
-		// The AI now has access to the REAL moveset of the player
 		for (let i = 0; i < state.playerActive.moves.length; i++) {
 			const m = Dex.moves.get(state.playerActive.moves[i]);
 			actions.push({ type: 'move', id: m.id, slot: i + 1, priority: m.priority ?? 0 });
@@ -231,7 +200,7 @@ export class PokeRogueAI {
 			species: dex.id,
 			hpRatio: this.parseHpRatio(pData.condition),
 			types: dex.types,
-			baseStats: dex.baseStats,
+			baseStats: { ...dex.baseStats, hp: 100 },
 			isActive,
 			isFainted: pData.condition?.endsWith(' fnt'),
 			moves: pData.moves ?? []
@@ -240,38 +209,29 @@ export class PokeRogueAI {
 
 	private getLegalActions(pokemonArray: any[], activeRequest: any): Action[] {
 		const actions: Action[] = [];
-		// Switching check (check for traps)
 		if (!(activeRequest?.trapped || activeRequest?.maybeTrapped)) {
 			for (let i = 1; i < pokemonArray.length; i++) {
-				const p = pokemonArray[i];
-				if (!p.condition?.endsWith(' fnt')) {
-					actions.push({ type: 'switch', id: toID(p.details), slot: i + 1, priority: 6 });
+				if (!pokemonArray[i].condition?.endsWith(' fnt')) {
+					actions.push({ type: 'switch', id: toID(pokemonArray[i].details), slot: i + 1, priority: 6 });
 				}
 			}
 		}
-
-		// Move check
 		const moves = activeRequest?.moves ?? [];
 		for (let i = 0; i < moves.length; i++) {
-			const m = moves[i];
-			if (!m.disabled && (m.pp ?? 1) > 0) {
-				actions.push({ type: 'move', id: m.id, slot: i + 1, priority: Dex.moves.get(m.id).priority ?? 0 });
+			if (!moves[i].disabled && (moves[i].pp ?? 1) > 0) {
+				actions.push({ type: 'move', id: moves[i].id, slot: i + 1, priority: Dex.moves.get(moves[i].id).priority ?? 0 });
 			}
 		}
-
 		return actions.length ? actions : [{ type: 'move', id: 'struggle', slot: 1, priority: 0 }];
 	}
 
 	private generateSimActions(active: SimPokemon, bench: SimPokemon[]): Action[] {
 		const actions: Action[] = [];
 		for (let i = 0; i < bench.length; i++) {
-			if (!bench[i].isFainted) {
-				actions.push({ type: 'switch', id: bench[i].species, slot: i + 2, priority: 6 });
-			}
+			if (!bench[i].isFainted) actions.push({ type: 'switch', id: bench[i].species, slot: i + 2, priority: 6 });
 		}
 		for (let i = 0; i < active.moves.length; i++) {
-			const mData = Dex.moves.get(active.moves[i]);
-			actions.push({ type: 'move', id: active.moves[i], slot: i + 1, priority: mData.priority ?? 0 });
+			actions.push({ type: 'move', id: active.moves[i], slot: i + 1, priority: Dex.moves.get(active.moves[i]).priority ?? 0 });
 		}
 		return actions.length ? actions : [{ type: 'move', id: 'struggle', slot: 1, priority: 0 }];
 	}
@@ -285,8 +245,7 @@ export class PokeRogueAI {
 
 	private handleTeamPreview(): string {
 		const count = this.request.side?.pokemon?.length ?? 1;
-		const order = Array.from({ length: count }, (_, i) => i + 1);
-		return `team ${order.join('')}`;
+		return `team ${Array.from({ length: count }, (_, i) => i + 1).join('')}`;
 	}
 
 	private handleForceSwitch(): string {
@@ -298,9 +257,6 @@ export class PokeRogueAI {
 	}
 }
 
-/**
- * Worker-Ready Bridge
- */
 export async function getBestMove(requestJson: string, playerTeam: SimPokemon[]): Promise<string> {
 	const ai = new PokeRogueAI(requestJson, playerTeam);
 	return ai.decide();
