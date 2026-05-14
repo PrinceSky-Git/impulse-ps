@@ -1,5 +1,6 @@
 import { Utils } from '../../../lib';
 import { Table } from '../../utils';
+import { nameColor } from '../customization/custom-color';
 import { SHOP_ITEMS } from './items';
 import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { savedData } from './state';
@@ -638,7 +639,7 @@ function renderTopView(): string {
 	entries.forEach(([userid, s], i) => {
 		const displayTeam = s.recordTeam?.length ? s.recordTeam : s.team;
 		const teamSprites = (displayTeam ?? []).slice(0, 6).map((m: PokemonEntry) => getSprite(m.species, 28)).join('');
-		buf += `<tr><td class="pr-td-desc" style="font-weight:500;white-space:nowrap;">#${i + 1}</td><td class="pr-td-name" style="white-space:nowrap;">${Impulse.nameColor(s.displayName || userid, true, false)}</td>`;
+		buf += `<tr><td class="pr-td-desc" style="font-weight:500;white-space:nowrap;">#${i + 1}</td><td class="pr-td-name" style="white-space:nowrap;">${nameColor(s.displayName || userid, true, false)}</td>`;
 		buf += `<td class="pr-td-desc" style="white-space:nowrap;">Floor ${s.highestFloor}</td><td style="white-space:nowrap;"><div class="pr-lb-team">${teamSprites}</div></td></tr>`;
 	});
 
