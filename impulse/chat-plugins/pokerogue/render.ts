@@ -527,7 +527,7 @@ function renderMainView(state: PokeRogueState, user: User): string {
 	let buf = renderStatBar(state);
 
 	buf += `<div style="text-align:center;margin-bottom:8px">`;
-	buf += renderBtn('/pokerogue battle', 'Start battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	buf += renderBtn('/pokerogue prebattle', 'Start battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	buf += `&nbsp;&nbsp;`;
 	buf += renderBtn('/pokerogue view bag', 'Bag', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	buf += `&nbsp;&nbsp;`;
