@@ -1394,7 +1394,7 @@ export const handlers: Chat.Handlers = {
             
 			// ORDER 4: Floor Cleared & BP (Combined to prevent extra <br>)
 			battleLogMsgs.push(
-				`<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 6px 0;">` +
+				`<hr style="border: 0; border-top: 1px solid currentColor; opacity: 0.2; margin: 8px 0;">` +
 				`<b>You've gained ${bpGained} battle points for clearing the floor!</b>`
 			);
 
@@ -1403,10 +1403,12 @@ export const handlers: Chat.Handlers = {
 		}
 
 		if (battleLogMsgs.length > 0 && room) {
-			const infoboxHtml = `<div class="infobox" style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1);">` +
-								`<div style="font-weight: bold; margin-bottom: 6px; font-size: 13px;">Floor ${match.floor} - Battle Report</div>` +
-								`<div style="font-size: 12px; line-height: 1.5;">${battleLogMsgs.join('<br>')}</div>` +
-								`</div>`;
+			// Wrapped in .pr to inherit theme, using .pr-card for the container, and .pr-choice-heading for the title
+			const infoboxHtml = `<div class="pr" style="background:transparent; border:none; min-height:0; max-width:100%; margin:4px 0;">` +
+								`<div class="pr-card" style="margin: 0; padding: 10px 14px;">` +
+								`<div class="pr-choice-heading" style="font-size: 14px; margin-bottom: 6px;">Floor ${match.floor} - Battle Report</div>` +
+								`<div style="font-size: 12px; line-height: 1.55;">${battleLogMsgs.join('<br>')}</div>` +
+								`</div></div>`;
 			
 			room.add(`|html|${infoboxHtml}`).update();
 		}
