@@ -13,6 +13,8 @@ export interface TrainerData {
 	pool?: (string | TrainerMon)[];
 	random?: boolean;
 	chance?: number;
+	spriteUrl?: string;
+	dialog?: string;
 }
 
 export const TRAINERS: Record<string, Record<string, TrainerData>> = {
@@ -20,8 +22,10 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	'5': {
 		'Youngster Joey (Test)': {
 			teamSize: 2,
-			chance: 50,
-			pool: ['rattata', 'pidgey', 'sentret', 'hoothoot'],
+			chance: 100,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/youngster-gen4.png',
+			dialog: "My Rattata is in the top percentage of Rattatas!",
+			pool: ['rattata', 'pidgey', 'sentret'],
 		},
 	},
 
