@@ -365,13 +365,13 @@ function processFloorRewards(state: PokeRogueState, clearedFloor: number): { bpG
 	if (clearedFloor % 50 === 0) {
 		state.inventory = state.inventory || {};
 		state.inventory.masterball = (state.inventory.masterball || 0) + 1;
-		extraNotifs.push(`<b>Milestone Reward: Received 1x Master Ball for clearing Floor ${clearedFloor}!</b>`);
+		extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received 1x Master Ball for clearing Floor ${clearedFloor}!</b></div>`);
 	}
 
 	if (clearedFloor === 10) {
 		state.keyItems = state.keyItems ?? [];
 		state.keyItems.push('Exp. Charm');
-		extraNotifs.push(`<b>Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b>`);
+		extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b></div>`);
 	}
 
 	if (isBossFloorBoundary(clearedFloor)) {
@@ -381,7 +381,7 @@ function processFloorRewards(state: PokeRogueState, clearedFloor: number): { bpG
 			delete mon.status;
 			fullHealPP(mon);
 		}
-		extraNotifs.push(`<b>Zone Boss Defeated! Full heal!</b>`);
+		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
 	}
 
 	return { bpGained, extraNotifs };
@@ -1392,10 +1392,10 @@ export const handlers: Chat.Handlers = {
 			// ORDER 3: Milestones & Boss Rewards
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
             
-			// ORDER 4: Floor Cleared & BP (Combined to prevent extra <br>)
+			// ORDER 4: Floor Cleared & BP (Now Wrapped in a centered div)
 			battleLogMsgs.push(
 				`<hr style="border: 0; border-top: 1px solid currentColor; opacity: 0.2; margin: 8px 0;">` +
-				`<b>You've gained ${bpGained} battle points for clearing the floor!</b>`
+				`<div style="text-align: center;"><b>You've gained ${bpGained} battle points for clearing the floor!</b></div>`
 			);
 
 		} else {
@@ -1403,10 +1403,10 @@ export const handlers: Chat.Handlers = {
 		}
 
 		if (battleLogMsgs.length > 0 && room) {
-			// Wrapped in .pr to inherit theme, using .pr-card for the container, and .pr-choice-heading for the title
+			// Added text-align: center to the pr-choice-heading style
 			const infoboxHtml = `<div class="pr" style="background:transparent; border:none; min-height:0; max-width:100%; margin:4px 0;">` +
 								`<div class="pr-card" style="margin: 0; padding: 10px 14px;">` +
-								`<div class="pr-choice-heading" style="font-size: 14px; margin-bottom: 6px;">Floor ${match.floor} - Battle Report</div>` +
+								`<div class="pr-choice-heading" style="font-size: 14px; margin-bottom: 6px; text-align: center;">Floor ${match.floor} - Battle Report</div>` +
 								`<div style="font-size: 12px; line-height: 1.55;">${battleLogMsgs.join('<br>')}</div>` +
 								`</div></div>`;
 			
