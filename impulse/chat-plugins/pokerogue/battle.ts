@@ -29,8 +29,8 @@ export function destroyBotUser(botUser: User): void {
 
 /* * Dev Note: Bot User Initialization
  * Creates a ghost User object hooked directly into the Showdown connection layer.
- * We override `sendTo` to intercept `|request|` messages, allowing the bot to automatically
- * process battle states and fire off `makeAIChoice` without needing a real client.
+ * Added an |error| interceptor: If the bot accidentally makes an illegal move (e.g., switching while trapped),
+ * it will catch the error and forcefully use 'move 1' to prevent the room from permanently hanging.
  */
 function createBotUser(playerId: string): User {
 	const uid = ++botCounter;
@@ -76,15 +76,19 @@ function createBotUser(playerId: string): User {
 	(botUser as any).sendTo = function (roomid: RoomID | BasicRoom | null, data: string) {
 		if (typeof data === 'string') {
 			const lines = data.split('\n');
+			const roomidStr = typeof roomid === 'string' ? roomid : (roomid as any)?.roomid ?? '';
+			
 			for (const line of lines) {
 				if (line.startsWith('|request|')) {
-					const roomidStr = typeof roomid === 'string' ? roomid :
-						(roomid as any)?.roomid ?? '';
 					setTimeout(() => {
 						const handler = botBattleHandlers.get(botUser.id);
 						if (handler) handler(roomidStr, line);
 					}, 150);
 					break;
+				} else if (line.startsWith('|error|[Invalid choice]')) {
+					setTimeout(() => {
+						void Rooms.get(roomidStr as RoomID)?.battle?.stream.write(`>p2 move 1`);
+					}, 50);
 				}
 			}
 		}
@@ -201,7 +205,7 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
 }
 
 /* * Dev Note: Move Scoring Heuristic
- * Calculates an effective priority score for each move. Factors in STAB,
+ * Calculates an effective priority score for each move. Factors in STAB, 
  * type effectiveness, recoil, multi-hit, and basic ability immunities.
  */
 function scoreMove(
@@ -355,12 +359,14 @@ function shouldSwitch(
 	const currentPokemon = pokemon[activeIdx];
 	if (!currentPokemon) return 0;
 
+	const active = (request.active as any[])[activeIdx];
+	if (active?.trapped || active?.maybeTrapped) return 0;
+
 	const hpRatio = parseHpRatio(currentPokemon.condition);
 	const userSpecies = toID(currentPokemon.details?.split(',')[0] ?? '');
 	const userDex = Dex.species.get(userSpecies);
 	const targetDex = Dex.species.get(targetSpecies);
 
-	const active = (request.active as any[])[activeIdx];
 	const moves: any[] = active?.moves ?? [];
 	const usableMoves = moves.filter((m: any) => !m.disabled && (m.pp ?? 1) > 0);
 
@@ -387,7 +393,6 @@ function shouldSwitch(
 	const isCriticallyLow = hpRatio < 0.15;
 
 	if (!isWalled && !inBadMatchup && !isLowHp) return 0;
-
 	if (hpRatio > 0.65 && !isWalled) return 0;
 
 	const numActive = (request.active as any[]).length;
@@ -616,10 +621,10 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	}
 
 	const luck = state.luck ?? 0;
-	const trainerKey = state.pendingTrainerKey;
-
+	const trainerKey = state.pendingTrainerKey; 
+	
 	const result = genAIPokemon(size, floor, luck, state.pendingTrainer, trainerKey);
-
+	
 	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer, trainerName: result.trainerName };
 }
 
@@ -632,7 +637,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	}
 
 	const playerTeam = packTeam(livingTeam);
-
+	
 	const botTeamData = buildBotTeam(state);
 	const botTeam = botTeamData.packedTeam;
 	const isTrainer = botTeamData.isTrainer;
@@ -647,14 +652,14 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 
 	const isBoss = state.floor % 10 === 0;
 	const botUser = createBotUser(user.id);
-
+	
 	let opponentTitle = isTrainer && trainerName ? trainerName : (isTrainer ? TRAINER_NAME : 'Wild Encounter');
 	if (isBoss && !isTrainer) opponentTitle = `BOSS ${opponentTitle}`;
 
 	if (isTrainer && trainerName) {
-		botUser.name = trainerName;
+		botUser.name = trainerName; 
 	}
-
+	
 	const botSlot = 'p2' as const;
 	const format = state.floor >= 15 ? '[Gen 9] PokeRogue' : '[Gen 9] PokeRogue Early';
 
