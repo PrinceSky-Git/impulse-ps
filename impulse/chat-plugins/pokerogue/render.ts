@@ -706,7 +706,8 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	const view = (state as any).view || 'main';
 
 	let buf = (state.battleRoomId || state.notification) ? `<meta http-equiv="refresh" content="${PAGE_REFRESH_SECONDS}">` : '';
-	buf += `<div class="pr">`;
+	//buf += `<div class="pr">`;
+	buf += `<div class="pr" style="min-height:100vh;padding-bottom:20px">`;
 
 	if (state.gameOver) return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderGameOverView(state)}</div></div>`;
 	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderResetConfirmView(state)}</div></div>`;
