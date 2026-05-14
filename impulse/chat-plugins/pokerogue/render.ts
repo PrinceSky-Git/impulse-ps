@@ -140,7 +140,7 @@ function renderStatBar(state: PokeRogueState, cols2 = false): string {
 function renderHeader(view: string, hasGameOver: boolean): string {
 	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', guide: 'PokèRogue Guide', trainer: 'Encounter!' };
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
-	
+
 	if (view === 'main' && !hasGameOver) {
 		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
 		buf += `${renderBtn('/pokerogue view guide', 'Guide', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
@@ -151,7 +151,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && !hasGameOver) {
 		/* * Dev Note: UI Lock
-		 * We exclude the 'Back' button from the 'trainer' view to ensure players 
+		 * We exclude the 'Back' button from the 'trainer' view to ensure players
 		 * commit to the rolled encounter and cannot navigate back to the main menu.
 		 */
 		buf += renderBtn('/pokerogue view main', '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
@@ -490,36 +490,36 @@ function renderReleaseMon(state: PokeRogueState): string {
 // ─── Trainer Intro View ───────────────────────────────────────────────────────
 
 /* * Dev Note: Trainer Intro UI
- * Uses the dynamically routed pendingTrainerKey to fetch the correct sprite and dialogue 
+ * Uses the dynamically routed pendingTrainerKey to fetch the correct sprite and dialogue
  * from the database before handing off to the actual battle phase.
  */
 function renderTrainerIntroView(state: PokeRogueState): string {
 	const trainerName = state.pendingTrainer!;
 	const lookupKey = state.pendingTrainerKey || state.floor.toString();
 	const trainerData = TRAINERS[lookupKey]?.[trainerName];
-	
+
 	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
-	
+
 	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">${Utils.escapeHTML(trainerName)}</div>`;
-	
+
 	if (trainerData?.spriteUrl) {
 		buf += `<div style="margin-bottom: 8px;">`;
 		buf += `<img src="${Utils.escapeHTML(trainerData.spriteUrl)}" alt="${Utils.escapeHTML(trainerName)}" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
 		buf += `</div>`;
 	}
-	
+
 	if (trainerData?.dialog) {
 		buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 300px; margin: 0 auto 16px auto; border-left: 4px solid #8ab4f8; font-size: 12px; line-height: 1.4; display: block;">`;
 		buf += `"${Utils.escapeHTML(trainerData.dialog)}"`;
 		buf += `</div>`;
 	}
-	
+
 	buf += `<div>`;
 	buf += renderBtn('/pokerogue battle', 'Start Battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	buf += `</div>`;
-	
+
 	buf += `</div>`;
-	
+
 	return buf;
 }
 
@@ -712,7 +712,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	const view = (state as any).view || 'main';
 
 	let buf = (state.battleRoomId || state.notification) ? `<meta http-equiv="refresh" content="${PAGE_REFRESH_SECONDS}">` : '';
-	//buf += `<div class="pr">`;
+	// buf += `<div class="pr">`;
 	buf += `<div class="pr" style="min-height:100vh;padding-bottom:20px">`;
 
 	if (state.gameOver) return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderGameOverView(state)}</div></div>`;

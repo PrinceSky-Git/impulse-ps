@@ -101,7 +101,7 @@ const SELF_KO_MOVES = new Set([
 ]);
 
 /* * Dev Note: EXP Distribution Logic
- * Parses the Showdown battle log PR_EXP messages to distribute base EXP 
+ * Parses the Showdown battle log PR_EXP messages to distribute base EXP
  * evenly among active participants, accounting for boss/trainer multipliers.
  */
 function parseKillExp(
@@ -135,8 +135,8 @@ function parseKillExp(
 
 		const validParticipantCount = Math.max(1, participantIndices.size);
 		const b = getExpYield(enemySpecies);
-		
-		const a = (isBossFloor || isTrainerBattle) ? 1.5 : 1; 
+
+		const a = (isBossFloor || isTrainerBattle) ? 1.5 : 1;
 		const rawKillExp = Math.floor(Math.floor((b * enemyLevel) / 5 + 1) * a);
 		const basePerParticipant = Math.max(1, Math.floor(rawKillExp / validParticipantCount));
 
@@ -192,7 +192,7 @@ function applyExpShare(
 }
 
 /* * Dev Note: State Synchronization
- * Parses end-of-battle Showdown logs sequentially to reconstruct the exact HP percentages, 
+ * Parses end-of-battle Showdown logs sequentially to reconstruct the exact HP percentages,
  * faint states, and status conditions of the virtual party without relying on simulator memory.
  */
 function syncBattleOutcome(
@@ -341,13 +341,13 @@ function processBattleExperience(
 		for (const [teamIdx, expGained] of expMap) {
 			const mon = state.team[teamIdx];
 			if (!mon || (mon.currentHp ?? 100) === 0) continue;
-			
+
 			const oldSpecies = mon.species;
 			const spName = Dex.species.get(toID(oldSpecies)).name;
-			
+
 			const isActive = rawExpMap.has(teamIdx);
 			const sourceTag = !isActive ? ' <span style="color:#8ab4f8;font-size:10px">(Exp. All)</span>' : '';
-			
+
 			detailMsgs.push(`<b>${spName}</b> gained ${expGained} Exp.${sourceTag}`);
 
 			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor);
@@ -492,7 +492,7 @@ export const commands: Chat.ChatCommands = {
 			if (!user.named) return this.errorReply("Login required.");
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
-			
+
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
 				return this.errorReply("Resolve all pending choices before starting a battle.");
@@ -503,7 +503,7 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			/* * Dev Note: Anti-Exploit Lock
-			 * If a trainer is already pending for this floor, bypass the selection logic 
+			 * If a trainer is already pending for this floor, bypass the selection logic
 			 * to prevent users from re-rolling the encounter pool via the 'Back' button or commands.
 			 */
 			if (state.pendingTrainer && state.pendingTrainerKey) {
@@ -519,7 +519,7 @@ export const commands: Chat.ChatCommands = {
 			let selectedTrainer: string | null = null;
 
 			const fixedWaves = new Set([5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200]);
-			
+
 			/* * Dev Note: Trainer Spawning Logic
 			 * 1. Checks specific hardcoded progression waves (Rivals, Evil Teams, E4, Champions).
 			 * 2. Processes Gym Leader intervals. Leaders have a 50/50 chance to appear on wave 20 or 30.
@@ -547,7 +547,7 @@ export const commands: Chat.ChatCommands = {
 			if (trainerKey && TRAINERS[trainerKey]) {
 				const trainerNames = Object.keys(TRAINERS[trainerKey]);
 				selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
-				
+
 				const trainerData = TRAINERS[trainerKey][selectedTrainer];
 				state.pendingTrainer = selectedTrainer;
 				state.pendingTrainerKey = trainerKey;
@@ -559,7 +559,7 @@ export const commands: Chat.ChatCommands = {
 					return;
 				}
 			}
-			
+
 			setState(user.id, state);
 			return this.parse('/pokerogue battle');
 		},
@@ -1379,11 +1379,11 @@ export const handlers: Chat.Handlers = {
 	onBattleEnd(battle, winner, players) {
 		const match = activeMatches.get(battle.roomid);
 		if (!match) return;
-		
+
 		activeMatches.delete(battle.roomid);
 		const botUser = Users.get(match.botUserId);
 		if (botUser) destroyBotUser(botUser);
-		
+
 		const state = getState(match.userId);
 		if (!state) return;
 
@@ -1392,8 +1392,8 @@ export const handlers: Chat.Handlers = {
 		const logLines: string[] = room?.log?.log ?? [];
 
 		const { consumedItems } = syncBattleOutcome(logLines, state);
-		
-		let battleLogMsgs: string[] = [];
+
+		const battleLogMsgs: string[] = [];
 
 		if (consumedItems.length) {
 			battleLogMsgs.push(`<b>Consumed items:</b> ${consumedItems.join(', ')}`);
@@ -1402,8 +1402,8 @@ export const handlers: Chat.Handlers = {
 		delete state.battleRoomId;
 
 		if (toID(winner) === match.userId) {
-			const isTrainerBattle = match.isTrainerBattle ?? false; 
-			
+			const isTrainerBattle = match.isTrainerBattle ?? false;
+
 			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle);
 
 			const prevFloor = state.floor;
@@ -1413,7 +1413,7 @@ export const handlers: Chat.Handlers = {
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;
 				const spName = Dex.species.get(toID(caughtMon.species)).name;
-				
+
 				if (state.team.length < 6) {
 					state.team.push(caughtMon);
 					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught and joined the team!</b>`);
@@ -1430,23 +1430,22 @@ export const handlers: Chat.Handlers = {
 
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
-            
+
 			battleLogMsgs.push(
 				`<hr style="border: 0; border-top: 1px solid currentColor; opacity: 0.2; margin: 8px 0;">` +
 				`<div style="text-align: center;"><b>You've gained ${bpGained} battle points for clearing the floor!</b></div>`
 			);
-
 		} else {
 			handleBattleLoss(state, match.floor);
 		}
 
 		if (battleLogMsgs.length > 0 && room) {
 			const infoboxHtml = `<div class="pr" style="background:transparent; border:none; min-height:0; max-width:100%; margin:4px 0;">` +
-								`<div class="pr-card" style="margin: 0; padding: 10px 14px;">` +
-								`<div class="pr-choice-heading" style="font-size: 14px; margin-bottom: 6px; text-align: center;">Floor ${match.floor} - Battle Report</div>` +
-								`<div style="font-size: 12px; line-height: 1.55;">${battleLogMsgs.join('<br>')}</div>` +
-								`</div></div>`;
-			
+				`<div class="pr-card" style="margin: 0; padding: 10px 14px;">` +
+				`<div class="pr-choice-heading" style="font-size: 14px; margin-bottom: 6px; text-align: center;">Floor ${match.floor} - Battle Report</div>` +
+				`<div style="font-size: 12px; line-height: 1.55;">${battleLogMsgs.join('<br>')}</div>` +
+				`</div></div>`;
+
 			room.add(`|html|${infoboxHtml}`).update();
 		}
 

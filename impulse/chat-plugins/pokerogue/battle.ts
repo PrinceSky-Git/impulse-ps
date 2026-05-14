@@ -29,7 +29,7 @@ export function destroyBotUser(botUser: User): void {
 
 /* * Dev Note: Bot User Initialization
  * Creates a ghost User object hooked directly into the Showdown connection layer.
- * We override `sendTo` to intercept `|request|` messages, allowing the bot to automatically 
+ * We override `sendTo` to intercept `|request|` messages, allowing the bot to automatically
  * process battle states and fire off `makeAIChoice` without needing a real client.
  */
 function createBotUser(playerId: string): User {
@@ -201,7 +201,7 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
 }
 
 /* * Dev Note: Move Scoring Heuristic
- * Calculates an effective priority score for each move. Factors in STAB, 
+ * Calculates an effective priority score for each move. Factors in STAB,
  * type effectiveness, recoil, multi-hit, and basic ability immunities.
  */
 function scoreMove(
@@ -616,10 +616,10 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	}
 
 	const luck = state.luck ?? 0;
-	const trainerKey = state.pendingTrainerKey; 
-	
+	const trainerKey = state.pendingTrainerKey;
+
 	const result = genAIPokemon(size, floor, luck, state.pendingTrainer, trainerKey);
-	
+
 	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer, trainerName: result.trainerName };
 }
 
@@ -632,7 +632,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	}
 
 	const playerTeam = packTeam(livingTeam);
-	
+
 	const botTeamData = buildBotTeam(state);
 	const botTeam = botTeamData.packedTeam;
 	const isTrainer = botTeamData.isTrainer;
@@ -647,14 +647,14 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 
 	const isBoss = state.floor % 10 === 0;
 	const botUser = createBotUser(user.id);
-	
+
 	let opponentTitle = isTrainer && trainerName ? trainerName : (isTrainer ? TRAINER_NAME : 'Wild Encounter');
 	if (isBoss && !isTrainer) opponentTitle = `BOSS ${opponentTitle}`;
 
 	if (isTrainer && trainerName) {
-		botUser.name = trainerName; 
+		botUser.name = trainerName;
 	}
-	
+
 	const botSlot = 'p2' as const;
 	const format = state.floor >= 15 ? '[Gen 9] PokeRogue' : '[Gen 9] PokeRogue Early';
 

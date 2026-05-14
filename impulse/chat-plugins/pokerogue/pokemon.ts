@@ -51,8 +51,8 @@ function getMediumFastExp(level: number): number {
 	return Math.floor(level ** 3);
 }
 
-/* * Dev Note: Level & EXP Extrapolation 
- * Uses a closed-form polynomial evaluation for levels > 100 to map directly 
+/* * Dev Note: Level & EXP Extrapolation
+ * Uses a closed-form polynomial evaluation for levels > 100 to map directly
  * onto official core series EXP scaling equations at limitless levels.
  */
 export function expForLevel(level: number, expType = 'Medium Fast'): number {
@@ -893,7 +893,7 @@ export function genAIPokemon(
 		isTrainerBattle = true;
 		trainerName = forcedTrainer;
 		const trainerData = TRAINERS[lookupKey][forcedTrainer];
-		
+
 		actualQuantity = trainerData.teamSize;
 
 		if (!trainerData.random && trainerData.pool) {
@@ -901,8 +901,8 @@ export function genAIPokemon(
 			forcedTeam = shuffledPool.slice(0, trainerData.teamSize);
 			actualQuantity = forcedTeam.length;
 		}
-	} 
-	
+	}
+
 	if (!isTrainerBattle && isBossFloor && BOSSES[floor.toString()]) {
 		const bossNames = Object.keys(BOSSES[floor.toString()]);
 		const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];

@@ -40,7 +40,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lass-gen4.png',
 			dialog: "Are you looking at my cute Pokémon?",
 			pool: ['jigglypuff', 'clefairy', 'marill'],
-		}
+		},
 	},
 	'fixed_8': {
 		'Rival Finn': {
@@ -107,7 +107,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'charizard', teraType: 'Fire' },
 				{ species: 'blastoise', teraType: 'Water' },
 				{ species: 'venusaur', teraType: 'Grass' },
-				'pidgeot', 'staraptor', 'talonflame', 'raichu', 'snorlax', 'lucario', 'garchomp'
+				'pidgeot', 'staraptor', 'talonflame', 'raichu', 'snorlax', 'lucario', 'garchomp',
 			],
 		},
 	},
@@ -138,7 +138,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'rhyperior' },
 				{ species: 'dugtrio' },
 				{ species: 'marowak' },
-				{ species: 'kangaskhan', item: 'kangaskhanite' }, 
+				{ species: 'kangaskhan', item: 'kangaskhanite' },
 			],
 		},
 	},
@@ -151,7 +151,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'charizard', teraType: 'Fire' },
 				{ species: 'blastoise', teraType: 'Water' },
 				{ species: 'venusaur', teraType: 'Grass' },
-				'pidgeot', 'staraptor', 'snorlax', 'lucario', 'garchomp', 'rayquaza'
+				'pidgeot', 'staraptor', 'snorlax', 'lucario', 'garchomp', 'rayquaza',
 			],
 		},
 	},
@@ -180,7 +180,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'slowbro' },
 				{ species: 'jynx' },
 				{ species: 'cloyster' },
-				{ species: 'lapras', teraType: 'Ice' }
+				{ species: 'lapras', teraType: 'Ice' },
 			],
 		},
 		'Elite Four Aaron': {
@@ -192,7 +192,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'heracross' },
 				{ species: 'vespiquen' },
 				{ species: 'beautifly' },
-				{ species: 'drapion', teraType: 'Bug' } 
+				{ species: 'drapion', teraType: 'Bug' },
 			],
 		},
 	},
@@ -206,7 +206,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'hitmonchan' },
 				{ species: 'hitmonlee' },
 				{ species: 'steelix' },
-				{ species: 'machamp', teraType: 'Fighting' }
+				{ species: 'machamp', teraType: 'Fighting' },
 			],
 		},
 		'Elite Four Bertha': {
@@ -218,9 +218,9 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'sudowoodo' },
 				{ species: 'golem' },
 				{ species: 'whiscash' },
-				{ species: 'hippowdon', teraType: 'Ground' }
+				{ species: 'hippowdon', teraType: 'Ground' },
 			],
-		}
+		},
 	},
 	'fixed_186': {
 		'Elite Four Agatha': {
@@ -232,7 +232,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'golbat' },
 				{ species: 'arbok' },
 				{ species: 'crobat' },
-				{ species: 'gengar', teraType: 'Ghost' }
+				{ species: 'gengar', teraType: 'Ghost' },
 			],
 		},
 		'Elite Four Flint': {
@@ -244,9 +244,9 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'steelix' },
 				{ species: 'drifblim' },
 				{ species: 'lopunny' },
-				{ species: 'infernape', teraType: 'Fire' }
+				{ species: 'infernape', teraType: 'Fire' },
 			],
-		}
+		},
 	},
 	'fixed_188': {
 		'Elite Four Lance': {
@@ -258,7 +258,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'dragonair' },
 				{ species: 'aerodactyl' },
 				{ species: 'dragonite' },
-				{ species: 'dragonite', teraType: 'Dragon' }
+				{ species: 'dragonite', teraType: 'Dragon' },
 			],
 		},
 		'Elite Four Lucian': {
@@ -270,9 +270,9 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'girafarig' },
 				{ species: 'medicham' },
 				{ species: 'alakazam' },
-				{ species: 'bronzong', teraType: 'Psychic' }
+				{ species: 'bronzong', teraType: 'Psychic' },
 			],
-		}
+		},
 	},
 	'fixed_190': {
 		'Champion Blue': {
@@ -285,7 +285,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'rhydon' },
 				{ species: 'exeggutor' },
 				{ species: 'gyarados' },
-				{ species: 'charizard', item: 'charizarditex', teraType: 'Dragon' }
+				{ species: 'charizard', item: 'charizarditex', teraType: 'Dragon' },
 			],
 		},
 		'Champion Cynthia': {
@@ -298,9 +298,9 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'gastrodon' },
 				{ species: 'lucario' },
 				{ species: 'milotic' },
-				{ species: 'garchomp', item: 'garchompite', teraType: 'Dragon' }
+				{ species: 'garchomp', item: 'garchompite', teraType: 'Dragon' },
 			],
-		}
+		},
 	},
 	'fixed_195': {
 		'Rival Finn (Final)': {
@@ -311,8 +311,8 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'charizard', teraType: 'Fire' },
 				{ species: 'blastoise', teraType: 'Water' },
 				{ species: 'venusaur', teraType: 'Grass' },
-				'pidgeot', 'staraptor', 'snorlax', 'lucario', 'garchomp', 
-				{ species: 'rayquaza', item: 'meteorite' }
+				'pidgeot', 'staraptor', 'snorlax', 'lucario', 'garchomp',
+				{ species: 'rayquaza', item: 'meteorite' },
 			],
 		},
 	},
@@ -322,7 +322,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/unknown.png',
 			dialog: "...",
 			pool: [
-				{ species: 'eternatus' }
+				{ species: 'eternatus' },
 			],
 		},
 	},
@@ -330,7 +330,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	// ==========================================
 	// GYM LEADERS (Scaling Tiers)
 	// ==========================================
-	
+
 	'gym_leader_tier_1': {
 		'Gym Leader Brock': {
 			teamSize: 3,
@@ -354,7 +354,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png',
 			dialog: "We fight as one! Even in single battles!",
-			pool: ['solrock', 'lunatone', 'natu', 'spoink'], 
+			pool: ['solrock', 'lunatone', 'natu', 'spoink'],
 		},
 		'Gym Leader Iono': {
 			teamSize: 3,
@@ -367,7 +367,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
 			dialog: "Let's get this concert started!",
 			pool: ['zigzagoongalar', 'scraggy', 'inkay'],
-		}
+		},
 	},
 
 	'gym_leader_tier_2': {
@@ -406,7 +406,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
 			dialog: "Turn the volume up to eleven!",
 			pool: ['obstagoon', 'scrafty', 'malamar'],
-		}
+		},
 	},
 
 	'gym_leader_tier_3': {
@@ -445,7 +445,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
 			dialog: "We're going to rock this stage!",
 			pool: ['obstagoon', 'scrafty', 'malamar', 'skuntank'],
-		}
+		},
 	},
 
 	'gym_leader_tier_4': {
@@ -484,7 +484,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
 			dialog: "This is our grand finale!",
 			pool: ['obstagoon', 'scrafty', 'malamar', 'skuntank', 'toxtricity'],
-		}
+		},
 	},
 
 	'gym_leader_tier_5': {
@@ -493,12 +493,12 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/brock.png',
 			dialog: "Prepare to be crushed by my Terastallized Ace!",
 			pool: [
-				{ species: 'golem' }, 
-				{ species: 'relicanth' }, 
-				{ species: 'rampardos' }, 
-				{ species: 'crustle' }, 
-				{ species: 'aerodactyl' }, 
-				{ species: 'onix', teraType: 'Rock', item: 'hardstone' } 
+				{ species: 'golem' },
+				{ species: 'relicanth' },
+				{ species: 'rampardos' },
+				{ species: 'crustle' },
+				{ species: 'aerodactyl' },
+				{ species: 'onix', teraType: 'Rock', item: 'hardstone' },
 			],
 		},
 		'Gym Leader Misty': {
@@ -506,12 +506,12 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/misty.png',
 			dialog: "My Terastallized Pokémon will wash you out!",
 			pool: [
-				{ species: 'golduck' }, 
-				{ species: 'vaporeon' }, 
-				{ species: 'lapras' }, 
-				{ species: 'gyarados' }, 
-				{ species: 'milotic' }, 
-				{ species: 'starmie', teraType: 'Water', item: 'mysticwater' } 
+				{ species: 'golduck' },
+				{ species: 'vaporeon' },
+				{ species: 'lapras' },
+				{ species: 'gyarados' },
+				{ species: 'milotic' },
+				{ species: 'starmie', teraType: 'Water', item: 'mysticwater' },
 			],
 		},
 		'Gym Leader Lt. Surge': {
@@ -519,12 +519,12 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ltsurge.png',
 			dialog: "I'll fry you with 100,000 volts of pure Terastallized power!",
 			pool: [
-				{ species: 'electrode' }, 
-				{ species: 'magnezone' }, 
-				{ species: 'jolteon' }, 
-				{ species: 'ampharos' }, 
-				{ species: 'electivire' }, 
-				{ species: 'raichu', teraType: 'Electric', item: 'magnet' } 
+				{ species: 'electrode' },
+				{ species: 'magnezone' },
+				{ species: 'jolteon' },
+				{ species: 'ampharos' },
+				{ species: 'electivire' },
+				{ species: 'raichu', teraType: 'Electric', item: 'magnet' },
 			],
 		},
 		'Gym Leaders Tate & Liza': {
@@ -539,7 +539,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 				{ species: 'gallade' },
 				{ species: 'solrock', teraType: 'Psychic' },
 				{ species: 'lunatone', teraType: 'Psychic' },
-				{ species: 'gardevoir', teraType: 'Psychic' }
+				{ species: 'gardevoir', teraType: 'Psychic' },
 			],
 		},
 		'Gym Leader Iono': {
@@ -547,12 +547,12 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/iono.png',
 			dialog: "Catch my stream! Time to Terastallize!",
 			pool: [
-				{ species: 'bellibolt' }, 
-				{ species: 'kilowattrel' }, 
-				{ species: 'electrode' }, 
-				{ species: 'luxray' }, 
-				{ species: 'pawmot' }, 
-				{ species: 'mismagius', teraType: 'Electric' }
+				{ species: 'bellibolt' },
+				{ species: 'kilowattrel' },
+				{ species: 'electrode' },
+				{ species: 'luxray' },
+				{ species: 'pawmot' },
+				{ species: 'mismagius', teraType: 'Electric' },
 			],
 		},
 		'Gym Leader Piers': {
@@ -560,20 +560,20 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
 			dialog: "Let's blow the roof off this place!",
 			pool: [
-				{ species: 'scrafty' }, 
-				{ species: 'malamar' }, 
-				{ species: 'skuntank' }, 
-				{ species: 'toxtricity' }, 
-				{ species: 'grimmsnarl' }, 
-				{ species: 'obstagoon', teraType: 'Dark', item: 'blackglasses' }
+				{ species: 'scrafty' },
+				{ species: 'malamar' },
+				{ species: 'skuntank' },
+				{ species: 'toxtricity' },
+				{ species: 'grimmsnarl' },
+				{ species: 'obstagoon', teraType: 'Dark', item: 'blackglasses' },
 			],
-		}
+		},
 	},
 
 	// ==========================================
 	// RANDOM TRAINER ENCOUNTERS
 	// ==========================================
-	
+
 	'random_early': {
 		'Bug Catcher Rick': {
 			teamSize: 2,
@@ -592,7 +592,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lass-gen4.png',
 			dialog: "My Pokémon are super cute!",
 			pool: ['jigglypuff', 'clefairy', 'marill', 'skitty', 'nidoranf'],
-		}
+		},
 	},
 
 	'random_mid': {
@@ -613,7 +613,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/scientist.png',
 			dialog: "Let's test my theories in battle!",
 			pool: ['magneton', 'porygon2', 'muk', 'weezing', 'electrode'],
-		}
+		},
 	},
 
 	'random_late': {
@@ -634,6 +634,6 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/dragontamer.png',
 			dialog: "Dragons are the ultimate creatures!",
 			pool: ['dragonite', 'salamence', 'flygon', 'haxorus', 'hydreigon', 'goodra'],
-		}
-	}
+		},
+	},
 };
