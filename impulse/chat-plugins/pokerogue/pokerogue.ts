@@ -53,7 +53,7 @@ function processLevelUp(
 ): string[] {
 	const detailMsgs: string[] = [];
 
-	// Fetch the proper display names to fix the capitalization bug
+	// Fetch the proper display names to fix capitalization
 	const oldName = Dex.species.get(toID(oldSpecies)).name;
 	const currentName = Dex.species.get(toID(mon.species)).name;
 
@@ -330,9 +330,6 @@ function processBattleExperience(
 	const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(logLines, state, floor, isBossFloor, isTrainerBattle);
 	const expMap = applyExpShare(rawExpMap, baseShareExpMap, state);
 
-	const totalExpEarned = [...rawExpMap.values()].reduce((sum, v) => sum + v, 0);
-	const expShareActive = (state.keyItems ?? []).includes(EXP_SHARE_NAME);
-
 	if (expMap.size > 0) {
 		for (const [teamIdx, expGained] of expMap) {
 			const mon = state.team[teamIdx];
@@ -341,7 +338,7 @@ function processBattleExperience(
 			const oldSpecies = mon.species;
 			const spName = Dex.species.get(toID(oldSpecies)).name;
 			
-			// Distinguish active participants from bench/Exp. All receivers
+			// Distinguish active participants from bench/Exp. All receivers (Color restored for visibility)
 			const isActive = rawExpMap.has(teamIdx);
 			const sourceTag = !isActive ? ' <span style="color:#8ab4f8;font-size:10px">(Exp. All)</span>' : '';
 			
@@ -350,15 +347,6 @@ function processBattleExperience(
 
 			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor);
 			detailMsgs.push(...processLevelUp(mon, oldLevel, oldSpecies, evolved, teamIdx, state));
-		}
-
-		if (expShareActive && totalExpEarned > 0) {
-			const benchedCount = [...expMap.entries()].filter(([idx]) => !rawExpMap.has(idx)).length;
-			if (benchedCount > 0) {
-				const expAllStacks = Math.min(5, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length);
-				const sharedAmt = Math.floor((totalExpEarned / Math.max(1, [...rawExpMap.keys()].length)) * (0.20 * expAllStacks));
-				detailMsgs.push(`<span style="color:#8ab4f8; font-style: italic;">Summary: ${benchedCount} benched Pokémon received <b>${sharedAmt}</b> EXP via Exp. All stacks.</span>`);
-			}
 		}
 	}
 
@@ -377,13 +365,13 @@ function processFloorRewards(state: PokeRogueState, clearedFloor: number): { bpG
 	if (clearedFloor % 50 === 0) {
 		state.inventory = state.inventory || {};
 		state.inventory.masterball = (state.inventory.masterball || 0) + 1;
-		extraNotifs.push(`<br><b style="color:#aa55ff">Milestone Reward: Received 1x Master Ball for clearing Floor ${clearedFloor}!</b>`);
+		extraNotifs.push(`<b>Milestone Reward: Received 1x Master Ball for clearing Floor ${clearedFloor}!</b>`);
 	}
 
 	if (clearedFloor === 10) {
 		state.keyItems = state.keyItems ?? [];
 		state.keyItems.push('Exp. Charm');
-		extraNotifs.push(`<br><b style="color:#f4c842">Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b>`);
+		extraNotifs.push(`<b>Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b>`);
 	}
 
 	if (isBossFloorBoundary(clearedFloor)) {
@@ -393,7 +381,7 @@ function processFloorRewards(state: PokeRogueState, clearedFloor: number): { bpG
 			delete mon.status;
 			fullHealPP(mon);
 		}
-		extraNotifs.push(`<br><b style="color:#4caf50">Zone Boss Defeated! Full heal!</b>`);
+		extraNotifs.push(`<b>Zone Boss Defeated! Full heal!</b>`);
 	}
 
 	return { bpGained, extraNotifs };
@@ -1362,11 +1350,10 @@ export const handlers: Chat.Handlers = {
 
 		const { consumedItems } = syncBattleOutcome(logLines, state);
 		
-		// 1. Create a local array to hold all battle-related messages
 		let battleLogMsgs: string[] = [];
 
 		if (consumedItems.length) {
-			battleLogMsgs.push(`<b style="color:#ffb84d">Consumed items:</b> ${consumedItems.join(', ')}`);
+			battleLogMsgs.push(`<b>Consumed items:</b> ${consumedItems.join(', ')}`);
 		}
 
 		delete state.battleRoomId;
@@ -1380,16 +1367,17 @@ export const handlers: Chat.Handlers = {
 			state.floor++;
 			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor);
 
+			// ORDER 1: Caught Pokémon
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;
 				const spName = Dex.species.get(toID(caughtMon.species)).name;
 				
 				if (state.team.length < 6) {
 					state.team.push(caughtMon);
-					detailMsgs.push(`<b style="color:#4caf50">Added ${spName} to your team!</b>`);
+					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught and joined the team!</b>`);
 				} else {
 					state.pendingSwap = caughtMon;
-					detailMsgs.push(`<b style="color:#ffb84d">${spName} wants to join, but your team is full!</b>`);
+					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught! (Team full, swap pending)</b>`);
 				}
 				delete state.caughtPokemon;
 			}
@@ -1398,21 +1386,22 @@ export const handlers: Chat.Handlers = {
 			state.displayName = Users.get(match.userId)?.name || match.userId;
 			state.timesRerolled = 0;
 
-			// 2. Push all rewards and level ups into our local array instead of state.notification
-			battleLogMsgs.push(`<b>Floor ${prevFloor} Cleared!</b> +${bpGained} BP.`);
-			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
+			// ORDER 2: EXP & Level Ups
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
+            
+			// ORDER 3: Milestones & Boss Rewards
+			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
+            
+			// ORDER 4: Floor Cleared & BP
+			battleLogMsgs.push(`<b>Floor ${prevFloor} Cleared!</b> +${bpGained} BP.`);
 
 		} else {
 			handleBattleLoss(state, match.floor);
-			// Note: handleBattleLoss may still set state.notification for Revives, 
-			// which is desired so it displays when they return to the main menu.
 		}
 
-		// 3. Inject the compiled messages directly into the battle chatroom
 		if (battleLogMsgs.length > 0 && room) {
 			const infoboxHtml = `<div class="infobox" style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1);">` +
-								`<div style="font-weight: bold; margin-bottom: 6px; font-size: 13px; color: #8ab4f8;">Post-Battle Report</div>` +
+								`<div style="font-weight: bold; margin-bottom: 6px; font-size: 13px;">Post-Battle Report</div>` +
 								`<div style="font-size: 12px; line-height: 1.5;">${battleLogMsgs.join('<br>')}</div>` +
 								`</div>`;
 			
