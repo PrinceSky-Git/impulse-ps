@@ -10,8 +10,8 @@ export type ActionType = 'move' | 'switch';
 
 export interface Action {
 	type: ActionType;
-	id: string; 
-	slot: number; 
+	id: string;
+	slot: number;
 	priority: number;
 }
 
@@ -36,7 +36,7 @@ export interface SimState {
 export class PokeRogueAI {
 	private request: any;
 	private playerTeamData: SimPokemon[];
-	private readonly MAX_DEPTH = 2; 
+	private readonly MAX_DEPTH = 2;
 
 	constructor(requestJson: string, playerTeam: SimPokemon[]) {
 		this.playerTeamData = playerTeam || [];
@@ -164,12 +164,17 @@ export class PokeRogueAI {
 		if (!this.playerTeamData.length) return null;
 		const aiMons = this.request.side?.pokemon ?? [];
 		if (!aiMons.length) return null;
-		const playerActive = this.playerTeamData.find(p => p.isActive) || this.playerTeamData[0];
+
+		// Prefer an active non-fainted mon, fall back to first non-fainted, then absolute first
+		const playerActive = this.playerTeamData.find(p => p.isActive && !p.isFainted)
+			?? this.playerTeamData.find(p => !p.isFainted)
+			?? this.playerTeamData[0];
+
 		return {
 			aiActive: this.parseSimPokemon(aiMons[0], true),
 			aiBench: aiMons.slice(1).map((p: any) => this.parseSimPokemon(p, false)),
 			playerActive,
-			playerBench: this.playerTeamData.filter(p => !p.isActive)
+			playerBench: this.playerTeamData.filter(p => p !== playerActive && !p.isFainted)
 		};
 	}
 
