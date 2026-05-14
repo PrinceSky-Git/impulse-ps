@@ -1,3 +1,62 @@
+// ==========================================
+// IV / EV SPREAD CONSTANTS
+// ==========================================
+
+/** Perfect offensive attacker — max Speed and primary attack stat */
+export const EVS_PHYS_SWEEPER = { hp: 0, atk: 252, def: 0, spa: 0, spd: 0, spe: 252 } as const;
+export const EVS_SPEC_SWEEPER = { hp: 0, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 } as const;
+
+/** Mixed bulk investment — survives hits while still threatening */
+export const EVS_PHYS_WALLBREAKER = { hp: 0, atk: 252, def: 4, spa: 0, spd: 0, spe: 252 } as const;
+export const EVS_SPEC_WALLBREAKER = { hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252 } as const;
+
+/** Bulky attacker — prioritises HP + offensive stat over Speed */
+export const EVS_BULKY_PHYS_ATK = { hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0 } as const;
+export const EVS_BULKY_SPEC_ATK = { hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 0 } as const;
+
+/** Physical wall — maximum physical bulk */
+export const EVS_PHYS_WALL = { hp: 252, atk: 0, def: 252, spa: 0, spd: 4, spe: 0 } as const;
+
+/** Special wall — maximum special bulk */
+export const EVS_SPEC_WALL = { hp: 252, atk: 0, def: 4, spa: 0, spd: 252, spe: 0 } as const;
+
+/** Specially defensive pivot — HP + SpDef with leftover in Def */
+export const EVS_SPDEF_PIVOT = { hp: 248, atk: 0, def: 8, spa: 0, spd: 252, spe: 0 } as const;
+
+/** Mixed wall / cleric — balanced defensive investment */
+export const EVS_MIXED_WALL = { hp: 252, atk: 0, def: 128, spa: 0, spd: 128, spe: 0 } as const;
+
+/** Trick Room sweeper — 0 Speed EVs + 0 Spe IVs to move first under TR */
+export const EVS_TRICK_ROOM_SWEEPER = { hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0 } as const;
+export const EVS_TRICK_ROOM_SPEC    = { hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 0 } as const;
+
+/** Support / hazard setter — HP + Speed */
+export const EVS_SUPPORT_FAST = { hp: 252, atk: 0, def: 4, spa: 0, spd: 0, spe: 252 } as const;
+
+/** Specially offensive tank — bulk + SpAtk */
+export const EVS_SPEC_TANK = { hp: 252, atk: 0, def: 0, spa: 252, spd: 4, spe: 0 } as const;
+
+// ------------------------------------------
+// IV spreads
+// ------------------------------------------
+
+/** Standard perfect IVs for all competitive sets */
+export const IVS_PERFECT = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 } as const;
+
+/** Perfect IVs but 0 Atk — avoids confusion/foul-play damage on special attackers */
+export const IVS_NO_ATK = { hp: 31, atk: 0, def: 31, spa: 31, spd: 31, spe: 31 } as const;
+
+/** Trick Room: 0 Speed IV to be as slow as possible */
+export const IVS_TRICK_ROOM = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 0 } as const;
+
+/** Trick Room special attacker: 0 Atk + 0 Spe */
+export const IVS_TRICK_ROOM_SPEC = { hp: 31, atk: 0, def: 31, spa: 31, spd: 31, spe: 0 } as const;
+
+
+// ==========================================
+// INTERFACES
+// ==========================================
+
 export interface TrainerMon {
 	species: string;
 	moves?: string[];
@@ -17,7 +76,12 @@ export interface TrainerData {
 	dialog?: string;
 }
 
-/* * Dev Note: Data Routing Architecture
+
+// ==========================================
+// TRAINER DATA
+// ==========================================
+
+/* Dev Note: Data Routing Architecture
  * Keys are dynamically targeted by `pokerogue.ts` during the `prebattle` phase.
  * 'fixed_X' keys handle rigid story encounters (Rivals, Evil Teams, Elite 4, Champions).
  * 'gym_leader_tier_X' keys scale gym leader team sizes based on how many the player has fought.
@@ -65,6 +129,18 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			dialog: "We're Team Rocket! Hand over your Pokémon!",
 			pool: ['zubat', 'koffing', 'rattata', 'ekans', 'sandshrew'],
 		},
+		'Team Magma Grunt': {
+			teamSize: 2,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/magmagrunt.png',
+			dialog: "The land must be expanded for humanity!",
+			pool: ['poochyena', 'numel', 'baltoy'],
+		},
+		'Team Aqua Grunt': {
+			teamSize: 2,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/aquagrunt.png',
+			dialog: "The sea is the source of all life!",
+			pool: ['poochyena', 'carvanha', 'wailmer'],
+		},
 	},
 	'fixed_55': {
 		'Rival Finn': {
@@ -75,27 +151,43 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 	},
 	'fixed_62': {
-		'Team Rocket Grunt': {
+		'Team Galactic Grunt': {
 			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/rocketgruntf.png',
-			dialog: "You won't get past us so easily this time!",
-			pool: ['golbat', 'weezing', 'raticate', 'arbok', 'sandslash', 'machoke'],
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/galacticgrunt.png',
+			dialog: "For a world without spirit!",
+			pool: ['glameow', 'stunky', 'golbat', 'croagunk'],
 		},
-	},
-	'fixed_64': {
-		'Team Rocket Grunt': {
+		'Team Plasma Grunt': {
 			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/rocketgrunt.png',
-			dialog: "For the glory of Team Rocket!",
-			pool: ['golbat', 'weezing', 'raticate', 'arbok', 'sandslash', 'machoke'],
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/plasmagrunt.png',
+			dialog: "Liberate the Pokémon!",
+			pool: ['patrat', 'purrloin', 'trubbish', 'sandile'],
 		},
 	},
 	'fixed_66': {
-		'Team Rocket Admin': {
+		'Team Rocket Admin Archer': {
 			teamSize: 4,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/archer.png',
 			dialog: "I will not let a child ruin our plans!",
 			pool: ['crobat', 'weezing', 'houndoom', 'muk', 'rhydon', 'persian'],
+		},
+		'Team Magma Admin Tabitha': {
+			teamSize: 4,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tabitha.png',
+			dialog: "Hehehe! You're in for a scorched-earth battle!",
+			pool: ['camerupt', 'mightyena', 'weezing', 'golbat'],
+		},
+		'Team Aqua Admin Shelly': {
+			teamSize: 4,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/shelly.png',
+			dialog: "You're just a little ripple in our ocean!",
+			pool: ['sharpedo', 'mightyena', 'muk', 'crobat'],
+		},
+		'Team Flare Admin': {
+			teamSize: 4,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/flareadmin.png',
+			dialog: "Only the beautiful shall survive!",
+			pool: ['manectric', 'houndoom', 'pyroar', 'weavile'],
 		},
 	},
 	'fixed_95': {
@@ -104,41 +196,236 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
 			dialog: "Get ready to see my partner's true power!",
 			pool: [
-				{ species: 'charizard', teraType: 'Fire' },
-				{ species: 'blastoise', teraType: 'Water' },
-				{ species: 'venusaur', teraType: 'Grass' },
+				{
+					species: 'charizard', teraType: 'Fire', ability: 'Blaze', item: 'charcoal',
+					ivs: IVS_PERFECT, evs: EVS_SPEC_SWEEPER,
+					moves: ['flamethrower', 'air-slash', 'dragon-pulse', 'roost'],
+				},
+				{
+					species: 'blastoise', teraType: 'Water', ability: 'Torrent', item: 'mysticwater',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['surf', 'ice-beam', 'dark-pulse', 'rapid-spin'],
+				},
+				{
+					species: 'venusaur', teraType: 'Grass', ability: 'Overgrow', item: 'black-sludge',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['giga-drain', 'sludge-bomb', 'synthesis', 'sleep-powder'],
+				},
 				'pidgeot', 'staraptor', 'talonflame', 'raichu', 'snorlax', 'lucario', 'garchomp',
 			],
-		},
-	},
-	'fixed_112': {
-		'Team Rocket Grunt': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/rocketgrunt.png',
-			dialog: "Intruder spotted! Engaging!",
-			pool: ['crobat', 'weezing', 'arbok', 'sandslash', 'machamp', 'gyarados'],
-		},
-	},
-	'fixed_114': {
-		'Team Rocket Admin': {
-			teamSize: 6,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ariana.png',
-			dialog: "You've caused enough trouble!",
-			pool: ['crobat', 'weezing', 'houndoom', 'muk', 'rhyperior', 'persian'],
 		},
 	},
 	'fixed_115': {
 		'Boss Giovanni': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/giovanni.png',
-			dialog: "You dare stand in the way of Team Rocket? I will crush you myself!",
+			dialog: "You dare stand in the way of Team Rocket?",
 			pool: [
-				{ species: 'persian' },
-				{ species: 'nidoking' },
-				{ species: 'rhyperior' },
-				{ species: 'dugtrio' },
-				{ species: 'marowak' },
-				{ species: 'kangaskhan', item: 'kangaskhanite' },
+				{
+					species: 'persian', ability: 'Technician', item: 'life-orb', teraType: 'Normal',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['fake-out', 'swift', 'power-gem', 'nasty-plot'],
+				},
+				{
+					species: 'nidoking', ability: 'Sheer Force', item: 'choice-specs', teraType: 'Poison',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['earth-power', 'sludge-wave', 'ice-beam', 'thunderbolt'],
+				},
+				{
+					species: 'rhyperior', ability: 'Solid Rock', item: 'assault-vest', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['earthquake', 'stone-edge', 'rock-blast', 'megahorn'],
+				},
+				{
+					species: 'dugtrio', ability: 'Arena Trap', item: 'focus-sash', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'stone-edge', 'sucker-punch', 'memento'],
+				},
+				{
+					species: 'marowak', ability: 'Rock Head', item: 'thick-club', teraType: 'Ground',
+					ivs: IVS_TRICK_ROOM, evs: EVS_TRICK_ROOM_SWEEPER,
+					moves: ['bonemerang', 'fire-punch', 'thunder-punch', 'swords-dance'],
+				},
+				{
+					species: 'kangaskhan', item: 'kangaskhanite', ability: 'Scrappy', teraType: 'Normal',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['return', 'earthquake', 'sucker-punch', 'power-up-punch'],
+				},
+			],
+		},
+		'Boss Maxie': {
+			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/maxie.png',
+			dialog: "The land shall expand! Witness the primal power!",
+			pool: [
+				{
+					species: 'mightyena', ability: 'Moxie', item: 'choice-scarf', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['crunch', 'play-rough', 'fire-fang', 'sucker-punch'],
+				},
+				{
+					species: 'crobat', ability: 'Infiltrator', item: 'black-sludge', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['brave-bird', 'cross-poison', 'u-turn', 'roost'],
+				},
+				{
+					species: 'weezing', ability: 'Levitate', item: 'black-sludge', teraType: 'Poison',
+					ivs: IVS_NO_ATK, evs: EVS_PHYS_WALL,
+					moves: ['sludge-bomb', 'will-o-wisp', 'pain-split', 'toxic'],
+				},
+				{
+					species: 'claydol', ability: 'Levitate', item: 'leftovers', teraType: 'Ground',
+					ivs: IVS_NO_ATK, evs: EVS_MIXED_WALL,
+					moves: ['earth-power', 'psyshock', 'stealth-rock', 'rapid-spin'],
+				},
+				{
+					species: 'camerupt', ability: 'Solid Rock', item: 'leftovers', teraType: 'Fire',
+					ivs: IVS_TRICK_ROOM_SPEC, evs: EVS_TRICK_ROOM_SPEC,
+					moves: ['eruption', 'earth-power', 'ancient-power', 'yawn'],
+				},
+				{
+					species: 'camerupt', item: 'cameruptite', ability: 'Solid Rock', teraType: 'Fire',
+					ivs: IVS_TRICK_ROOM_SPEC, evs: EVS_TRICK_ROOM_SPEC,
+					moves: ['eruption', 'earth-power', 'ancient-power', 'stealth-rock'],
+				},
+			],
+		},
+		'Boss Archie': {
+			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/archie.png',
+			dialog: "The sea will swallow all! Scuttle your hopes!",
+			pool: [
+				{
+					species: 'mightyena', ability: 'Moxie', item: 'choice-scarf', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['crunch', 'play-rough', 'fire-fang', 'sucker-punch'],
+				},
+				{
+					species: 'crobat', ability: 'Infiltrator', item: 'black-sludge', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['brave-bird', 'cross-poison', 'u-turn', 'roost'],
+				},
+				{
+					species: 'muk', ability: 'Poison-Touch', item: 'black-sludge', teraType: 'Poison',
+					ivs: IVS_PERFECT, evs: EVS_SPDEF_PIVOT,
+					moves: ['gunk-shot', 'knock-off', 'curse', 'recover'],
+				},
+				{
+					species: 'wailord', ability: 'Water-Veil', item: 'leftovers', teraType: 'Water',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_WALL,
+					moves: ['surf', 'ice-beam', 'amnesia', 'rest'],
+				},
+				{
+					species: 'sharpedo', ability: 'Speed Boost', item: 'life-orb', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'ice-fang', 'protect'],
+				},
+				{
+					species: 'sharpedo', item: 'sharpedonite', ability: 'Speed Boost', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'ice-fang', 'protect'],
+				},
+			],
+		},
+		'Boss Cyrus': {
+			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/cyrus.png',
+			dialog: "I will remake this world into a silent, perfect void.",
+			pool: [
+				{
+					species: 'weavile', ability: 'Pressure', item: 'choice-band', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['knock-off', 'icicle-crash', 'night-slash', 'ice-shard'],
+				},
+				{
+					species: 'honchkrow', ability: 'Moxie', item: 'life-orb', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['brave-bird', 'sucker-punch', 'night-slash', 'pursuit'],
+				},
+				{
+					species: 'crobat', ability: 'Infiltrator', item: 'black-sludge', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['brave-bird', 'cross-poison', 'u-turn', 'roost'],
+				},
+				{
+					species: 'gyarados', ability: 'Moxie', item: 'lum-berry', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'earthquake', 'dragon-dance'],
+				},
+				{
+					species: 'magnezone', ability: 'Magnet Pull', item: 'choice-specs', teraType: 'Electric',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['thunderbolt', 'flash-cannon', 'volt-switch', 'thunder-wave'],
+				},
+				{
+					species: 'houndoom', ability: 'Flash Fire', item: 'life-orb', teraType: 'Dark',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'dark-pulse', 'nasty-plot', 'will-o-wisp'],
+				},
+			],
+		},
+		'Boss Ghetsis': {
+			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ghetsis.png',
+			dialog: "I alone shall rule this world as its savior!",
+			pool: [
+				{
+					species: 'cofagrigus', ability: 'Mummy', item: 'leftovers', teraType: 'Ghost',
+					ivs: IVS_NO_ATK, evs: EVS_PHYS_WALL,
+					moves: ['shadow-ball', 'toxic', 'will-o-wisp', 'pain-split'],
+				},
+				{
+					species: 'eelektross', ability: 'Levitate', item: 'assault-vest', teraType: 'Electric',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['wild-charge', 'drain-punch', 'crunch', 'flamethrower'],
+				},
+				{
+					species: 'seismitoad', ability: 'Water Absorb', item: 'leftovers', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['scald', 'earthquake', 'stealth-rock', 'toxic'],
+				},
+				{
+					species: 'bisharp', ability: 'Defiant', item: 'air-balloon', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['knock-off', 'iron-head', 'sucker-punch', 'swords-dance'],
+				},
+				{
+					species: 'bouffalant', ability: 'Reckless', item: 'choice-band', teraType: 'Normal',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['head-charge', 'earthquake', 'megahorn', 'superpower'],
+				},
+				{
+					species: 'hydreigon', ability: 'Levitate', item: 'choice-specs', teraType: 'Dragon',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['draco-meteor', 'dark-pulse', 'flash-cannon', 'fire-blast'],
+				},
+			],
+		},
+		'Boss Lysandre': {
+			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lysandre.png',
+			dialog: "To make the world beautiful again, it must be purged!",
+			pool: [
+				{
+					species: 'mienshao', ability: 'Reckless', item: 'life-orb', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['high-jump-kick', 'u-turn', 'knock-off', 'fake-out'],
+				},
+				{
+					species: 'honchkrow', ability: 'Moxie', item: 'life-orb', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['brave-bird', 'sucker-punch', 'night-slash', 'heat-wave'],
+				},
+				{
+					species: 'pyroar', ability: 'Unnerve', item: 'choice-specs', teraType: 'Fire',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'hyper-voice', 'dark-pulse', 'will-o-wisp'],
+				},
+				{
+					species: 'gyarados', item: 'gyaradosite', ability: 'Moxie', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'earthquake', 'dragon-dance'],
+				},
 			],
 		},
 	},
@@ -148,9 +435,21 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
 			dialog: "I've found a new partner that will blow you away!",
 			pool: [
-				{ species: 'charizard', teraType: 'Fire' },
-				{ species: 'blastoise', teraType: 'Water' },
-				{ species: 'venusaur', teraType: 'Grass' },
+				{
+					species: 'charizard', teraType: 'Fire', ability: 'Blaze', item: 'charcoal',
+					ivs: IVS_PERFECT, evs: EVS_SPEC_SWEEPER,
+					moves: ['flamethrower', 'air-slash', 'dragon-pulse', 'roost'],
+				},
+				{
+					species: 'blastoise', teraType: 'Water', ability: 'Torrent', item: 'mysticwater',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['surf', 'ice-beam', 'dark-pulse', 'rapid-spin'],
+				},
+				{
+					species: 'venusaur', teraType: 'Grass', ability: 'Chlorophyll', item: 'black-sludge',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['giga-drain', 'sludge-bomb', 'synthesis', 'sleep-powder'],
+				},
 				'pidgeot', 'staraptor', 'snorlax', 'lucario', 'garchomp', 'rayquaza',
 			],
 		},
@@ -159,14 +458,38 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Boss Giovanni (Rematch)': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/giovanni.png',
-			dialog: "This time, I will not hold back. Behold the ultimate power!",
+			dialog: "Behold the ultimate power!",
 			pool: [
-				{ species: 'tyranitar' },
-				{ species: 'hippowdon' },
-				{ species: 'excadrill' },
-				{ species: 'gastrodon' },
-				{ species: 'kangaskhan', item: 'kangaskhanite' },
-				{ species: 'mewtwo' },
+				{
+					species: 'tyranitar', ability: 'Sand Stream', item: 'choice-scarf', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['stone-edge', 'crunch', 'earthquake', 'superpower'],
+				},
+				{
+					species: 'hippowdon', ability: 'Sand Stream', item: 'leftovers', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['earthquake', 'stealth-rock', 'slack-off', 'whirlwind'],
+				},
+				{
+					species: 'excadrill', ability: 'Sand Rush', item: 'life-orb', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'iron-head', 'rock-slide', 'swords-dance'],
+				},
+				{
+					species: 'gastrodon', ability: 'Storm Drain', item: 'leftovers', teraType: 'Water',
+					ivs: IVS_NO_ATK, evs: EVS_SPDEF_PIVOT,
+					moves: ['scald', 'earth-power', 'recover', 'toxic'],
+				},
+				{
+					species: 'kangaskhan', item: 'kangaskhanite', ability: 'Scrappy', teraType: 'Normal',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['return', 'earthquake', 'sucker-punch', 'power-up-punch'],
+				},
+				{
+					species: 'mewtwo', ability: 'Pressure', item: 'life-orb', teraType: 'Psychic',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['psystrike', 'ice-beam', 'thunderbolt', 'aura-sphere'],
+				},
 			],
 		},
 	},
@@ -174,25 +497,156 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Lorelei': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lorelei.png',
-			dialog: "No one can best me when it comes to icy Pokémon.",
 			pool: [
-				{ species: 'dewgong' },
-				{ species: 'slowbro' },
-				{ species: 'jynx' },
-				{ species: 'cloyster' },
-				{ species: 'lapras', teraType: 'Ice' },
+				{
+					species: 'dewgong', ability: 'Thick Fat', item: 'leftovers', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_WALL,
+					moves: ['surf', 'ice-beam', 'toxic', 'rest'],
+				},
+				{
+					species: 'slowbro', ability: 'Regenerator', item: 'leftovers', teraType: 'Psychic',
+					ivs: IVS_NO_ATK, evs: EVS_PHYS_WALL,
+					moves: ['scald', 'psyshock', 'slack-off', 'thunder-wave'],
+				},
+				{
+					species: 'jynx', ability: 'Dry Skin', item: 'focus-sash', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['blizzard', 'psychic', 'nasty-plot', 'lovely-kiss'],
+				},
+				{
+					species: 'cloyster', ability: 'Skill Link', item: 'white-herb', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['shell-smash', 'icicle-spear', 'rock-blast', 'surf'],
+				},
+				{
+					species: 'lapras', teraType: 'Ice', ability: 'Water Absorb', item: 'assault-vest',
+					ivs: IVS_PERFECT, evs: EVS_SPDEF_PIVOT,
+					moves: ['freeze-dry', 'surf', 'ice-shard', 'thunder-wave'],
+				},
+			],
+		},
+		'Elite Four Sidney': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/sidney.png',
+			pool: [
+				{
+					species: 'mightyena', ability: 'Moxie', item: 'choice-scarf', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['crunch', 'play-rough', 'fire-fang', 'sucker-punch'],
+				},
+				{
+					species: 'shiftry', ability: 'Pickpocket', item: 'life-orb', teraType: 'Grass',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['leaf-blade', 'knock-off', 'sucker-punch', 'swords-dance'],
+				},
+				{
+					species: 'cacturne', ability: 'Water Absorb', item: 'focus-sash', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['needle-arm', 'sucker-punch', 'swords-dance', 'destiny-bond'],
+				},
+				{
+					species: 'sharpedo', ability: 'Speed Boost', item: 'life-orb', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'ice-fang', 'protect'],
+				},
+				{
+					species: 'absol', item: 'absolite', ability: 'Super Luck', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['knock-off', 'play-rough', 'sucker-punch', 'swords-dance'],
+				},
 			],
 		},
 		'Elite Four Aaron': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/aaron.png',
-			dialog: "I love bug Pokémon! They're beautiful and strong!",
 			pool: [
-				{ species: 'yanmega' },
-				{ species: 'heracross' },
-				{ species: 'vespiquen' },
-				{ species: 'beautifly' },
-				{ species: 'drapion', teraType: 'Bug' },
+				{
+					species: 'yanmega', ability: 'Speed Boost', item: 'focus-sash', teraType: 'Bug',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['bug-buzz', 'air-slash', 'protect', 'ancient-power'],
+				},
+				{
+					species: 'heracross', ability: 'Moxie', item: 'choice-scarf', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['close-combat', 'megahorn', 'knock-off', 'rock-blast'],
+				},
+				{
+					species: 'vespiquen', ability: 'Pressure', item: 'leftovers', teraType: 'Bug',
+					ivs: IVS_NO_ATK, evs: EVS_PHYS_WALL,
+					moves: ['attack-order', 'toxic', 'defend-order', 'heal-order'],
+				},
+				{
+					species: 'beautifly', ability: 'Swarm', item: 'choice-specs', teraType: 'Bug',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['bug-buzz', 'psychic', 'shadow-ball', 'morning-sun'],
+				},
+				{
+					species: 'drapion', teraType: 'Bug', ability: 'Sniper', item: 'choice-scarf',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['cross-poison', 'knock-off', 'earthquake', 'night-slash'],
+				},
+			],
+		},
+		'Elite Four Shauntal': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/shauntal.png',
+			pool: [
+				{
+					species: 'cofagrigus', ability: 'Mummy', item: 'leftovers', teraType: 'Ghost',
+					ivs: IVS_NO_ATK, evs: EVS_PHYS_WALL,
+					moves: ['shadow-ball', 'will-o-wisp', 'pain-split', 'toxic'],
+				},
+				{
+					species: 'jellicent', ability: 'Water Absorb', item: 'leftovers', teraType: 'Ghost',
+					ivs: IVS_NO_ATK, evs: EVS_SPDEF_PIVOT,
+					moves: ['scald', 'shadow-ball', 'recover', 'will-o-wisp'],
+				},
+				{
+					species: 'golurk', ability: 'No Guard', item: 'choice-band', teraType: 'Ghost',
+					ivs: IVS_TRICK_ROOM, evs: EVS_TRICK_ROOM_SWEEPER,
+					moves: ['dynamic-punch', 'shadow-punch', 'earthquake', 'ice-punch'],
+				},
+				{
+					species: 'froslass', ability: 'Cursed Body', item: 'focus-sash', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SUPPORT_FAST,
+					moves: ['shadow-ball', 'blizzard', 'spikes', 'destiny-bond'],
+				},
+				{
+					species: 'chandelure', teraType: 'Ghost', ability: 'Flash Fire', item: 'choice-specs',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['shadow-ball', 'flamethrower', 'energy-ball', 'trick'],
+				},
+			],
+		},
+		'Elite Four Malva': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/malva.png',
+			pool: [
+				{
+					species: 'torkoal', ability: 'Drought', item: 'leftovers', teraType: 'Fire',
+					ivs: IVS_TRICK_ROOM_SPEC, evs: EVS_SPEC_TANK,
+					moves: ['eruption', 'earth-power', 'stealth-rock', 'yawn'],
+				},
+				{
+					species: 'chandelure', ability: 'Flash Fire', item: 'choice-specs', teraType: 'Fire',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'shadow-ball', 'energy-ball', 'trick'],
+				},
+				{
+					species: 'talonflame', ability: 'Gale Wings', item: 'choice-band', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['brave-bird', 'flare-blitz', 'u-turn', 'roost'],
+				},
+				{
+					species: 'pyroar', ability: 'Unnerve', item: 'choice-specs', teraType: 'Fire',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'hyper-voice', 'dark-pulse', 'will-o-wisp'],
+				},
+				{
+					species: 'houndoom', item: 'houndoominite', ability: 'Flash Fire', teraType: 'Dark',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'dark-pulse', 'nasty-plot', 'will-o-wisp'],
+				},
 			],
 		},
 	},
@@ -200,25 +654,156 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Bruno': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bruno.png',
-			dialog: "I've lived and trained with my fighting Pokémon! We will grind you down!",
 			pool: [
-				{ species: 'hitmontop' },
-				{ species: 'hitmonchan' },
-				{ species: 'hitmonlee' },
-				{ species: 'steelix' },
-				{ species: 'machamp', teraType: 'Fighting' },
+				{
+					species: 'hitmontop', ability: 'Technician', item: 'life-orb', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['mach-punch', 'bullet-punch', 'rapid-spin', 'close-combat'],
+				},
+				{
+					species: 'hitmonlee', ability: 'Reckless', item: 'choice-scarf', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['high-jump-kick', 'knock-off', 'sucker-punch', 'blaze-kick'],
+				},
+				{
+					species: 'hitmonchan', ability: 'Iron Fist', item: 'choice-band', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['mach-punch', 'thunder-punch', 'ice-punch', 'fire-punch'],
+				},
+				{
+					species: 'steelix', ability: 'Sturdy', item: 'leftovers', teraType: 'Steel',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['earthquake', 'iron-tail', 'stealth-rock', 'toxic'],
+				},
+				{
+					species: 'machamp', teraType: 'Fighting', ability: 'No Guard', item: 'assault-vest',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['dynamic-punch', 'knock-off', 'bullet-punch', 'stone-edge'],
+				},
+			],
+		},
+		'Elite Four Phoebe': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/phoebe.png',
+			pool: [
+				{
+					species: 'dusclops', ability: 'Pressure', item: 'eviolite', teraType: 'Ghost',
+					ivs: IVS_NO_ATK, evs: EVS_MIXED_WALL,
+					moves: ['shadow-punch', 'will-o-wisp', 'pain-split', 'toxic'],
+				},
+				{
+					species: 'banette', ability: 'Cursed Body', item: 'life-orb', teraType: 'Ghost',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['shadow-claw', 'knock-off', 'destiny-bond', 'trick-room'],
+				},
+				{
+					species: 'sableye', ability: 'Prankster', item: 'leftovers', teraType: 'Dark',
+					ivs: IVS_NO_ATK, evs: EVS_MIXED_WALL,
+					moves: ['will-o-wisp', 'recover', 'knock-off', 'foul-play'],
+				},
+				{
+					species: 'banette', ability: 'Frisk', item: 'choice-band', teraType: 'Ghost',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['shadow-claw', 'knock-off', 'thunder-punch', 'sucker-punch'],
+				},
+				{
+					species: 'dusknoir', teraType: 'Ghost', ability: 'Pressure', item: 'assault-vest',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['shadow-punch', 'earthquake', 'brick-break', 'ice-punch'],
+				},
 			],
 		},
 		'Elite Four Bertha': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bertha.png',
-			dialog: "You must be tough to make it here. Let's see how tough!",
 			pool: [
-				{ species: 'quagsire' },
-				{ species: 'sudowoodo' },
-				{ species: 'golem' },
-				{ species: 'whiscash' },
-				{ species: 'hippowdon', teraType: 'Ground' },
+				{
+					species: 'quagsire', ability: 'Unaware', item: 'leftovers', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['scald', 'earthquake', 'toxic', 'recover'],
+				},
+				{
+					species: 'sudowoodo', ability: 'Sturdy', item: 'custap-berry', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['wood-hammer', 'stone-edge', 'sucker-punch', 'stealth-rock'],
+				},
+				{
+					species: 'golem', ability: 'Sturdy', item: 'choice-band', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'stone-edge', 'sucker-punch', 'explosion'],
+				},
+				{
+					species: 'whiscash', ability: 'Anticipation', item: 'leftovers', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_MIXED_WALL,
+					moves: ['earthquake', 'waterfall', 'dragon-dance', 'rest'],
+				},
+				{
+					species: 'hippowdon', teraType: 'Ground', ability: 'Sand Stream', item: 'leftovers',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['earthquake', 'slack-off', 'stealth-rock', 'whirlwind'],
+				},
+			],
+		},
+		'Elite Four Marshal': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/marshal.png',
+			pool: [
+				{
+					species: 'throh', ability: 'Guts', item: 'flame-orb', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['storm-throw', 'earthquake', 'knock-off', 'bulk-up'],
+				},
+				{
+					species: 'sawk', ability: 'Sturdy', item: 'choice-scarf', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['close-combat', 'earthquake', 'ice-punch', 'knock-off'],
+				},
+				{
+					species: 'mienshao', ability: 'Reckless', item: 'life-orb', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['high-jump-kick', 'u-turn', 'knock-off', 'fake-out'],
+				},
+				{
+					species: 'conkeldurr', ability: 'Guts', item: 'flame-orb', teraType: 'Fighting',
+					ivs: IVS_TRICK_ROOM, evs: EVS_TRICK_ROOM_SWEEPER,
+					moves: ['drain-punch', 'mach-punch', 'knock-off', 'ice-punch'],
+				},
+				{
+					species: 'lucario', teraType: 'Fighting', ability: 'Inner Focus', item: 'life-orb',
+					ivs: IVS_PERFECT, evs: EVS_SPEC_SWEEPER,
+					moves: ['aura-sphere', 'nasty-plot', 'flash-cannon', 'vacuum-wave'],
+				},
+			],
+		},
+		'Elite Four Poppy': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/poppy.png',
+			pool: [
+				{
+					species: 'copperajah', ability: 'Sheer Force', item: 'assault-vest', teraType: 'Steel',
+					ivs: IVS_TRICK_ROOM, evs: EVS_TRICK_ROOM_SWEEPER,
+					moves: ['heavy-slam', 'earthquake', 'ice-punch', 'play-rough'],
+				},
+				{
+					species: 'corviknight', ability: 'Pressure', item: 'leftovers', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['brave-bird', 'iron-head', 'roost', 'bulk-up'],
+				},
+				{
+					species: 'bronzong', ability: 'Levitate', item: 'leftovers', teraType: 'Steel',
+					ivs: IVS_NO_ATK, evs: EVS_MIXED_WALL,
+					moves: ['gyro-ball', 'stealth-rock', 'trick-room', 'hypnosis'],
+				},
+				{
+					species: 'magnezone', ability: 'Magnet Pull', item: 'choice-specs', teraType: 'Electric',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['thunderbolt', 'flash-cannon', 'volt-switch', 'thunder-wave'],
+				},
+				{
+					species: 'tinkaton', teraType: 'Steel', ability: 'Mold Breaker', item: 'choice-band',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['gigaton-hammer', 'play-rough', 'knock-off', 'ice-punch'],
+				},
 			],
 		},
 	},
@@ -226,25 +811,125 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Agatha': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/agatha.png',
-			dialog: "I'll show you how a real trainer fights!",
 			pool: [
-				{ species: 'gengar' },
-				{ species: 'golbat' },
-				{ species: 'arbok' },
-				{ species: 'crobat' },
-				{ species: 'gengar', teraType: 'Ghost' },
+				{
+					species: 'gengar', ability: 'Cursed Body', item: 'choice-scarf', teraType: 'Ghost',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['shadow-ball', 'sludge-wave', 'trick', 'dazzling-gleam'],
+				},
+				{
+					species: 'golbat', ability: 'Inner Focus', item: 'eviolite', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['brave-bird', 'cross-poison', 'roost', 'toxic'],
+				},
+				{
+					species: 'arbok', ability: 'Intimidate', item: 'black-sludge', teraType: 'Poison',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['gunk-shot', 'earthquake', 'sucker-punch', 'coil'],
+				},
+				{
+					species: 'crobat', ability: 'Infiltrator', item: 'black-sludge', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['brave-bird', 'cross-poison', 'u-turn', 'roost'],
+				},
+				{
+					species: 'gengar', teraType: 'Ghost', ability: 'Cursed Body', item: 'focus-sash',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['shadow-ball', 'sludge-wave', 'nasty-plot', 'destiny-bond'],
+				},
+			],
+		},
+		'Elite Four Glacia': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/glacia.png',
+			pool: [
+				{
+					species: 'glalie', ability: 'Moody', item: 'choice-scarf', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['freeze-dry', 'explosion', 'crunch', 'earthquake'],
+				},
+				{
+					species: 'froslass', ability: 'Cursed Body', item: 'focus-sash', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SUPPORT_FAST,
+					moves: ['shadow-ball', 'blizzard', 'spikes', 'destiny-bond'],
+				},
+				{
+					species: 'walrein', ability: 'Ice Body', item: 'leftovers', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_SPEC_WALL,
+					moves: ['surf', 'blizzard', 'toxic', 'protect'],
+				},
+				{
+					species: 'glalie', ability: 'Refrigerate', item: 'life-orb', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['freeze-dry', 'shadow-ball', 'crunch', 'ice-shard'],
+				},
+				{
+					species: 'froslass', teraType: 'Ice', ability: 'Cursed Body', item: 'wide-lens',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['shadow-ball', 'blizzard', 'nasty-plot', 'destiny-bond'],
+				},
 			],
 		},
 		'Elite Four Flint': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/flint.png',
-			dialog: "I'm going to burn you to cinders!",
 			pool: [
-				{ species: 'rapidash' },
-				{ species: 'steelix' },
-				{ species: 'drifblim' },
-				{ species: 'lopunny' },
-				{ species: 'infernape', teraType: 'Fire' },
+				{
+					species: 'rapidash', ability: 'Flash Fire', item: 'choice-band', teraType: 'Fire',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['flare-blitz', 'wild-charge', 'drill-run', 'morning-sun'],
+				},
+				{
+					species: 'magmortar', ability: 'Vital Spirit', item: 'choice-specs', teraType: 'Fire',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'thunderbolt', 'focus-blast', 'psychic'],
+				},
+				{
+					species: 'flareon', ability: 'Flash Fire', item: 'choice-band', teraType: 'Fire',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['flare-blitz', 'superpower', 'quick-attack', 'will-o-wisp'],
+				},
+				{
+					species: 'houndoom', ability: 'Flash Fire', item: 'life-orb', teraType: 'Dark',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'dark-pulse', 'nasty-plot', 'will-o-wisp'],
+				},
+				{
+					species: 'infernape', teraType: 'Fire', ability: 'Iron Fist', item: 'life-orb',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['flare-blitz', 'close-combat', 'u-turn', 'thunder-punch'],
+				},
+			],
+		},
+		'Elite Four Grimsley': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/grimsley.png',
+			pool: [
+				{
+					species: 'liepard', ability: 'Prankster', item: 'lagging-tail', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_SUPPORT_FAST,
+					moves: ['thunder-wave', 'assist', 'nasty-plot', 'encore'],
+				},
+				{
+					species: 'scrafty', ability: 'Moxie', item: 'lum-berry', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['crunch', 'high-jump-kick', 'dragon-dance', 'ice-punch'],
+				},
+				{
+					species: 'krookodile', ability: 'Moxie', item: 'choice-scarf', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'knock-off', 'stone-edge', 'pursuit'],
+				},
+				{
+					species: 'bisharp', ability: 'Defiant', item: 'air-balloon', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['knock-off', 'iron-head', 'sucker-punch', 'swords-dance'],
+				},
+				{
+					species: 'tyranitar', teraType: 'Dark', ability: 'Sand Stream', item: 'choice-band',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['stone-edge', 'crunch', 'earthquake', 'ice-punch'],
+				},
 			],
 		},
 	},
@@ -252,25 +937,125 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Lance': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lance.png',
-			dialog: "You know that dragons are mythical Pokémon! They're hard to catch and raise, but their powers are superior!",
 			pool: [
-				{ species: 'gyarados' },
-				{ species: 'dragonair' },
-				{ species: 'aerodactyl' },
-				{ species: 'dragonite' },
-				{ species: 'dragonite', teraType: 'Dragon' },
+				{
+					species: 'gyarados', ability: 'Intimidate', item: 'lum-berry', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'earthquake', 'dragon-dance'],
+				},
+				{
+					species: 'dragonair', ability: 'Shed Skin', item: 'eviolite', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_MIXED_WALL,
+					moves: ['dragon-tail', 'thunder-wave', 'aqua-tail', 'extremespeed'],
+				},
+				{
+					species: 'aerodactyl', ability: 'Rock Head', item: 'choice-band', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['stone-edge', 'head-smash', 'earthquake', 'fire-fang'],
+				},
+				{
+					species: 'dragonite', ability: 'Multiscale', item: 'lum-berry', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'extremespeed', 'earthquake', 'dragon-dance'],
+				},
+				{
+					species: 'dragonite', teraType: 'Dragon', ability: 'Multiscale', item: 'choice-band',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'extremespeed', 'fire-punch', 'aqua-tail'],
+				},
+			],
+		},
+		'Elite Four Drake': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/drake.png',
+			pool: [
+				{
+					species: 'shelgon', ability: 'Rock Head', item: 'eviolite', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['dragon-claw', 'brick-break', 'protect', 'dragon-dance'],
+				},
+				{
+					species: 'altaria', ability: 'Natural Cure', item: 'leftovers', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['dragon-claw', 'cotton-guard', 'roost', 'heal-bell'],
+				},
+				{
+					species: 'flygon', ability: 'Levitate', item: 'choice-scarf', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'outrage', 'u-turn', 'fire-blast'],
+				},
+				{
+					species: 'salamence', ability: 'Moxie', item: 'choice-band', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'earthquake', 'aqua-tail', 'fire-fang'],
+				},
+				{
+					species: 'salamence', item: 'salamencite', ability: 'Intimidate', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['double-edge', 'earthquake', 'dragon-claw', 'dragon-dance'],
+				},
 			],
 		},
 		'Elite Four Lucian': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucian.png',
-			dialog: "I have read many books, and I have foreseen your defeat.",
 			pool: [
-				{ species: 'mrmime' },
-				{ species: 'girafarig' },
-				{ species: 'medicham' },
-				{ species: 'alakazam' },
-				{ species: 'bronzong', teraType: 'Psychic' },
+				{
+					species: 'mrmime', ability: 'Filter', item: 'leftovers', teraType: 'Psychic',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['psychic', 'shadow-ball', 'thunderbolt', 'nasty-plot'],
+				},
+				{
+					species: 'girafarig', ability: 'Inner Focus', item: 'choice-specs', teraType: 'Psychic',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['psychic', 'shadow-ball', 'thunderbolt', 'nasty-plot'],
+				},
+				{
+					species: 'medicham', ability: 'Pure Power', item: 'choice-scarf', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['high-jump-kick', 'zen-headbutt', 'ice-punch', 'thunder-punch'],
+				},
+				{
+					species: 'alakazam', ability: 'Magic Guard', item: 'life-orb', teraType: 'Psychic',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['psychic', 'shadow-ball', 'focus-blast', 'nasty-plot'],
+				},
+				{
+					species: 'bronzong', teraType: 'Psychic', ability: 'Levitate', item: 'leftovers',
+					ivs: IVS_NO_ATK, evs: EVS_MIXED_WALL,
+					moves: ['gyro-ball', 'trick-room', 'stealth-rock', 'hypnosis'],
+				},
+			],
+		},
+		'Elite Four Hassel': {
+			teamSize: 5,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hassel.png',
+			pool: [
+				{
+					species: 'noivern', ability: 'Frisk', item: 'choice-specs', teraType: 'Dragon',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['draco-meteor', 'air-slash', 'flamethrower', 'u-turn'],
+				},
+				{
+					species: 'haxorus', ability: 'Mold Breaker', item: 'choice-scarf', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'dragon-claw', 'earthquake', 'poison-jab'],
+				},
+				{
+					species: 'dragalge', ability: 'Adaptability', item: 'choice-specs', teraType: 'Poison',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['draco-meteor', 'sludge-wave', 'focus-blast', 'thunderbolt'],
+				},
+				{
+					species: 'flapple', ability: 'Hustle', item: 'choice-band', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['grav-apple', 'dragon-rush', 'u-turn', 'sucker-punch'],
+				},
+				{
+					species: 'baxcalibur', teraType: 'Dragon', ability: 'Thermal Exchange', item: 'loaded-dice',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['glaive-rush', 'icicle-spear', 'ice-shard', 'dragon-dance'],
+				},
 			],
 		},
 	},
@@ -278,27 +1063,181 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Champion Blue': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blue.png',
-			dialog: "I am the most powerful trainer in the world!",
 			pool: [
-				{ species: 'pidgeot' },
-				{ species: 'alakazam' },
-				{ species: 'rhydon' },
-				{ species: 'exeggutor' },
-				{ species: 'gyarados' },
-				{ species: 'charizard', item: 'charizarditex', teraType: 'Dragon' },
+				{
+					species: 'pidgeot', ability: 'No Guard', item: 'choice-specs', teraType: 'Flying',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['hurricane', 'heat-wave', 'u-turn', 'roost'],
+				},
+				{
+					species: 'alakazam', ability: 'Magic Guard', item: 'life-orb', teraType: 'Psychic',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['psychic', 'shadow-ball', 'focus-blast', 'nasty-plot'],
+				},
+				{
+					species: 'rhydon', ability: 'Solid Rock', item: 'eviolite', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['earthquake', 'stone-edge', 'stealth-rock', 'megahorn'],
+				},
+				{
+					species: 'exeggutor', ability: 'Chlorophyll', item: 'choice-specs', teraType: 'Grass',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['leaf-storm', 'psychic', 'sleep-powder', 'explosion'],
+				},
+				{
+					species: 'gyarados', ability: 'Moxie', item: 'lum-berry', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'earthquake', 'dragon-dance'],
+				},
+				{
+					species: 'charizard', item: 'charizarditex', teraType: 'Dragon', ability: 'Blaze',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'flare-blitz', 'earthquake', 'dragon-dance'],
+				},
 			],
 		},
 		'Champion Cynthia': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/cynthia.png',
-			dialog: "I, the Champion, will be your opponent!",
 			pool: [
-				{ species: 'spiritomb' },
-				{ species: 'roserade' },
-				{ species: 'gastrodon' },
-				{ species: 'lucario' },
-				{ species: 'milotic' },
-				{ species: 'garchomp', item: 'garchompite', teraType: 'Dragon' },
+				{
+					species: 'spiritomb', ability: 'Pressure', item: 'leftovers', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_MIXED_WALL,
+					moves: ['shadow-ball', 'foul-play', 'will-o-wisp', 'pain-split'],
+				},
+				{
+					species: 'roserade', ability: 'Natural Cure', item: 'focus-sash', teraType: 'Grass',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['leaf-storm', 'sludge-bomb', 'spikes', 'synthesis'],
+				},
+				{
+					species: 'gastrodon', ability: 'Storm Drain', item: 'leftovers', teraType: 'Water',
+					ivs: IVS_NO_ATK, evs: EVS_SPDEF_PIVOT,
+					moves: ['scald', 'earth-power', 'recover', 'toxic'],
+				},
+				{
+					species: 'lucario', ability: 'Inner Focus', item: 'life-orb', teraType: 'Steel',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['aura-sphere', 'nasty-plot', 'flash-cannon', 'vacuum-wave'],
+				},
+				{
+					species: 'milotic', ability: 'Marvel Scale', item: 'flame-orb', teraType: 'Water',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_WALL,
+					moves: ['scald', 'recover', 'dragon-tail', 'toxic'],
+				},
+				{
+					species: 'garchomp', item: 'garchompite', ability: 'Rough Skin', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'outrage', 'poison-jab', 'swords-dance'],
+				},
+			],
+		},
+		'Champion Steven': {
+			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/steven.png',
+			pool: [
+				{
+					species: 'skarmory', ability: 'Sturdy', item: 'leftovers', teraType: 'Steel',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['brave-bird', 'stealth-rock', 'whirlwind', 'roost'],
+				},
+				{
+					species: 'claydol', ability: 'Levitate', item: 'leftovers', teraType: 'Ground',
+					ivs: IVS_NO_ATK, evs: EVS_MIXED_WALL,
+					moves: ['earth-power', 'psyshock', 'rapid-spin', 'toxic'],
+				},
+				{
+					species: 'aggron', ability: 'Sturdy', item: 'assault-vest', teraType: 'Steel',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['heavy-slam', 'earthquake', 'ice-punch', 'thunder-punch'],
+				},
+				{
+					species: 'cradily', ability: 'Storm Drain', item: 'leftovers', teraType: 'Rock',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_WALL,
+					moves: ['giga-drain', 'stealth-rock', 'toxic', 'recover'],
+				},
+				{
+					species: 'armaldo', ability: 'Swift Swim', item: 'choice-band', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['x-scissor', 'stone-edge', 'aqua-jet', 'swords-dance'],
+				},
+				{
+					species: 'metagross', item: 'metagrossite', ability: 'Clear Body', teraType: 'Steel',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['meteor-mash', 'earthquake', 'zen-headbutt', 'ice-punch'],
+				},
+			],
+		},
+		'Champion Leon': {
+			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/leon.png',
+			pool: [
+				{
+					species: 'aegislash', ability: 'Stance Change', item: 'leftovers', teraType: 'Ghost',
+					ivs: IVS_PERFECT, evs: EVS_MIXED_WALL,
+					moves: ['shadow-ball', 'flash-cannon', 'king-s-shield', 'sacred-sword'],
+				},
+				{
+					species: 'dragapult', ability: 'Infiltrator', item: 'choice-specs', teraType: 'Dragon',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['draco-meteor', 'shadow-ball', 'thunderbolt', 'u-turn'],
+				},
+				{
+					species: 'haxorus', ability: 'Mold Breaker', item: 'choice-scarf', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'dragon-claw', 'earthquake', 'iron-head'],
+				},
+				{
+					species: 'seismitoad', ability: 'Water Absorb', item: 'leftovers', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['scald', 'earthquake', 'stealth-rock', 'toxic'],
+				},
+				{
+					species: 'mr-rime', ability: 'Ice Body', item: 'leftovers', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['ice-beam', 'psychic', 'trick-room', 'nasty-plot'],
+				},
+				{
+					species: 'charizard', teraType: 'Fire', ability: 'Blaze', item: 'life-orb',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'air-slash', 'dragon-pulse', 'nasty-plot'],
+				},
+			],
+		},
+		'Champion Geeta': {
+			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/geeta.png',
+			pool: [
+				{
+					species: 'espathra', ability: 'Speed Boost', item: 'leftovers', teraType: 'Psychic',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['psychic', 'dazzling-gleam', 'calm-mind', 'roost'],
+				},
+				{
+					species: 'gogoat', ability: 'Sap Sipper', item: 'leftovers', teraType: 'Grass',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['horn-leech', 'earthquake', 'milk-drink', 'bulk-up'],
+				},
+				{
+					species: 'veluza', ability: 'Sharpness', item: 'choice-band', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['aqua-cutter', 'psycho-cut', 'fillet-away', 'ice-punch'],
+				},
+				{
+					species: 'avalugg', ability: 'Sturdy', item: 'leftovers', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['avalanche', 'rapid-spin', 'stealth-rock', 'recover'],
+				},
+				{
+					species: 'kingambit', ability: 'Defiant', item: 'air-balloon', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['kowtow-cleave', 'iron-head', 'sucker-punch', 'swords-dance'],
+				},
+				{
+					species: 'glimmora', teraType: 'Rock', ability: 'Toxic Debris', item: 'focus-sash',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['power-gem', 'earth-power', 'sludge-wave', 'stealth-rock'],
+				},
 			],
 		},
 	},
@@ -306,13 +1245,53 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Rival Finn (Final)': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
-			dialog: "This is it. The absolute peak of our journey. Let's go!",
+			dialog: "This is it. Let's go!",
 			pool: [
-				{ species: 'charizard', teraType: 'Fire' },
-				{ species: 'blastoise', teraType: 'Water' },
-				{ species: 'venusaur', teraType: 'Grass' },
-				'pidgeot', 'staraptor', 'snorlax', 'lucario', 'garchomp',
-				{ species: 'rayquaza', item: 'meteorite' },
+				{
+					species: 'charizard', teraType: 'Fire', ability: 'Blaze', item: 'charcoal',
+					ivs: IVS_PERFECT, evs: EVS_SPEC_SWEEPER,
+					moves: ['fire-blast', 'air-slash', 'dragon-pulse', 'nasty-plot'],
+				},
+				{
+					species: 'blastoise', teraType: 'Water', ability: 'Torrent', item: 'mysticwater',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['surf', 'ice-beam', 'dark-pulse', 'rapid-spin'],
+				},
+				{
+					species: 'venusaur', teraType: 'Grass', ability: 'Chlorophyll', item: 'black-sludge',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['giga-drain', 'sludge-bomb', 'synthesis', 'sleep-powder'],
+				},
+				{
+					species: 'pidgeot', ability: 'No Guard', item: 'choice-specs', teraType: 'Normal',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['hurricane', 'heat-wave', 'u-turn', 'roost'],
+				},
+				{
+					species: 'staraptor', ability: 'Reckless', item: 'choice-band', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['brave-bird', 'close-combat', 'double-edge', 'u-turn'],
+				},
+				{
+					species: 'snorlax', ability: 'Thick Fat', item: 'leftovers', teraType: 'Normal',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['return', 'earthquake', 'crunch', 'curse'],
+				},
+				{
+					species: 'lucario', ability: 'Justified', item: 'life-orb', teraType: 'Fighting',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['close-combat', 'extreme-speed', 'bullet-punch', 'swords-dance'],
+				},
+				{
+					species: 'garchomp', ability: 'Rough Skin', item: 'rocky-helmet', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'dragon-claw', 'poison-jab', 'swords-dance'],
+				},
+				{
+					species: 'rayquaza', item: 'meteorite', ability: 'Air Lock', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['dragon-ascent', 'v-create', 'dragon-claw', 'dragon-dance'],
+				},
 			],
 		},
 	},
@@ -320,9 +1299,12 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Eternatus': {
 			teamSize: 1,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/unknown.png',
-			dialog: "...",
 			pool: [
-				{ species: 'eternatus' },
+				{
+					species: 'eternatus', ability: 'Pressure', item: 'leftovers', teraType: 'Poison',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['eternabeam', 'dynamax-cannon', 'sludge-bomb', 'fire-blast'],
+				},
 			],
 		},
 	},
@@ -330,242 +1312,412 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	// ==========================================
 	// GYM LEADERS (Scaling Tiers)
 	// ==========================================
-
 	'gym_leader_tier_1': {
-		'Gym Leader Brock': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/brock.png',
-			dialog: "I believe in rock hard defense!",
-			pool: ['geodude', 'onix'],
-		},
-		'Gym Leader Misty': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/misty.png',
-			dialog: "I'm the world-famous water-type master!",
-			pool: ['staryu', 'psyduck'],
-		},
-		'Gym Leader Lt. Surge': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ltsurge.png',
-			dialog: "I'll zap you into paralysis!",
-			pool: ['voltorb', 'pikachu', 'electabuzz'],
-		},
-		'Gym Leaders Tate & Liza': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png',
-			dialog: "We fight as one! Even in single battles!",
-			pool: ['solrock', 'lunatone', 'natu', 'spoink'],
-		},
-		'Gym Leader Iono': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/iono.png',
-			dialog: "Ello, 'ello, hola! Ciao and bonjour!",
-			pool: ['tadbulb', 'wattrel', 'voltorb'],
-		},
-		'Gym Leader Piers': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
-			dialog: "Let's get this concert started!",
-			pool: ['zigzagoongalar', 'scraggy', 'inkay'],
-		},
-	},
-
-	'gym_leader_tier_2': {
-		'Gym Leader Brock': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/brock.png',
-			dialog: "My rock Pokémon have grown tougher!",
-			pool: ['geodude', 'graveler', 'onix'],
-		},
-		'Gym Leader Misty': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/misty.png',
-			dialog: "My water Pokémon are overflowing with power!",
-			pool: ['staryu', 'starmie', 'psyduck', 'golduck'],
-		},
-		'Gym Leader Lt. Surge': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ltsurge.png',
-			dialog: "The voltage is rising!",
-			pool: ['voltorb', 'electrode', 'raichu', 'electabuzz'],
-		},
-		'Gym Leaders Tate & Liza': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png',
-			dialog: "Our psychic connection is getting stronger!",
-			pool: ['solrock', 'lunatone', 'xatu', 'grumpig', 'gallade', 'gardevoir'],
-		},
-		'Gym Leader Iono': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/iono.png',
-			dialog: "Your eyeballs are mine! Caught in my Electroweb!",
-			pool: ['bellibolt', 'kilowattrel', 'electrode'],
-		},
-		'Gym Leader Piers': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
-			dialog: "Turn the volume up to eleven!",
-			pool: ['obstagoon', 'scrafty', 'malamar'],
-		},
+		// Gen 1
+		'Gym Leader Brock': { teamSize: 3, pool: ['geodude', 'onix'] },
+		'Gym Leader Misty': { teamSize: 3, pool: ['staryu', 'starmie', 'psyduck'] },
+		'Gym Leader Lt. Surge': { teamSize: 3, pool: ['pikachu', 'raichu', 'voltorb'] },
+		'Gym Leader Erika': { teamSize: 3, pool: ['tangela', 'weepinbell', 'vileplume'] },
+		'Gym Leader Koga': { teamSize: 3, pool: ['koffing', 'muk', 'weezing'] },
+		'Gym Leader Sabrina': { teamSize: 3, pool: ['abra', 'kadabra', 'mr-mime'] },
+		'Gym Leader Blaine': { teamSize: 3, pool: ['growlithe', 'ponyta', 'arcanine'] },
+		// Gen 2
+		'Gym Leader Falkner': { teamSize: 3, pool: ['pidgey', 'pidgeotto', 'spearow'] },
+		'Gym Leader Bugsy': { teamSize: 3, pool: ['caterpie', 'metapod', 'scyther'] },
+		'Gym Leader Whitney': { teamSize: 3, pool: ['clefairy', 'miltank'] },
+		'Gym Leader Morty': { teamSize: 3, pool: ['gastly', 'haunter', 'gengar'] },
+		'Gym Leader Chuck': { teamSize: 3, pool: ['primeape', 'machoke', 'poliwrath'] },
+		'Gym Leader Jasmine': { teamSize: 3, pool: ['magnemite', 'steelix'] },
+		'Gym Leader Pryce': { teamSize: 3, pool: ['seel', 'dewgong', 'piloswine'] },
+		// Gen 3
+		'Gym Leader Roxanne': { teamSize: 3, pool: ['geodude', 'nosepass'] },
+		'Gym Leader Brawly': { teamSize: 3, pool: ['machop', 'makuhita', 'mankey'] },
+		'Gym Leader Wattson': { teamSize: 3, pool: ['magnemite', 'voltorb', 'electrike'] },
+		'Gym Leader Flannery': { teamSize: 3, pool: ['slugma', 'numel', 'torkoal'] },
+		'Gym Leader Norman': { teamSize: 3, pool: ['spinda', 'vigoroth', 'slaking'] },
+		'Gym Leader Winona': { teamSize: 3, pool: ['swablu', 'beautifly', 'skarmory'] },
+		'Gym Leader Tate & Liza': { teamSize: 3, pool: ['solrock', 'lunatone', 'claydol'] },
+		// Gen 4
+		'Gym Leader Roark': { teamSize: 3, pool: ['geodude', 'onix', 'cranidos'] },
+		'Gym Leader Gardenia': { teamSize: 3, pool: ['cherubi', 'turtwig', 'roserade'] },
+		'Gym Leader Fantina': { teamSize: 3, pool: ['misdreavus', 'haunter', 'drifblim'] },
+		'Gym Leader Maylene': { teamSize: 3, pool: ['meditite', 'machoke', 'lucario'] },
+		'Gym Leader Byron': { teamSize: 3, pool: ['bronzor', 'steelix', 'bastiodon'] },
+		'Gym Leader Candice': { teamSize: 3, pool: ['snover', 'sneasel', 'piloswine'] },
+		// Gen 5
+		'Gym Leader Cilan': { teamSize: 3, pool: ['pansage', 'lillipup', 'pidove'] },
+		'Gym Leader Lenora': { teamSize: 3, pool: ['herdier', 'watchog', 'audino'] },
+		'Gym Leader Burgh': { teamSize: 3, pool: ['whirlipede', 'dwebble', 'sewaddle'] },
+		'Gym Leader Elesa': { teamSize: 3, pool: ['emolga', 'zebstrika'] },
+		'Gym Leader Clay': { teamSize: 3, pool: ['krokorok', 'palpitoad', 'excadrill'] },
+		'Gym Leader Skyla': { teamSize: 3, pool: ['swoobat', 'unfezant', 'swanna'] },
+		'Gym Leader Brycen': { teamSize: 3, pool: ['vanillish', 'beartic', 'cryogonal'] },
+		// Gen 6
+		'Gym Leader Viola': { teamSize: 3, pool: ['surskit', 'vivillon', 'masquerain'] },
+		'Gym Leader Grant': { teamSize: 3, pool: ['amaura', 'tyrunt', 'onix'] },
+		'Gym Leader Korrina': { teamSize: 3, pool: ['mienfoo', 'machoke', 'lucario'] },
+		'Gym Leader Ramos': { teamSize: 3, pool: ['jumpluff', 'weepinbell', 'gogoat'] },
+		'Gym Leader Clemont': { teamSize: 3, pool: ['emolga', 'magneton', 'heliolisk'] },
+		'Gym Leader Valerie': { teamSize: 3, pool: ['mawile', 'mr-mime', 'sylveon'] },
+		'Gym Leader Olympia': { teamSize: 3, pool: ['sigilyph', 'slowking', 'meowstic'] },
+		'Gym Leader Wulfric': { teamSize: 3, pool: ['bergmite', 'snover', 'avalugg'] },
+		// Gen 7
+		'Trial Captain Ilima': { teamSize: 3, pool: ['yungoos', 'smeargle', 'gumshoos'] },
+		'Kahuna Hala': { teamSize: 3, pool: ['mankey', 'makuhita', 'crabrawler'] },
+		'Trial Captain Lana': { teamSize: 3, pool: ['wishiwashi', 'chinchou', 'araquanid'] },
+		'Trial Captain Kiawe': { teamSize: 3, pool: ['marowak', 'arcanine', 'salazzle'] },
+		'Trial Captain Mallow': { teamSize: 3, pool: ['bounsweet', 'tsareena', 'shiinotic'] },
+		'Kahuna Olivia': { teamSize: 3, pool: ['nosepass', 'lycanroc', 'boldore'] },
+		'Trial Captain Sophocles': { teamSize: 3, pool: ['charjabug', 'togedemaru', 'vikavolt'] },
+		'Trial Captain Acerola': { teamSize: 3, pool: ['shuppet', 'drifblim', 'mimikyu'] },
+		'Kahuna Nanu': { teamSize: 3, pool: ['alolan-persian', 'sableye', 'krokorok'] },
+		'Trial Captain Mina': { teamSize: 3, pool: ['ribombee', 'granbull', 'wigglytuff'] },
+		'Kahuna Hapu': { teamSize: 3, pool: ['mudbray', 'gastrodon', 'flygon'] },
+		// Gen 8
+		'Gym Leader Milo': { teamSize: 3, pool: ['gossifleur', 'eldegoss', 'applin'] },
+		'Gym Leader Nessa': { teamSize: 3, pool: ['goldeen', 'arrokuda', 'drednaw'] },
+		'Gym Leader Kabu': { teamSize: 3, pool: ['sizzlipede', 'vulpix', 'ninetales'] },
+		'Gym Leader Bea': { teamSize: 3, pool: ['machop', 'pangoro', 'sirfetchd'] },
+		'Gym Leader Allister': { teamSize: 3, pool: ['yamask', 'mimikyu', 'cursola'] },
+		'Gym Leader Opal': { teamSize: 3, pool: ['galarian-weezing', 'togekiss', 'mawile'] },
+		'Gym Leader Gordie': { teamSize: 3, pool: ['barbaracle', 'stonjourner', 'coalossal'] },
+		'Gym Leader Melony': { teamSize: 3, pool: ['frosmoth', 'eiscue', 'lapras'] },
+		'Gym Leader Piers': { teamSize: 3, pool: ['scrafty', 'malamar', 'obstagoon'] },
+		'Gym Leader Marnie': { teamSize: 3, pool: ['morpeko', 'liepard', 'toxicroak'] },
+		'Gym Leader Raihan': { teamSize: 3, pool: ['flygon', 'gigalith', 'sandaconda'] },
+		// Gen 9
+		'Gym Leader Katy': { teamSize: 3, pool: ['teddiursa', 'nymble', 'lokix'] },
+		'Gym Leader Brassius': { teamSize: 3, pool: ['petilil', 'smoliv', 'sudowoodo'] },
+		'Gym Leader Iono': { teamSize: 3, pool: ['wattrel', 'bellibolt', 'mismagius'] },
+		'Gym Leader Kofu': { teamSize: 3, pool: ['veluza', 'wugtrio', 'crabominable'] },
+		'Gym Leader Larry': { teamSize: 3, pool: ['komala', 'starly', 'staraptor'] },
+		'Gym Leader Ryme': { teamSize: 3, pool: ['banette', 'mimikyu', 'houndstone'] },
+		'Gym Leader Tulip': { teamSize: 3, pool: ['girafarig', 'farigiraf', 'gardevoir'] },
 	},
 
 	'gym_leader_tier_3': {
-		'Gym Leader Brock': {
-			teamSize: 4,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/brock.png',
-			dialog: "You're tough, but we won't crumble!",
-			pool: ['golem', 'onix', 'rhyhorn', 'omanyte', 'kabuto'],
-		},
-		'Gym Leader Misty': {
-			teamSize: 4,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/misty.png',
-			dialog: "Get ready for a tsunami!",
-			pool: ['starmie', 'golduck', 'seaking', 'lapras'],
-		},
-		'Gym Leader Lt. Surge': {
-			teamSize: 4,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ltsurge.png',
-			dialog: "Ten-hut! Prepare to be shocked!",
-			pool: ['electrode', 'raichu', 'electabuzz', 'magneton', 'jolteon'],
-		},
-		'Gym Leaders Tate & Liza': {
-			teamSize: 4,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png',
-			dialog: "Our minds are perfectly synchronized!",
-			pool: ['solrock', 'lunatone', 'xatu', 'grumpig', 'gallade', 'gardevoir'],
-		},
-		'Gym Leader Iono': {
-			teamSize: 4,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/iono.png',
-			dialog: "Let's see if you can keep up with the chat!",
-			pool: ['bellibolt', 'kilowattrel', 'electrode', 'luxray'],
-		},
-		'Gym Leader Piers': {
-			teamSize: 4,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
-			dialog: "We're going to rock this stage!",
-			pool: ['obstagoon', 'scrafty', 'malamar', 'skuntank'],
-		},
-	},
-
-	'gym_leader_tier_4': {
-		'Gym Leader Brock': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/brock.png',
-			dialog: "I'll show you the true power of rock!",
-			pool: ['golem', 'steelix', 'rhydon', 'omastar', 'kabutops', 'aerodactyl'],
-		},
-		'Gym Leader Misty': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/misty.png',
-			dialog: "You're going to get washed away!",
-			pool: ['starmie', 'golduck', 'seaking', 'lapras', 'gyarados', 'vaporeon'],
-		},
-		'Gym Leader Lt. Surge': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ltsurge.png',
-			dialog: "I survived war with my Electric Pokémon! You don't stand a chance!",
-			pool: ['electrode', 'raichu', 'electivire', 'magnezone', 'jolteon', 'ampharos'],
-		},
-		'Gym Leaders Tate & Liza': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png',
-			dialog: "We foresee your defeat!",
-			pool: ['solrock', 'lunatone', 'xatu', 'grumpig', 'gallade', 'gardevoir', 'claydol', 'bronzong'],
-		},
-		'Gym Leader Iono': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/iono.png',
-			dialog: "Smash that subscribe button!",
-			pool: ['bellibolt', 'kilowattrel', 'electrode', 'luxray', 'pawmot'],
-		},
-		'Gym Leader Piers': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
-			dialog: "This is our grand finale!",
-			pool: ['obstagoon', 'scrafty', 'malamar', 'skuntank', 'toxtricity'],
-		},
+		// Gen 1
+		'Gym Leader Brock': { teamSize: 4, pool: ['geodude', 'graveler', 'onix', 'rhyhorn'] },
+		'Gym Leader Misty': { teamSize: 4, pool: ['staryu', 'starmie', 'psyduck', 'golduck'] },
+		'Gym Leader Lt. Surge': { teamSize: 4, pool: ['pikachu', 'raichu', 'voltorb', 'electrode'] },
+		'Gym Leader Erika': { teamSize: 4, pool: ['victreebel', 'tangela', 'vileplume', 'jumpluff'] },
+		'Gym Leader Koga': { teamSize: 4, pool: ['weezing', 'muk', 'venomoth', 'ariados'] },
+		'Gym Leader Sabrina': { teamSize: 4, pool: ['kadabra', 'alakazam', 'mr-mime', 'espeon'] },
+		'Gym Leader Blaine': { teamSize: 4, pool: ['arcanine', 'rapidash', 'ninetales', 'magmar'] },
+		// Gen 2
+		'Gym Leader Falkner': { teamSize: 4, pool: ['pidgeotto', 'pidgeot', 'hoothoot', 'noctowl'] },
+		'Gym Leader Bugsy': { teamSize: 4, pool: ['scyther', 'beedrill', 'butterfree', 'heracross'] },
+		'Gym Leader Whitney': { teamSize: 4, pool: ['miltank', 'clefable', 'wigglytuff', 'blissey'] },
+		'Gym Leader Morty': { teamSize: 4, pool: ['haunter', 'gengar', 'misdreavus', 'drifblim'] },
+		'Gym Leader Chuck': { teamSize: 4, pool: ['primeape', 'poliwrath', 'machamp', 'heracross'] },
+		'Gym Leader Jasmine': { teamSize: 4, pool: ['magneton', 'skarmory', 'steelix', 'forretress'] },
+		'Gym Leader Pryce': { teamSize: 4, pool: ['dewgong', 'piloswine', 'lapras', 'cloyster'] },
+		// Gen 3
+		'Gym Leader Roxanne': { teamSize: 4, pool: ['graveler', 'nosepass', 'golem', 'lunatone'] },
+		'Gym Leader Brawly': { teamSize: 4, pool: ['hariyama', 'medicham', 'machamp', 'breloom'] },
+		'Gym Leader Wattson': { teamSize: 4, pool: ['magneton', 'electrode', 'manectric', 'raichu'] },
+		'Gym Leader Flannery': { teamSize: 4, pool: ['torkoal', 'camerupt', 'arcanine', 'rapidash'] },
+		'Gym Leader Norman': { teamSize: 4, pool: ['slaking', 'vigoroth', 'spinda', 'zangoose'] },
+		'Gym Leader Winona': { teamSize: 4, pool: ['pelipper', 'skarmory', 'altaria', 'swellow'] },
+		'Gym Leader Tate & Liza': { teamSize: 4, pool: ['solrock', 'lunatone', 'claydol', 'xatu'] },
+		// Gen 4
+		'Gym Leader Roark': { teamSize: 4, pool: ['rampardos', 'golem', 'onix', 'aerodactyl'] },
+		'Gym Leader Gardenia': { teamSize: 4, pool: ['roserade', 'cherrim', 'torterra', 'leafeon'] },
+		'Gym Leader Fantina': { teamSize: 4, pool: ['drifblim', 'mismagius', 'gengar', 'chandelure'] },
+		'Gym Leader Maylene': { teamSize: 4, pool: ['lucario', 'machamp', 'medicham', 'infernape'] },
+		'Gym Leader Wake': { teamSize: 4, pool: ['gyarados', 'quagsire', 'floatzel', 'pelipper'] },
+		'Gym Leader Byron': { teamSize: 4, pool: ['steelix', 'bastiodon', 'magnezone', 'probopass'] },
+		'Gym Leader Candice': { teamSize: 4, pool: ['froslass', 'mamoswine', 'glaceon', 'abomasnow'] },
+		'Gym Leader Volkner': { teamSize: 4, pool: ['raichu', 'luxray', 'electivire', 'magnezone'] },
+		// Gen 5
+		'Gym Leader Cilan': { teamSize: 4, pool: ['simisage', 'lilligant', 'leavanny', 'ferrothorn'] },
+		'Gym Leader Lenora': { teamSize: 4, pool: ['stoutland', 'watchog', 'cinccino', 'audino'] },
+		'Gym Leader Burgh': { teamSize: 4, pool: ['leavanny', 'whirlipede', 'crustle', 'escavalier'] },
+		'Gym Leader Elesa': { teamSize: 4, pool: ['emolga', 'zebstrika', 'jolteon', 'eelektross'] },
+		'Gym Leader Clay': { teamSize: 4, pool: ['excadrill', 'krokorok', 'palpitoad', 'sandslash'] },
+		'Gym Leader Skyla': { teamSize: 4, pool: ['swoobat', 'unfezant', 'swanna', 'sigilyph'] },
+		'Gym Leader Brycen': { teamSize: 4, pool: ['cryogonal', 'beartic', 'vanilluxe', 'weavile'] },
+		'Gym Leader Drayden': { teamSize: 4, pool: ['druddigon', 'flygon', 'haxorus', 'altaria'] },
+		// Gen 6
+		'Gym Leader Viola': { teamSize: 4, pool: ['vivillon', 'masquerain', 'scizor', 'yanmega'] },
+		'Gym Leader Grant': { teamSize: 4, pool: ['tyrunt', 'amaura', 'aerodactyl', 'golem'] },
+		'Gym Leader Korrina': { teamSize: 4, pool: ['lucario', 'machamp', 'pangoro', 'hawlucha'] },
+		'Gym Leader Ramos': { teamSize: 4, pool: ['jumpluff', 'gogoat', 'victreebel', 'leafeon'] },
+		'Gym Leader Clemont': { teamSize: 4, pool: ['emolga', 'magneton', 'heliolisk', 'luxray'] },
+		'Gym Leader Valerie': { teamSize: 4, pool: ['sylveon', 'togekiss', 'gardevoir', 'mawile'] },
+		'Gym Leader Olympia': { teamSize: 4, pool: ['slowking', 'meowstic', 'gothitelle', 'sigilyph'] },
+		'Gym Leader Wulfric': { teamSize: 4, pool: ['avalugg', 'abomasnow', 'mamoswine', 'froslass'] },
+		// Gen 7
+		'Kahuna Hala': { teamSize: 4, pool: ['hariyama', 'crabominable', 'poliwrath', 'bewear'] },
+		'Kahuna Olivia': { teamSize: 4, pool: ['lycanroc', 'probopass', 'carbink', 'golem'] },
+		'Kahuna Nanu': { teamSize: 4, pool: ['alolan-persian', 'krookodile', 'alolan-muk', 'sableye'] },
+		'Kahuna Hapu': { teamSize: 4, pool: ['mudsdale', 'gastrodon', 'dugtrio', 'flygon'] },
+		// Gen 8
+		'Gym Leader Milo': { teamSize: 4, pool: ['eldegoss', 'tsareena', 'ferrothorn', 'appletun'] },
+		'Gym Leader Nessa': { teamSize: 4, pool: ['drednaw', 'pelipper', 'lanturn', 'barraskewda'] },
+		'Gym Leader Kabu': { teamSize: 4, pool: ['ninetales', 'centiskorch', 'arcanine', 'torkoal'] },
+		'Gym Leader Bea': { teamSize: 4, pool: ['sirfetchd', 'pangoro', 'machamp', 'falinks'] },
+		'Gym Leader Allister': { teamSize: 4, pool: ['cursola', 'mimikyu', 'dusknoir', 'gengar'] },
+		'Gym Leader Opal': { teamSize: 4, pool: ['togekiss', 'galarian-weezing', 'sylveon', 'clefable'] },
+		'Gym Leader Gordie': { teamSize: 4, pool: ['coalossal', 'stonjourner', 'rhyperior', 'tyranitar'] },
+		'Gym Leader Melony': { teamSize: 4, pool: ['lapras', 'frosmoth', 'glaceon', 'eiscue'] },
+		'Gym Leader Piers': { teamSize: 4, pool: ['obstagoon', 'scrafty', 'malamar', 'crawdaunt'] },
+		'Gym Leader Raihan': { teamSize: 4, pool: ['flygon', 'gigalith', 'sandaconda', 'duraludon'] },
+		// Gen 9
+		'Gym Leader Katy': { teamSize: 4, pool: ['lokix', 'heracross', 'ursaring', 'crustle'] },
+		'Gym Leader Brassius': { teamSize: 4, pool: ['sudowoodo', 'lilligant', 'leafeon', 'breloom'] },
+		'Gym Leader Iono': { teamSize: 4, pool: ['bellibolt', 'mismagius', 'electrode', 'luxray'] },
+		'Gym Leader Kofu': { teamSize: 4, pool: ['crabominable', 'basculegion', 'gastrodon', 'dondozo'] },
+		'Gym Leader Larry': { teamSize: 4, pool: ['dudunsparce', 'staraptor', 'komala', 'flamigo'] },
+		'Gym Leader Ryme': { teamSize: 4, pool: ['houndstone', 'toxtricity', 'mimikyu', 'gengar'] },
+		'Gym Leader Tulip': { teamSize: 4, pool: ['farigiraf', 'gardevoir', 'florges', 'espathra'] },
+		'Gym Leader Grusha': { teamSize: 4, pool: ['cetitan', 'weavile', 'froslass', 'glaceon'] },
 	},
 
 	'gym_leader_tier_5': {
-		'Gym Leader Brock': {
+		'Gym Leader Giovanni': {
 			teamSize: 6,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/brock.png',
-			dialog: "Prepare to be crushed by my Terastallized Ace!",
 			pool: [
-				{ species: 'golem' },
-				{ species: 'relicanth' },
-				{ species: 'rampardos' },
-				{ species: 'crustle' },
-				{ species: 'aerodactyl' },
-				{ species: 'onix', teraType: 'Rock', item: 'hardstone' },
+				{
+					species: 'dugtrio', ability: 'Arena Trap', item: 'focus-sash', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'stone-edge', 'sucker-punch', 'memento'],
+				},
+				{
+					species: 'nidoqueen', ability: 'Sheer Force', item: 'life-orb', teraType: 'Poison',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['earth-power', 'sludge-wave', 'ice-beam', 'thunderbolt'],
+				},
+				{
+					species: 'nidoking', ability: 'Sheer Force', item: 'choice-specs', teraType: 'Poison',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['earth-power', 'sludge-wave', 'ice-beam', 'thunderbolt'],
+				},
+				{
+					species: 'rhyperior', ability: 'Solid Rock', item: 'assault-vest', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['earthquake', 'stone-edge', 'rock-blast', 'megahorn'],
+				},
+				{
+					species: 'hippowdon', ability: 'Sand Stream', item: 'leftovers', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['earthquake', 'slack-off', 'stealth-rock', 'whirlwind'],
+				},
+				{
+					species: 'marowak', teraType: 'Ground', ability: 'Rock Head', item: 'thick-club',
+					ivs: IVS_TRICK_ROOM, evs: EVS_TRICK_ROOM_SWEEPER,
+					moves: ['bonemerang', 'fire-punch', 'thunder-punch', 'swords-dance'],
+				},
 			],
 		},
-		'Gym Leader Misty': {
+		'Gym Leader Clair': {
 			teamSize: 6,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/misty.png',
-			dialog: "My Terastallized Pokémon will wash you out!",
 			pool: [
-				{ species: 'golduck' },
-				{ species: 'vaporeon' },
-				{ species: 'lapras' },
-				{ species: 'gyarados' },
-				{ species: 'milotic' },
-				{ species: 'starmie', teraType: 'Water', item: 'mysticwater' },
+				{
+					species: 'dragonair', ability: 'Shed Skin', item: 'eviolite', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_MIXED_WALL,
+					moves: ['dragon-tail', 'thunder-wave', 'aqua-tail', 'extremespeed'],
+				},
+				{
+					species: 'gyarados', ability: 'Moxie', item: 'lum-berry', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'earthquake', 'dragon-dance'],
+				},
+				{
+					species: 'charizard', ability: 'Blaze', item: 'choice-scarf', teraType: 'Fire',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['flare-blitz', 'outrage', 'earthquake', 'dragon-dance'],
+				},
+				{
+					species: 'aerodactyl', ability: 'Rock Head', item: 'choice-band', teraType: 'Rock',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['stone-edge', 'head-smash', 'earthquake', 'fire-fang'],
+				},
+				{
+					species: 'kingdra', ability: 'Sniper', item: 'choice-specs', teraType: 'Water',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['draco-meteor', 'surf', 'ice-beam', 'focus-energy'],
+				},
+				{
+					species: 'dragonite', teraType: 'Dragon', ability: 'Multiscale', item: 'lum-berry',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'extremespeed', 'earthquake', 'dragon-dance'],
+				},
 			],
 		},
-		'Gym Leader Lt. Surge': {
+		'Gym Leader Wallace': {
 			teamSize: 6,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ltsurge.png',
-			dialog: "I'll fry you with 100,000 volts of pure Terastallized power!",
 			pool: [
-				{ species: 'electrode' },
-				{ species: 'magnezone' },
-				{ species: 'jolteon' },
-				{ species: 'ampharos' },
-				{ species: 'electivire' },
-				{ species: 'raichu', teraType: 'Electric', item: 'magnet' },
+				{
+					species: 'whiscash', ability: 'Anticipation', item: 'leftovers', teraType: 'Water',
+					ivs: IVS_PERFECT, evs: EVS_MIXED_WALL,
+					moves: ['earthquake', 'waterfall', 'dragon-dance', 'rest'],
+				},
+				{
+					species: 'tentacruel', ability: 'Rain Dish', item: 'black-sludge', teraType: 'Water',
+					ivs: IVS_NO_ATK, evs: EVS_SPDEF_PIVOT,
+					moves: ['scald', 'toxic-spikes', 'rapid-spin', 'toxic'],
+				},
+				{
+					species: 'ludicolo', ability: 'Swift Swim', item: 'life-orb', teraType: 'Water',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['surf', 'energy-ball', 'ice-beam', 'rain-dance'],
+				},
+				{
+					species: 'gyarados', ability: 'Moxie', item: 'lum-berry', teraType: 'Flying',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['waterfall', 'crunch', 'earthquake', 'dragon-dance'],
+				},
+				{
+					species: 'starmie', ability: 'Analytic', item: 'choice-specs', teraType: 'Water',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['surf', 'ice-beam', 'thunderbolt', 'psychic'],
+				},
+				{
+					species: 'milotic', teraType: 'Water', ability: 'Marvel Scale', item: 'flame-orb',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_WALL,
+					moves: ['scald', 'recover', 'dragon-tail', 'toxic'],
+				},
 			],
 		},
-		'Gym Leaders Tate & Liza': {
+		'Gym Leader Volkner': {
 			teamSize: 6,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png',
-			dialog: "Our ultimate psychic resonance is unstoppable!",
 			pool: [
-				{ species: 'xatu' },
-				{ species: 'grumpig' },
-				{ species: 'claydol' },
-				{ species: 'bronzong' },
-				{ species: 'gallade' },
-				{ species: 'solrock', teraType: 'Psychic' },
-				{ species: 'lunatone', teraType: 'Psychic' },
-				{ species: 'gardevoir', teraType: 'Psychic' },
+				{
+					species: 'jolteon', ability: 'Volt Absorb', item: 'choice-specs', teraType: 'Electric',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['thunderbolt', 'shadow-ball', 'volt-switch', 'hyper-voice'],
+				},
+				{
+					species: 'raichu', ability: 'Lightning Rod', item: 'life-orb', teraType: 'Electric',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['thunderbolt', 'focus-blast', 'nasty-plot', 'volt-switch'],
+				},
+				{
+					species: 'luxray', ability: 'Intimidate', item: 'choice-band', teraType: 'Electric',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['wild-charge', 'crunch', 'ice-fang', 'superpower'],
+				},
+				{
+					species: 'electivire', ability: 'Motor Drive', item: 'expert-belt', teraType: 'Electric',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['wild-charge', 'ice-punch', 'fire-punch', 'earthquake'],
+				},
+				{
+					species: 'magnezone', ability: 'Magnet Pull', item: 'choice-specs', teraType: 'Electric',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['thunderbolt', 'flash-cannon', 'volt-switch', 'thunder-wave'],
+				},
+				{
+					species: 'luxray', teraType: 'Electric', ability: 'Guts', item: 'flame-orb',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['wild-charge', 'facade', 'crunch', 'ice-fang'],
+				},
 			],
 		},
-		'Gym Leader Iono': {
+		'Gym Leader Drayden': {
 			teamSize: 6,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/iono.png',
-			dialog: "Catch my stream! Time to Terastallize!",
 			pool: [
-				{ species: 'bellibolt' },
-				{ species: 'kilowattrel' },
-				{ species: 'electrode' },
-				{ species: 'luxray' },
-				{ species: 'pawmot' },
-				{ species: 'mismagius', teraType: 'Electric' },
+				{
+					species: 'druddigon', ability: 'Rough Skin', item: 'rocky-helmet', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['outrage', 'sucker-punch', 'stealth-rock', 'glare'],
+				},
+				{
+					species: 'flygon', ability: 'Levitate', item: 'choice-scarf', teraType: 'Ground',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['earthquake', 'outrage', 'u-turn', 'fire-blast'],
+				},
+				{
+					species: 'altaria', ability: 'Natural Cure', item: 'leftovers', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['dragon-claw', 'cotton-guard', 'roost', 'heal-bell'],
+				},
+				{
+					species: 'hydreigon', ability: 'Levitate', item: 'choice-specs', teraType: 'Dragon',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['draco-meteor', 'dark-pulse', 'flash-cannon', 'fire-blast'],
+				},
+				{
+					species: 'haxorus', ability: 'Mold Breaker', item: 'choice-band', teraType: 'Dragon',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'earthquake', 'poison-jab', 'brick-break'],
+				},
+				{
+					species: 'haxorus', teraType: 'Dragon', ability: 'Mold Breaker', item: 'lum-berry',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['outrage', 'earthquake', 'poison-jab', 'swords-dance'],
+				},
 			],
 		},
-		'Gym Leader Piers': {
+		'Gym Leader Wulfric': {
 			teamSize: 6,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/piers.png',
-			dialog: "Let's blow the roof off this place!",
 			pool: [
-				{ species: 'scrafty' },
-				{ species: 'malamar' },
-				{ species: 'skuntank' },
-				{ species: 'toxtricity' },
-				{ species: 'grimmsnarl' },
-				{ species: 'obstagoon', teraType: 'Dark', item: 'blackglasses' },
+				{
+					species: 'abomasnow', ability: 'Snow Warning', item: 'choice-band', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['wood-hammer', 'ice-shard', 'earthquake', 'avalanche'],
+				},
+				{
+					species: 'cryogonal', ability: 'Levitate', item: 'leftovers', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_WALL,
+					moves: ['freeze-dry', 'rapid-spin', 'recover', 'toxic'],
+				},
+				{
+					species: 'avalugg', ability: 'Sturdy', item: 'leftovers', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_WALL,
+					moves: ['avalanche', 'rapid-spin', 'stealth-rock', 'recover'],
+				},
+				{
+					species: 'mamoswine', ability: 'Thick Fat', item: 'choice-band', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['icicle-crash', 'earthquake', 'ice-shard', 'superpower'],
+				},
+				{
+					species: 'glaceon', ability: 'Ice Body', item: 'choice-specs', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['blizzard', 'shadow-ball', 'hyper-voice', 'frost-breath'],
+				},
+				{
+					species: 'avalugg', teraType: 'Ice', ability: 'Sturdy', item: 'custap-berry',
+					ivs: IVS_TRICK_ROOM, evs: EVS_TRICK_ROOM_SWEEPER,
+					moves: ['avalanche', 'body-press', 'stealth-rock', 'rapid-spin'],
+				},
+			],
+		},
+		'Gym Leader Grusha': {
+			teamSize: 6,
+			pool: [
+				{
+					species: 'frosmoth', ability: 'Ice Scales', item: 'leftovers', teraType: 'Ice',
+					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
+					moves: ['blizzard', 'bug-buzz', 'quiver-dance', 'roost'],
+				},
+				{
+					species: 'beartic', ability: 'Swift Swim', item: 'choice-band', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['icicle-crash', 'superpower', 'aqua-jet', 'close-combat'],
+				},
+				{
+					species: 'cetitan', ability: 'Thick Fat', item: 'assault-vest', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
+					moves: ['icicle-crash', 'earthquake', 'ice-shard', 'superpower'],
+				},
+				{
+					species: 'weavile', ability: 'Pressure', item: 'choice-band', teraType: 'Dark',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['knock-off', 'icicle-crash', 'night-slash', 'ice-shard'],
+				},
+				{
+					species: 'mamoswine', ability: 'Thick Fat', item: 'choice-scarf', teraType: 'Ice',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['icicle-crash', 'earthquake', 'ice-shard', 'superpower'],
+				},
+				{
+					species: 'altaria', teraType: 'Ice', ability: 'Natural Cure', item: 'altarianite',
+					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
+					moves: ['return', 'earthquake', 'dragon-dance', 'roost'],
+				},
 			],
 		},
 	},
@@ -573,67 +1725,48 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	// ==========================================
 	// RANDOM TRAINER ENCOUNTERS
 	// ==========================================
-
 	'random_early': {
-		'Bug Catcher Rick': {
-			teamSize: 2,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bugcatcher.png',
-			dialog: "Check out my awesome bugs!",
-			pool: ['caterpie', 'weedle', 'venonat', 'paras', 'wurmple', 'scatterbug'],
-		},
-		'Hiker David': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hiker.png',
-			dialog: "I've been hiking these mountains for days!",
-			pool: ['geodude', 'machop', 'zubat', 'makuhita', 'roggenrola'],
-		},
-		'Lass Sally': {
-			teamSize: 2,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lass-gen4.png',
-			dialog: "My Pokémon are super cute!",
-			pool: ['jigglypuff', 'clefairy', 'marill', 'skitty', 'nidoranf'],
-		},
+		'Bug Catcher Rick': { teamSize: 2, pool: ['caterpie', 'weedle', 'venonat', 'paras', 'spinarak', 'ledyba', 'wurmple', 'silcoon', 'cascoon', 'surskit', 'kricketot', 'burmy', 'sewaddle', 'venipede', 'scatterbug'] },
+		'Hiker David': { teamSize: 3, pool: ['geodude', 'machop', 'zubat', 'makuhita', 'aron', 'nosepass', 'roggenrola', 'timburr', 'drilbur', 'bunnelby', 'rockruff', 'rolycoly', 'nacli'] },
+		'Lass Sally': { teamSize: 2, pool: ['jigglypuff', 'clefairy', 'marill', 'skitty', 'snubbull', 'igglybuff', 'togepi', 'munchlax', 'happiny', 'cottonee', 'flabebe', 'sylveon', 'fidough'] },
+		'Youngster Jake': { teamSize: 2, pool: ['rattata', 'pidgey', 'sentret', 'zigzagoon', 'poochyena', 'bidoof', 'patrat', 'bunnelby', 'yungoos', 'skwovet'] },
+		'Camper Tom': { teamSize: 2, pool: ['nidoran-m', 'ekans', 'sandshrew', 'growlithe', 'psyduck', 'horsea', 'staryu', 'krabby', 'barboach', 'buizel'] },
+		'Picnicker Lisa': { teamSize: 2, pool: ['nidoran-f', 'oddish', 'bellsprout', 'vulpix', 'meowth', 'happiny', 'pachirisu', 'cherubi', 'buneary', 'minccino'] },
+		'Fisherman Wade': { teamSize: 2, pool: ['magikarp', 'poliwag', 'tentacool', 'horsea', 'goldeen', 'shellder', 'remoraid', 'barboach', 'finneon', 'basculin', 'wishiwashi', 'arrokuda', 'bruxish'] },
+		'Bird Keeper Rudy': { teamSize: 2, pool: ['pidgey', 'spearow', 'hoothoot', 'taillow', 'starly', 'pidove', 'fletchling', 'rookidee', 'squawkabilly'] },
+		'Twins Amy & May': { teamSize: 2, pool: ['plusle', 'minun', 'volbeat', 'illumise', 'pachirisu', 'marill', 'pikachu', 'dedenne', 'togedemaru'] },
+		'Preschooler Mia': { teamSize: 1, pool: ['lillipup', 'patrat', 'purrloin', 'pidove', 'tepig', 'oshawott', 'snivy', 'fennekin', 'chespin', 'froakie', 'rowlet', 'litten', 'popplio', 'grookey', 'scorbunny', 'sobble', 'sprigatito', 'fuecoco', 'quaxly'] },
+		'School Kid Jack': { teamSize: 2, pool: ['magnemite', 'voltorb', 'exeggcute', 'oddish', 'drowzee', 'slowpoke', 'abra', 'natu', 'ralts', 'spoink', 'chingling', 'munna', 'elgyem'] },
+		'Rich Boy Winston': { teamSize: 2, pool: ['meowth', 'persian', 'growlithe', 'vulpix', 'eevee', 'snorunt', 'seel', 'snorlax', 'munchlax', 'indeedee'] },
+		'Lady Sarah': { teamSize: 2, pool: ['clefairy', 'snubbull', 'smoochum', 'togekiss', 'gardevoir', 'sylveon', 'comfey', 'alcremie'] },
 	},
-
 	'random_mid': {
-		'Ace Trainer Chase': {
-			teamSize: 4,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainer-gen4.png',
-			dialog: "I'm aiming for the top! Don't slow me down!",
-			pool: ['staraptor', 'luxray', 'gastrodon', 'rapidash', 'roselia', 'kadabra'],
-		},
-		'Black Belt Kenji': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blackbelt-gen4.png',
-			dialog: "My fists are as hard as my Pokémon!",
-			pool: ['machamp', 'hitmonlee', 'hitmonchan', 'primeape', 'poliwrath'],
-		},
-		'Scientist Albert': {
-			teamSize: 3,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/scientist.png',
-			dialog: "Let's test my theories in battle!",
-			pool: ['magneton', 'porygon2', 'muk', 'weezing', 'electrode'],
-		},
+		'Ace Trainer Chase': { teamSize: 4, pool: ['staraptor', 'luxray', 'gastrodon', 'rapidash', 'roselia', 'floatzel', 'lucario', 'garchomp', 'togekiss', 'gallade', 'magnezone', 'leafeon', 'glaceon', 'umbreon', 'espeon'] },
+		'Black Belt Kenji': { teamSize: 3, pool: ['machamp', 'hitmonlee', 'hitmonchan', 'primeape', 'poliwrath', 'hariyama', 'heracross', 'medicham', 'toxicroak', 'mienshao', 'pangoro', 'hawlucha', 'passimian', 'falinks', 'annihilape'] },
+		'Scientist Albert': { teamSize: 3, pool: ['magneton', 'porygon2', 'muk', 'weezing', 'electrode', 'raichu', 'starmie', 'kadabra', 'hypno', 'grimer', 'voltorb', 'beheeyem', 'magnezone', 'toxtricity', 'pawmot'] },
+		'Swimmer Tina': { teamSize: 3, pool: ['tentacruel', 'starmie', 'vaporeon', 'poliwrath', 'seaking', 'dewgong', 'kingler', 'corsola', 'lanturn', 'pelipper', 'floatzel', 'lumineon', 'simipour', 'barbaracle', 'wishiwashi', 'bruxish', 'araquanid'] },
+		'Psychic Phoebe': { teamSize: 3, pool: ['kadabra', 'slowbro', 'hypno', 'jynx', 'exeggutor', 'xatu', 'espeon', 'girafarig', 'gardevoir', 'grumpig', 'claydol', 'chingling', 'gothitelle', 'reuniclus', 'meowstic', 'oranguru', 'hatterene', 'rabsca', 'farigiraf'] },
+		'Pokémon Ranger Kyle': { teamSize: 3, pool: ['arcanine', 'manectric', 'raichu', 'golem', 'steelix', 'mightyena', 'linoone', 'flygon', 'walrein', 'shiftry', 'camerupt', 'swellow', 'wailord', 'breloom', 'whiscash'] },
+		'Cooltrainer Rex': { teamSize: 4, pool: ['alakazam', 'gengar', 'machamp', 'golem', 'rhydon', 'clefable', 'kangaskhan', 'lapras', 'snorlax', 'tauros', 'starmie', 'exeggutor', 'dragonite', 'aerodactyl'] },
+		'Cooltrainer Fran': { teamSize: 4, pool: ['ninetales', 'wigglytuff', 'vileplume', 'parasect', 'poliwrath', 'slowbro', 'arcanine', 'rapidash', 'raichu', 'mrmime', 'jynx', 'electabuzz', 'magmar', 'scyther'] },
+		'Beauty Nina': { teamSize: 3, pool: ['milotic', 'gardevoir', 'togekiss', 'ninetales', 'lopunny', 'delcatty', 'liligant', 'florges', 'sylveon', 'aromatisse', 'comfey', 'primarina', 'alcremie', 'dachsbun'] },
+		'Gentleman Alfred': { teamSize: 3, pool: ['persian', 'clefable', 'breloom', 'snorlax', 'dragonite', 'gardevoir', 'togekiss', 'umbreon', 'espeon', 'furfrou', 'meowstic', 'pyroar'] },
+		'Dragon Tamer Drake': { teamSize: 4, pool: ['dragonair', 'seadra', 'horsea', 'dratini', 'altaria', 'flygon', 'shelgon', 'vibrava', 'swablu', 'noibat', 'sliggoo', 'fraxure', 'zweilous'] },
+		'Hex Maniac Celeste': { teamSize: 3, pool: ['misdreavus', 'shuppet', 'duskull', 'sableye', 'haunter', 'drifblim', 'spiritomb', 'cofagrigus', 'jellicent', 'litwick', 'lampent', 'pumpkaboo', 'phantump', 'mimikyu'] },
+		'Guitarist Josh': { teamSize: 3, pool: ['jigglypuff', 'loudred', 'exploud', 'whismur', 'electrode', 'magnemite', 'toxtricity', 'rillaboom', 'obstagoon', 'noivern'] },
+		'Biker Rex': { teamSize: 3, pool: ['weezing', 'koffing', 'grimer', 'muk', 'scyther', 'magmar', 'electabuzz', 'pinsir', 'hitmonchan', 'hitmonlee', 'machoke', 'jynx'] },
+		'Sailor Cid': { teamSize: 3, pool: ['poliwrath', 'machamp', 'dewgong', 'tentacruel', 'slowbro', 'seel', 'shellder', 'cloyster', 'lapras', 'kingler', 'seaking', 'gyarados'] },
 	},
-
 	'random_late': {
-		'Veteran Harold': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/veteran.png',
-			dialog: "I've been battling since before you were born!",
-			pool: ['snorlax', 'lapras', 'dragonite', 'arcanine', 'exeggutor', 'gyarados'],
-		},
-		'Elite Trainer Cynthia (Not Champion)': {
-			teamSize: 6,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/cynthia.png',
-			dialog: "Show me the bond you share with your Pokémon.",
-			pool: ['garchomp', 'lucario', 'milotic', 'togekiss', 'roserade', 'spiritomb'],
-		},
-		'Dragon Tamer Lance (Fan)': {
-			teamSize: 5,
-			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/dragontamer.png',
-			dialog: "Dragons are the ultimate creatures!",
-			pool: ['dragonite', 'salamence', 'flygon', 'haxorus', 'hydreigon', 'goodra'],
-		},
+		'Veteran Harold': { teamSize: 5, pool: ['snorlax', 'lapras', 'dragonite', 'arcanine', 'gyarados', 'aerodactyl', 'kangaskhan', 'tauros', 'starmie', 'exeggutor', 'slowbro', 'machamp', 'golem', 'alakazam', 'gengar'] },
+		'Ace Trainer Lara': { teamSize: 5, pool: ['garchomp', 'lucario', 'milotic', 'togekiss', 'roserade', 'gallade', 'electivire', 'magmortar', 'leafeon', 'glaceon', 'mamoswine', 'rhyperior', 'tangrowth', 'porygon-z', 'magnezone'] },
+		'Dragon Tamer Lance (Fan)': { teamSize: 5, pool: ['dragonite', 'salamence', 'flygon', 'haxorus', 'hydreigon', 'dragonair', 'altaria', 'goodra', 'kommo-o', 'dragapult', 'roaring-moon', 'iron-jugulis', 'cyclizar'] },
+		'Pokémon Master Felix': { teamSize: 6, pool: ['metagross', 'tyranitar', 'salamence', 'garchomp', 'dragonite', 'hydreigon', 'goodra', 'kommo-o', 'dragapult', 'volcarona', 'toxapex', 'ferrothorn', 'clefable', 'heatran', 'landorus'] },
+		'Socialite Elena': { teamSize: 5, pool: ['gardevoir', 'togekiss', 'sylveon', 'florges', 'primarina', 'ninetales', 'aromatisse', 'alcremie', 'dachsbun', 'hattrene', 'milotic', 'froslass', 'mismagius'] },
+		'Pokémon Ranger Sophia': { teamSize: 4, pool: ['arcanine', 'steelix', 'flygon', 'talonflame', 'braviary', 'lycanroc', 'bewear', 'stufful', 'mudsdale', 'drampa', 'tsareena', 'lurantis', 'salazzle'] },
+		'Battle Girl Maya': { teamSize: 4, pool: ['lucario', 'mienshao', 'hawlucha', 'medicham', 'toxicroak', 'conkeldurr', 'infernape', 'heracross', 'machamp', 'gallade', 'sirfetchd', 'falinks', 'annihilape'] },
+		'Veteran Trainer Mina': { teamSize: 6, pool: ['blissey', 'steelix', 'snorlax', 'lapras', 'dragonite', 'gyarados', 'clefable', 'kangaskhan', 'tauros', 'aerodactyl', 'arcanine', 'vaporeon', 'jolteon', 'flareon'] },
+		'Pokémon Professor Elm': { teamSize: 5, pool: ['ampharos', 'espeon', 'umbreon', 'steelix', 'feraligatr', 'meganium', 'typhlosion', 'azumarill', 'politoed', 'slowking', 'heracross', 'togekiss', 'blissey', 'scizor', 'kingdra'] },
+		'Collector Warren': { teamSize: 6, pool: ['kangaskhan', 'scyther', 'pinsir', 'tauros', 'lapras', 'snorlax', 'aerodactyl', 'heracross', 'miltank', 'shuckle', 'steelix', 'umbreon', 'espeon', 'blissey'] },
 	},
 };
