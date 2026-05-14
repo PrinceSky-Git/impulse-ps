@@ -1,3 +1,22 @@
+export interface TrainerMon {
+	species: string;
+	moves?: string[];
+	ivs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
+	evs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
+	ability?: string;
+	teraType?: string;
+	item?: string;
+}
+
+export interface TrainerData {
+	teamSize: number;
+	pool?: (string | TrainerMon)[];
+	random?: boolean;
+	chance?: number;
+	spriteUrl?: string;
+	dialog?: string;
+}
+
 // ==========================================
 // IV / EV SPREAD CONSTANTS
 // ==========================================
@@ -52,29 +71,6 @@ export const IVS_TRICK_ROOM = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe:
 /** Trick Room special attacker: 0 Atk + 0 Spe */
 export const IVS_TRICK_ROOM_SPEC = { hp: 31, atk: 0, def: 31, spa: 31, spd: 31, spe: 0 } as const;
 
-
-// ==========================================
-// INTERFACES
-// ==========================================
-
-export interface TrainerMon {
-	species: string;
-	moves?: string[];
-	ivs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
-	evs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
-	ability?: string;
-	teraType?: string;
-	item?: string;
-}
-
-export interface TrainerData {
-	teamSize: number;
-	pool?: (string | TrainerMon)[];
-	random?: boolean;
-	chance?: number;
-	spriteUrl?: string;
-	dialog?: string;
-}
 
 
 // ==========================================
