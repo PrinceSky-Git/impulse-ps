@@ -1,9 +1,9 @@
 import { Utils } from '../../../lib';
 
 /* * Dev Note: Minimax Engine
- * This AI simulates outcomes using the player's actual movesets and stats.
- * Guardrails have been added to the damage formula to prevent NaN errors 
- * from collapsing the search tree.
+ * Implements a Depth-Limited search (Depth 2) using Alpha-Beta Pruning.
+ * This version uses "Full Knowledge" of the player's team to simulate
+ * the most likely outcomes.
  */
 
 export type ActionType = 'move' | 'switch';
@@ -39,7 +39,7 @@ export class PokeRogueAI {
 	private readonly MAX_DEPTH = 2; 
 
 	constructor(requestJson: string, playerTeam: SimPokemon[]) {
-		this.playerTeamData = playerTeam;
+		this.playerTeamData = playerTeam || [];
 		try {
 			this.request = JSON.parse(requestJson.startsWith('|request|') ? requestJson.slice(9) : requestJson);
 		} catch {
@@ -57,14 +57,14 @@ export class PokeRogueAI {
 
 	private runMinimax(): string {
 		const state = this.buildSimState();
+		if (!state || !state.aiActive || !state.playerActive) return 'move 1';
+
 		const aiActions = this.getLegalActions(this.request.side?.pokemon, this.request.active?.[0]);
-		
 		let bestAction = aiActions[0];
 		let bestScore = -Infinity;
 
 		for (const action of aiActions) {
 			const score = this.minNode(state, action, 0, -Infinity, Infinity);
-			// NaN check to prevent tree collapse
 			if (!isNaN(score) && score > bestScore) {
 				bestScore = score;
 				bestAction = action;
@@ -80,7 +80,6 @@ export class PokeRogueAI {
 		for (const pAction of playerActions) {
 			const nextState = this.simulateTurn(state, aiAction, pAction);
 			const score = this.maxNode(nextState, depth + 1, alpha, beta);
-			
 			if (score < minScore) minScore = score;
 			if (minScore <= alpha) return minScore;
 			if (minScore < beta) beta = minScore;
@@ -92,10 +91,8 @@ export class PokeRogueAI {
 		if (depth >= this.MAX_DEPTH || state.aiActive.isFainted || state.playerActive.isFainted) {
 			return this.evaluateState(state);
 		}
-
 		const aiActions = this.generateSimActions(state.aiActive, state.aiBench);
 		let maxScore = -Infinity;
-
 		for (const action of aiActions) {
 			const score = this.minNode(state, action, depth, alpha, beta);
 			if (score > maxScore) maxScore = score;
@@ -108,19 +105,15 @@ export class PokeRogueAI {
 	private evaluateState(state: SimState): number {
 		if (state.playerActive.isFainted) return 10000;
 		if (state.aiActive.isFainted) return -10000;
-
 		let score = (state.aiActive.hpRatio * 100) - (state.playerActive.hpRatio * 100);
 		for (const p of state.aiBench) score += p.hpRatio * 30;
 		for (const p of state.playerBench) score -= p.hpRatio * 30;
-
 		if (state.aiActive.baseStats.spe > state.playerActive.baseStats.spe) score += 20;
-
 		return isNaN(score) ? 0 : score;
 	}
 
 	private simulateTurn(state: SimState, aiAction: Action, pAction: Action): SimState {
 		const nextState: SimState = JSON.parse(JSON.stringify(state));
-
 		if (aiAction.type === 'switch') {
 			const newActive = nextState.aiBench.find(p => p.species === aiAction.id);
 			if (newActive) nextState.aiActive = newActive;
@@ -134,7 +127,6 @@ export class PokeRogueAI {
 			const aiM = Dex.moves.get(aiAction.id);
 			const pM = Dex.moves.get(pAction.id);
 			const aiFirst = nextState.aiActive.baseStats.spe >= nextState.playerActive.baseStats.spe;
-			
 			if (aiFirst) {
 				this.applyDamage(nextState.aiActive, nextState.playerActive, aiM);
 				if (!nextState.playerActive.isFainted) this.applyDamage(nextState.playerActive, nextState.aiActive, pM);
@@ -153,13 +145,9 @@ export class PokeRogueAI {
 	private applyDamage(attacker: SimPokemon, defender: SimPokemon, move: any): void {
 		if (move.category === 'Status') return;
 		let power = move.basePower || 60;
-		
-		// Guard against undefined stats
 		const A = move.category === 'Physical' ? (attacker.baseStats?.atk || 50) : (attacker.baseStats?.spa || 50);
 		const D = move.category === 'Physical' ? (defender.baseStats?.def || 50) : (defender.baseStats?.spd || 50);
-		
 		let dmg = (((42 * power * (A / Math.max(1, D))) / 50) + 2) / 2;
-
 		if (attacker.types.includes(move.type)) dmg *= 1.5;
 		for (const t of defender.types) {
 			const eff = Dex.getEffectiveness(move.type, t);
@@ -167,14 +155,15 @@ export class PokeRogueAI {
 			else if (eff < 0) dmg *= 0.5;
 			if (!Dex.getImmunity(move.type, t)) dmg = 0;
 		}
-
 		if (isNaN(dmg)) dmg = 10;
 		defender.hpRatio = Math.max(0, defender.hpRatio - (dmg / 100));
 		if (defender.hpRatio <= 0) defender.isFainted = true;
 	}
 
-	private buildSimState(): SimState {
+	private buildSimState(): SimState | null {
+		if (!this.playerTeamData.length) return null;
 		const aiMons = this.request.side?.pokemon ?? [];
+		if (!aiMons.length) return null;
 		const playerActive = this.playerTeamData.find(p => p.isActive) || this.playerTeamData[0];
 		return {
 			aiActive: this.parseSimPokemon(aiMons[0], true),
