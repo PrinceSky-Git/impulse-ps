@@ -493,6 +493,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Lorelei': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lorelei.png',
+			dialog: "No one can best me when it comes to icy Pokémon! Freeze solid!",
 			pool: [
 				{
 					species: 'dewgong', ability: 'Thick Fat', item: 'leftovers', teraType: 'Ice',
@@ -524,6 +525,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Sidney': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/sidney.png',
+			dialog: "I like that look you're giving me. I'll take you on anytime!",
 			pool: [
 				{
 					species: 'mightyena', ability: 'Moxie', item: 'choice-scarf', teraType: 'Dark',
@@ -555,6 +557,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Aaron': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/aaron.png',
+			dialog: "My bug Pokémon are the toughest around. Prepare to be stung!",
 			pool: [
 				{
 					species: 'yanmega', ability: 'Speed Boost', item: 'focus-sash', teraType: 'Bug',
@@ -586,6 +589,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Shauntal': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/shauntal.png',
+			dialog: "Excuse me. You're a fascinating Trainer. May I use you as a subject for my novel?",
 			pool: [
 				{
 					species: 'cofagrigus', ability: 'Mummy', item: 'leftovers', teraType: 'Ghost',
@@ -617,6 +621,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Malva': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/malva.png',
+			dialog: "I'll make you feel the heat of my burning ambition!",
 			pool: [
 				{
 					species: 'torkoal', ability: 'Drought', item: 'leftovers', teraType: 'Fire',
@@ -650,6 +655,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Bruno': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bruno.png',
+			dialog: "We will grind you down with our superior power! Urrgh!",
 			pool: [
 				{
 					species: 'hitmontop', ability: 'Technician', item: 'life-orb', teraType: 'Fighting',
@@ -681,6 +687,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Phoebe': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/phoebe.png',
+			dialog: "I trained hard at Mt. Pyre to hone my skills. Here I come!",
 			pool: [
 				{
 					species: 'dusclops', ability: 'Pressure', item: 'eviolite', teraType: 'Ghost',
@@ -712,6 +719,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Bertha': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bertha.png',
+			dialog: "Hohoho! Come on, child. Show this old lady what you've got!",
 			pool: [
 				{
 					species: 'quagsire', ability: 'Unaware', item: 'leftovers', teraType: 'Water',
@@ -743,6 +751,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Marshal': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/marshal.png',
+			dialog: "I aspire to be the greatest battler of all! Face my fighting spirit!",
 			pool: [
 				{
 					species: 'throh', ability: 'Guts', item: 'flame-orb', teraType: 'Fighting',
@@ -774,6 +783,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Poppy': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/poppy.png',
+			dialog: "I'm gonna give it my all! Don't go easy on me just 'cos I'm small!",
 			pool: [
 				{
 					species: 'copperajah', ability: 'Sheer Force', item: 'assault-vest', teraType: 'Steel',
@@ -807,6 +817,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Agatha': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/agatha.png',
+			dialog: "Pokémon are for battling! I'll show you how a real Trainer does it!",
 			pool: [
 				{
 					species: 'gengar', ability: 'Cursed Body', item: 'choice-scarf', teraType: 'Ghost',
@@ -838,6 +849,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Glacia': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/glacia.png',
+			dialog: "I have come from afar to find truly challenging Trainers. Let me see your strength!",
 			pool: [
 				{
 					species: 'glalie', ability: 'Moody', item: 'choice-scarf', teraType: 'Ice',
@@ -869,6 +881,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Flint': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/flint.png',
+			dialog: "Hm! You've got the look of a tough Trainer. Let's see if you can handle my burning passion!",
 			pool: [
 				{
 					species: 'rapidash', ability: 'Flash Fire', item: 'choice-band', teraType: 'Fire',
@@ -900,6 +913,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Grimsley': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/grimsley.png',
+			dialog: "When one loses, they lose everything. When one wins, they win everything. That's the way I battle!",
 			pool: [
 				{
 					species: 'liepard', ability: 'Prankster', item: 'lagging-tail', teraType: 'Dark',
@@ -933,6 +947,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Lance': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lance.png',
+			dialog: "I am the world's greatest dragon master! Tremble before my dragons!",
 			pool: [
 				{
 					species: 'gyarados', ability: 'Intimidate', item: 'lum-berry', teraType: 'Flying',
@@ -964,6 +979,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Drake': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/drake.png',
+			dialog: "My dragons and I have overcome many hardships. Can you weather our storm?",
 			pool: [
 				{
 					species: 'shelgon', ability: 'Rock Head', item: 'eviolite', teraType: 'Dragon',
@@ -995,6 +1011,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Lucian': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucian.png',
+			dialog: "I've been looking forward to this. Let's see if your mind is as sharp as mine.",
 			pool: [
 				{
 					species: 'mrmime', ability: 'Filter', item: 'leftovers', teraType: 'Psychic',
@@ -1026,6 +1043,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Elite Four Hassel': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hassel.png',
+			dialog: "I shall paint this battle into a magnificent masterpiece. En garde!",
 			pool: [
 				{
 					species: 'noivern', ability: 'Frisk', item: 'choice-specs', teraType: 'Dragon',
@@ -1059,6 +1077,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Champion Blue': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blue.png',
+			dialog: "Heh! I'm the Pokémon League Champion! There's nothing you can do!",
 			pool: [
 				{
 					species: 'pidgeot', ability: 'No Guard', item: 'choice-specs', teraType: 'Flying',
@@ -1095,6 +1114,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Champion Cynthia': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/cynthia.png',
+			dialog: "I, Cynthia, accept your challenge! There are no weak Pokémon — only weak Trainers!",
 			pool: [
 				{
 					species: 'spiritomb', ability: 'Pressure', item: 'leftovers', teraType: 'Dark',
@@ -1131,6 +1151,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Champion Steven': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/steven.png',
+			dialog: "I, Steven, am the Pokémon League Champion. I shall see if you are worthy!",
 			pool: [
 				{
 					species: 'skarmory', ability: 'Sturdy', item: 'leftovers', teraType: 'Steel',
