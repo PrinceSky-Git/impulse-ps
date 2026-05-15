@@ -62,6 +62,7 @@ export interface ModeData {
 
 export interface PokemonEntry {
 	species: string;
+	ability?: string;
 	level: number;
 	exp: number;
 	expType?: string;
