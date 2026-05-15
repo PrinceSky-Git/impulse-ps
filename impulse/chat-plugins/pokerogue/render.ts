@@ -259,7 +259,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 // ─── Shop Helpers ─────────────────────────────────────────────────────────────
 
 function renderShopTable(
-	items: [string, typeof SHOP_ITEMS[string]][],
+	items: [string, any][],
 	bp: number,
 	keyItems: string[],
 	cmd: string,
@@ -411,7 +411,9 @@ function renderGiveItem(state: PokeRogueState): string {
 }
 
 function renderConsumable(state: PokeRogueState): string {
-	const consumableItem = SHOP_ITEMS[state.purchasedItem!];
+	// Fetch dynamic shop!
+	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+	const consumableItem = activeShop[state.purchasedItem!];
 	const consumableType = state.pendingConsumableType!;
 
 	let buf = `<h2 class="pr-choice-heading">Use ${Utils.escapeHTML(consumableItem?.name ?? state.purchasedItem!)}?</h2>`;
@@ -585,24 +587,32 @@ function renderMainView(state: PokeRogueState, user: User): string {
 		const hp = mon.currentHp ?? 100;
 		const bp = state.battlePoints ?? 0;
 
-		const hyperItem = Object.values(SHOP_ITEMS).find(item => item.name === 'Hyper Potion');
-		const superItem = Object.values(SHOP_ITEMS).find(item => item.name === 'Super Potion');
-		const cureItem = Object.values(SHOP_ITEMS).find(item => item.type === 'cureStatus');
+		// Fetch dynamic shop!
+		const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 
-		const hyperCost = hyperItem ? hyperItem.cost : Infinity;
-		const superCost = superItem ? superItem.cost : Infinity;
-		const cureCost = cureItem ? cureItem.cost : Infinity;
+		// Dynamically check the shop for affordable heals/cures
+		const healItems = Object.values(activeShop)
+			.filter((item: any) => item.type === 'healHP')
+			.sort((a: any, b: any) => a.cost - b.cost);
+			
+		const cureItem = Object.values(activeShop).find((item: any) => item.type === 'cureStatus');
+		const cureCost = cureItem ? (cureItem as any).cost : Infinity;
 
 		let qHealDisabled = true, qHealLabel = "Q Heal";
 		if (hp <= 0) qHealLabel = "Fainted";
 		else if (hp >= 100) qHealLabel = "Full HP";
-		else if (hp < 40 && (bp >= hyperCost || bp >= superCost)) qHealDisabled = false;
-		else if (hp >= 40 && bp >= superCost) qHealDisabled = false;
-		else qHealLabel = "Need BP";
+		else if (!healItems.length) qHealLabel = "No Items";
+		else {
+			// If they can afford at least the cheapest healing item
+			const affordableHeal = healItems.find((item: any) => bp >= item.cost);
+			if (affordableHeal) qHealDisabled = false;
+			else qHealLabel = "Need BP";
+		}
 
 		let qCureDisabled = true, qCureLabel = "Q Cure";
 		if (hp <= 0) qCureLabel = "Fainted";
 		else if (!mon.status) qCureLabel = "No Status";
+		else if (!cureItem) qCureLabel = "No Items";
 		else if (bp >= cureCost) qCureDisabled = false;
 		else qCureLabel = "Need BP";
 
@@ -626,11 +636,15 @@ function renderShopView(state: PokeRogueState): string {
 	const bp = state.battlePoints ?? 0;
 	const currentFloor = state.floor ?? 1;
 
+	// Fetch dynamic shop!
+	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+
 	let buf = renderStatBar(state, true);
 
 	buf += `<div class="pr-section-title">Shop</div>`;
-	const permItems = Object.entries(SHOP_ITEMS).filter(([, item]) => item.minFloor <= currentFloor);
-	buf += renderShopTable(permItems, bp, state.keyItems ?? [], 'pokerogue buy');
+	// Draw the items from the active shop instead of the default one
+	const permItems = Object.entries(activeShop).filter(([, item]: [string, any]) => item.minFloor <= currentFloor);
+	buf += renderShopTable(permItems as any, bp, state.keyItems ?? [], 'pokerogue buy');
 
 	return buf;
 }
