@@ -750,11 +750,12 @@ interface ActiveRougeMatch {
 	floor: number;
 	lastPanelTurn?: number;
 	isTrainerBattle?: boolean;
+	botTeam?: AIPokemonSet[];
 }
 
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
-function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string } {
+function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string, team: AIPokemonSet[] } {
 	// 1. Fetch the rules and data for the player's specific mode
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 	const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
@@ -788,7 +789,8 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	return { 
 		packedTeam: packAITeam(result.team), 
 		isTrainer: result.isTrainer, 
-		trainerName: result.trainerName 
+		trainerName: result.trainerName,
+		team: result.team
 	};
 }
 
@@ -909,6 +911,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		botUserId: botUser.id,
 		floor: state.floor,
 		isTrainerBattle: isTrainer,
+		botTeam: botTeamData.team,
 	});
 
 	clearMoveHistory(battleRoom.roomid);

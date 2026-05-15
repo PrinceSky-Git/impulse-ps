@@ -10,7 +10,7 @@ import {
 	applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween,
 	calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon,
+	packTeam, genPokemon, type AIPokemonSet
 } from './pokemon';
 import { renderGamePage, refreshGamePage } from './render';
 import {
@@ -1246,28 +1246,21 @@ export const commands: Chat.ChatCommands = {
 				let caughtAbility = (Dex.species.get(p2Species).abilities as any)['0'] || '';
 				let caughtItem = '';
 
-				try {
-					const p2Active = room.battle.p2.active[0];
-					if (p2Active) {
-						caughtItem = p2Active.item || '';
-						
-						// FIX: Showdown uses .moveSlots on battle objects, not .moves
-						if (p2Active.moveSlots && p2Active.moveSlots.length > 0) {
-							caughtMoves = p2Active.moveSlots.map((m: any) => m.id);
-						} else if (p2Active.moves && p2Active.moves.length > 0) {
-							// Fallback just in case some weird custom Showdown branch uses .moves directly
-							if (typeof p2Active.moves[0] === 'string') {
-								caughtMoves = p2Active.moves;
-							} else {
-								caughtMoves = p2Active.moves.map((m: any) => m.id);
-							}
+				// FIX: Read directly from the generated bot team saved in activeMatches
+				if (catchMatch.botTeam) {
+					const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
+					if (botMon) {
+						if (botMon.moves && botMon.moves.length > 0) {
+							caughtMoves = botMon.moves;
 						}
-						
-						if (p2Active.ability || p2Active.baseAbility) {
-							caughtAbility = toID(p2Active.ability || p2Active.baseAbility);
+						if (botMon.ability) {
+							caughtAbility = botMon.ability;
+						}
+						if (botMon.item) {
+							caughtItem = botMon.item;
 						}
 					}
-				} catch {}
+				}
 
 				const caught: any = {
 					species: p2Species,
