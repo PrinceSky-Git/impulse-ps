@@ -589,20 +589,20 @@ export class TeamValidator {
 		// --- THE NICKNAME HACK START ---
 		if (set.name) {
 			// Look for [H:XX] in the nickname
-			const hpMatch = set.name.match(/\[H:(\d+)\]/i);
+			const hpMatch = set.name.match(/\[H:\s*(\d+)\s*\]/i);
 			if (hpMatch) {
 				set.hp = parseInt(hpMatch[1]);
 				set.name = set.name.replace(hpMatch[0], '').trim();
 			}
 			
 			// Look for [S:xxx] in the nickname
-			const statusMatch = set.name.match(/\[S:([a-z]+)\]/i);
+			const statusMatch = set.name.match(/\[S:\s*([a-z]+)\s*\]/i);
 			if (statusMatch) {
 				set.status = statusMatch[1].toLowerCase();
 				set.name = set.name.replace(statusMatch[0], '').trim();
 			}
 
-			// Look for [BST: atk,def,spa,spd,spe] in the nickname (supports optional spaces and negative values)
+			// Look for [BST: atk,def,spa,spd,spe] in the nickname
 			const bstMatch = set.name.match(/\[BST:\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\]/i);
 			if (bstMatch) {
 				(set as any).bstBoosts = {
@@ -615,14 +615,13 @@ export class TeamValidator {
 				set.name = set.name.replace(bstMatch[0], '').trim();
 			}
 
-			// --- CUSTOM HP MULTIPLIER START ---
 			// Look for [HPX: 10] in the nickname
-			const hpxMatch = set.name.match(/\[HPX:\s*(\d+)\]/i);
+			const hpxMatch = set.name.match(/\[HPX:\s*(\d+)\s*\]/i);
 			if (hpxMatch) {
-				(set as any).hpMultiplier = parseInt(hpxMatch[1]);
+				// Prevent 0 to avoid dividing by zero and crashing the server!
+				(set as any).hpMultiplier = Math.max(1, parseInt(hpxMatch[1]));
 				set.name = set.name.replace(hpxMatch[0], '').trim();
 			}
-			// --- CUSTOM HP MULTIPLIER END ---
 		}
 		// --- THE NICKNAME HACK END ---
 
