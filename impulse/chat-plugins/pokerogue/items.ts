@@ -20,6 +20,11 @@ export interface ShopItem {
 	desc: string;
 	cost: number;
 	minFloor: number;
+	// Dynamic Action Properties
+	// These allow game modes to create entirely custom items!
+	healAmount?: number;     // e.g., 20, 60
+	reviveAmount?: number;   // e.g., 50, 100
+	isMax?: boolean;         // true for Max Potions / Max Revives
 }
 
 export const SHOP_ITEMS: Record<string, ShopItem> =
