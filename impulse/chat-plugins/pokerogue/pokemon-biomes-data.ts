@@ -1,9 +1,54 @@
-export const BIOME_POOL = [
-	'Plains', 'Grass', 'Tall Grass', 'Metropolis', 'Forest', 'Sea', 'Swamp', 'Beach', 'Lake',
-	'Seabed', 'Mountain', 'Badlands', 'Cave', 'Desert', 'Ice Cave', 'Meadow', 'Power Plant',
-	'Volcano', 'Graveyard', 'Dojo', 'Factory', 'Ancient Ruins', 'Wasteland', 'Abyss', 'Space',
-	'Construction Site', 'Jungle', 'Fairy Cave', 'Temple', 'Slum', 'Snowy Forest', 'Island', 'Laboratory',
-];
+export const BIOME_TRANSITIONS: Record<string, string[]> = {
+	'Town': ['Plains'],
+	'Plains': ['Metropolis', 'Grass', 'Lake'],
+	'Metropolis': ['Slum'],
+	'Slum': ['Construction Site'],
+	'Construction Site': ['Dojo', 'Power Plant'],
+	'Power Plant': ['Factory', 'Metropolis'],
+	'Factory': ['Laboratory', 'Power Plant'],
+	'Laboratory': ['Construction Site', 'Factory'],
+	'Dojo': ['Jungle', 'Construction Site'],
+	'Grass': ['Tall Grass', 'Swamp'],
+	'Swamp': ['Tall Grass', 'Graveyard'],
+	'Graveyard': ['Abyss'],
+	'Tall Grass': ['Forest', 'Cave'],
+	'Forest': ['Jungle', 'Meadow'],
+	'Jungle': ['Temple'],
+	'Meadow': ['Fairy Cave', 'Plains'],
+	'Fairy Cave': ['Ice Cave', 'Space'],
+	'Lake': ['Beach', 'Sea'],
+	'Beach': ['Island', 'Sea'],
+	'Island': ['Sea'],
+	'Sea': ['Seabed', 'Ice Cave'],
+	'Seabed': ['Cave', 'Volcano', 'Sea'],
+	'Cave': ['Badlands', 'Mountain'],
+	'Badlands': ['Desert', 'Mountain'],
+	'Desert': ['Ancient Ruins', 'Badlands'],
+	'Ancient Ruins': ['Space', 'Abyss'],
+	'Space': ['Fairy Cave', 'Ice Cave'],
+	'Abyss': ['Wasteland', 'Cave'],
+	'Wasteland': ['Ancient Ruins', 'Mountain'],
+	'Mountain': ['Volcano', 'Ice Cave', 'Wasteland'],
+	'Volcano': ['Beach', 'Mountain'],
+	'Ice Cave': ['Snowy Forest', 'Mountain'],
+	'Snowy Forest': ['Ice Cave', 'Lake'],
+};
+
+export function getNextBiome(currentBiome: string): string {
+	const options = BIOME_TRANSITIONS[currentBiome];
+	// Absolute fallback: if something breaks, force them to Plains to escape Town
+	if (!options || options.length === 0) return 'Plains'; 
+	return options[Math.floor(Math.random() * options.length)];
+}
+
+export function getDisplayBiome(floor: number, underlyingBiome: string): string {
+	// Forces Town for the first 10 floors
+	if (floor <= 10) return 'Town';
+	// Forces Endless override for 191-200
+	if (floor >= 191 && floor <= 200) return 'Endless';
+	
+	return underlyingBiome;
+}
 
 export const BIOMES = {
 	'Town': {
