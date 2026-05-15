@@ -689,7 +689,7 @@ function renderResetConfirmView(state: PokeRogueState): string {
 function renderGameOverView(state: PokeRogueState): string {
 	return `<div class="pr-gameover"><div class="pr-go-title">Game over</div>` +
 		`<div class="pr-go-sub">Your run ended on Floor <b>${state.lastRunFloor || 1}</b>.</div>` +
-		renderBtn('/pokerogue start', 'Start new run', 'pr-newrun-btn') + `</div>`;
+		renderBtn('/pokerogue view welcome', 'Start new run', 'pr-newrun-btn') + `</div>`;
 }
 
 function renderGuideView(): string {
