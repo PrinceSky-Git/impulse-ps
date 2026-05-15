@@ -14,7 +14,7 @@ To get around this, we use the **Nickname Hack**. You can encode your custom HP,
 
 - --
 
-**IMPORTANT: TEAMBUILDER LIMIT WARNING**
+## TEAMBUILDER LIMIT WARNING
 The standard "Nickname" box in the Showdown teambuilder limits you to 18 characters. **You cannot type long tags directly into the nickname box.**
 To use multiple tags (like `[BST: 50,50,50,50,50] [HPX: 10]`), you **MUST** click the **"Import/Export"** button at the top of your team and paste your sets in as text!
 
