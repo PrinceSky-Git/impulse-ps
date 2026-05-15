@@ -417,7 +417,6 @@ function handleBattleLoss(state: PokeRogueState, floor: number): void {
 
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
-
 		start(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			let state = getState(user.id);
@@ -429,7 +428,8 @@ export const commands: Chat.ChatCommands = {
 				const highestFloor = state?.highestFloor || 0;
 				const displayName = state?.displayName || user.name;
 				const recordTeam = state?.recordTeam || [];
-				
+				const isFirstEverVisit = !state && highestFloor === 0;
+
 				state = {
 					floor: 1,
 					gameMode: 'classic',
@@ -443,17 +443,15 @@ export const commands: Chat.ChatCommands = {
 					displayName,
 					recordTeam,
 				} as PokeRogueState;
-				
-				// Show Welcome Screen on completely fresh start
-				(state as any).view = 'welcome'; 
+
+				(state as any).view = isFirstEverVisit ? 'welcome' : 'main';
 				setState(user.id, state);
 			}
-			
-			// Only populate pendingChoice if they bypassed welcome screen somehow, else welcome handles it in `newgame`
+
 			if ((state as any).view !== 'welcome') {
 				repairEmptyPendingChoice(state, user.id);
 			}
-			
+
 			return this.parse('/join view-pokerogue');
 		},
 
@@ -511,6 +509,10 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return;
 			const v = target.trim() as any;
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome'].includes(v)) {
+				if (v === 'welcome' && state.gameOver) {
+					delete state.gameOver;
+					delete state.lastRunFloor;
+				}
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
