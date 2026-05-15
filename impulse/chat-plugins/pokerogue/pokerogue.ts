@@ -1244,26 +1244,39 @@ export const commands: Chat.ChatCommands = {
 				const participantsStr = Array.from(p1Participants).join(',');
 				room.add(`|-message|PR_EXP|${p2Species}|${p2Level}|${participantsStr}`).update();
 
-				const moves = getLevelUpMoves(p2Species, p2Level, config.generation);
 				const hpPct = Math.max(1, Math.round((p2Hp / p2MaxHp) * 100));
 				const natures = Dex.natures.all().map(n => n.name);
 				const randomNature = natures[Math.floor(Math.random() * natures.length)];
 
+				let caughtMoves = getLevelUpMoves(p2Species, p2Level, config.generation);
+				let caughtAbility = (Dex.species.get(p2Species).abilities as any)['0'] || '';
 				let caughtItem = '';
-				try { caughtItem = room.battle.p2.active[0]?.item || ''; } catch {}
+
+				try {
+					const p2Active = room.battle.p2.active[0];
+					if (p2Active) {
+						caughtItem = p2Active.item || '';
+						if (p2Active.moves && p2Active.moves.length > 0) {
+							caughtMoves = p2Active.moves;
+						}
+						if (p2Active.ability || p2Active.baseAbility) {
+							caughtAbility = toID(p2Active.ability || p2Active.baseAbility);
+						}
+					}
+				} catch {}
 
 				const caught: any = {
 					species: p2Species,
 					level: p2Level,
 					exp: expForLevel(p2Level, getExpType(p2Species)),
 					expType: getExpType(p2Species),
-					moves,
+					moves: caughtMoves,
 					nature: randomNature,
-					ppLeft: moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
+					ppLeft: caughtMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					currentHp: hpPct,
 					evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
 					ivs: { hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32), def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32), spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32) },
-					ability: (Dex.species.get(p2Species).abilities as any)['0'] || '',
+					ability: caughtAbility,
 					ball: ballType,
 				};
 
