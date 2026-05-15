@@ -1,4 +1,3 @@
-// --- Data Registry Imports ---
 import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from './mods/classic/biomes';
 import { TRAINERS as ClassicTrainers } from './mods/classic/trainers';
 
@@ -18,12 +17,14 @@ export type GameMode = 'classic' | 'endless' | 'random' | 'gen1';
 
 // The universal ruleset interface
 export interface ModeConfig {
-	biomeRotationInterval: number; // e.g., 10 or 5
-	bossInterval: number;          // e.g., 10
-	hasTrainers: boolean;          // true for Classic, false for Endless
-	randomizeMoves: boolean;       // true for Random mode
-	randomizeAbilities: boolean;   // true for Random mode
-	townEscapeFloor: number;       // e.g., 10 for Classic, 5 for Endless
+	biomeRotationInterval: number;
+	bossInterval: number;
+	hasTrainers: boolean;
+	randomizeMoves: boolean;
+	randomizeAbilities: boolean;
+	townEscapeFloor: number;
+	startingBiome: string;
+	endlessFloorRange?: { start: number, end: number };
 }
 
 // The Data Registry interface
@@ -32,6 +33,7 @@ export interface ModeData {
 	transitions: Record<string, string[]>;
 	trainers: Record<string, any>;
 	starters: string[];
+	excludedBiomes?: string[];
 }
 
 // --- Mode-Specific Starter Pools ---
@@ -61,6 +63,8 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		randomizeMoves: false,
 		randomizeAbilities: false,
 		townEscapeFloor: 10,
+		startingBiome: 'Town',
+		endlessFloorRange: { start: 191, end: 200 },
 	},
 	endless: {
 		biomeRotationInterval: 5,
@@ -69,6 +73,8 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		randomizeMoves: false,
 		randomizeAbilities: false,
 		townEscapeFloor: 5,
+		startingBiome: 'Town',
+		// No endlessFloorRange — endless mode has no Endless biome override
 	},
 	random: {
 		biomeRotationInterval: 10,
@@ -77,6 +83,8 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		randomizeMoves: true,
 		randomizeAbilities: true,
 		townEscapeFloor: 10,
+		startingBiome: 'Town',
+		endlessFloorRange: { start: 191, end: 200 },
 	},
 	/*gen1: {
 		biomeRotationInterval: 10,
@@ -85,6 +93,8 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		randomizeMoves: false,
 		randomizeAbilities: false,
 		townEscapeFloor: 10,
+		startingBiome: 'Town',
+		endlessFloorRange: { start: 191, end: 200 },
 	},*/
 };
 
@@ -95,24 +105,28 @@ export const MODE_REGISTRY: Record<GameMode, ModeData> = {
 		transitions: ClassicTransitions,
 		trainers: ClassicTrainers,
 		starters: CLASSIC_STARTERS,
+		excludedBiomes: ['Endless'],
 	},
 	endless: {
-		biomes: ClassicBiomes, // Endless reuses classic biomes
+		biomes: ClassicBiomes,
 		transitions: ClassicTransitions,
-		trainers: {},          // Endless has no trainers
+		trainers: {},
 		starters: CLASSIC_STARTERS,
+		// No excludedBiomes — endless mode uses all biome pools
 	},
 	random: {
-		biomes: ClassicBiomes, // Random reuses classic biomes
+		biomes: ClassicBiomes,
 		transitions: ClassicTransitions,
 		trainers: ClassicTrainers,
 		starters: CLASSIC_STARTERS,
+		excludedBiomes: ['Endless'],
 	},
 	/*gen1: {
 		biomes: Gen1Biomes,
 		transitions: Gen1Transitions,
 		trainers: Gen1Trainers,
 		starters: GEN1_STARTERS,
+		excludedBiomes: ['Endless'],
 	},*/
 };
 
@@ -139,8 +153,8 @@ export interface PokemonEntry {
  */
 export interface PokeRogueState {
 	floor: number;
-	gameMode: GameMode;    // Keeps track of the ruleset for the run
-	currentBiome?: string; // Keeps track of map traversal
+	gameMode: GameMode;
+	currentBiome?: string;
 	team: PokemonEntry[];
 	battlePoints: number;
 	timesRerolled: number;
