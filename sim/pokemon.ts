@@ -1447,7 +1447,7 @@ export class Pokemon {
 		
 		if (this.species.maxHP) stats.hp = this.species.maxHP;
 
-		--- CUSTOM HPX MODIFIER START ---
+		// --- CUSTOM HPX MODIFIER START ---
 		if ((this.set as any).hpMultiplier) {
 			stats.hp = Math.floor(stats.hp * (this.set as any).hpMultiplier);
 		}
