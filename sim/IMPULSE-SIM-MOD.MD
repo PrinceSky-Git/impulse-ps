@@ -157,5 +157,5 @@ This mod is fully integrated into the core battle engine:
 
 ## Known Limitations
 
-* You cannot legitimately nickname a Pokémon `[H:50]`, `[S:brn]`, or `[BST: 10,10,10,10,10]` without triggering the hack — the server will always intercept those tags.
+* You cannot legitimately nickname a Pokémon `[H:50]`, `[S:brn]`, `[BST: 10,10,10,10,10]` or `[HPX: 10]` without triggering the hack — the server will always intercept those tags.
 * **Volatile statuses** (Confusion, Taunt, Leech Seed, etc.) are **not supported**. Only the major status conditions listed above will work.
