@@ -120,6 +120,8 @@ export interface PokemonSet {
 	status?: string;
 	/** Custom Base Stat % Boosts */
 	bstBoosts?: { atk: number, def: number, spa: number, spd: number, spe: number };
+	/** Custom Max HP Multiplier */
+	hpMultiplier?: number;
 }
 
 export const Teams = new class Teams {
@@ -219,6 +221,13 @@ export const Teams = new class Teams {
 				// --- CUSTOM BST BOOST PACKING ---
 				if (set.bstBoosts) {
 					buf += `,${set.bstBoosts.atk}:${set.bstBoosts.def}:${set.bstBoosts.spa}:${set.bstBoosts.spd}:${set.bstBoosts.spe}`;
+				} else {
+					buf += `,`;
+				}
+
+				// --- CUSTOM HPX PACKING ---
+				if (set.hpMultiplier) {
+					buf += `,${set.hpMultiplier}`;
 				} else {
 					buf += `,`;
 				}
@@ -342,9 +351,9 @@ export const Teams = new class Teams {
 			j = buf.indexOf(']', i);
 			let misc;
 			if (j < 0) {
-				if (i < buf.length) misc = buf.substring(i).split(',', 9);
+				if (i < buf.length) misc = buf.substring(i).split(',', 10);
 			} else {
-				if (i !== j) misc = buf.substring(i, j).split(',', 9);
+				if (i !== j) misc = buf.substring(i, j).split(',', 10);
 			}
 			if (misc) {
 				set.happiness = (misc[0] ? Number(misc[0]) : 255);
@@ -366,6 +375,11 @@ export const Teams = new class Teams {
 						spd: Number(bstParts[3]),
 						spe: Number(bstParts[4]),
 					};
+				}
+
+				// --- CUSTOM HPX UNPACKING ---
+				if (misc[9]) {
+					set.hpMultiplier = Number(misc[9]);
 				}
 			}
 			if (j < 0) break;
@@ -456,6 +470,9 @@ export const Teams = new class Teams {
 		}
 		if (set.bstBoosts) {
 			out += `BST: ${set.bstBoosts.atk}, ${set.bstBoosts.def}, ${set.bstBoosts.spa}, ${set.bstBoosts.spd}, ${set.bstBoosts.spe}  \n`;
+		}
+		if (set.hpMultiplier) {
+			out += `HPX: ${set.hpMultiplier}  \n`;
 		}
 
 		// stats
@@ -557,6 +574,9 @@ export const Teams = new class Teams {
 				spd: parseInt(bstParts[3]),
 				spe: parseInt(bstParts[4]),
 			};
+		} else if (line.startsWith('HPX: ')) {
+			line = line.slice(5).trim();
+			set.hpMultiplier = parseInt(line);			
 		} else if (line === 'Gigantamax: Yes') {
 			set.gigantamax = true;
 		} else if (line.startsWith('EVs: ')) {
