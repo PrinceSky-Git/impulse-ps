@@ -29,6 +29,8 @@ export interface ModeConfig {
 		bpPerWin: number;
 		bpPerBoss: number;
 		doubleBpFloor?: number;
+		startingKeyItems?: string[];
+		startingInventory?: Record<string, number>;
 	};
 
 	// Story Routing
