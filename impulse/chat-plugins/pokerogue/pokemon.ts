@@ -191,7 +191,6 @@ const STRONG_ABILITIES = new Set([
 ]);
 
 function pickBestAbility(species: Species, floor: number, config?: ModeConfig): string {
-	// Support for "Random" mode chaos toggles
 	if (config?.randomizeAbilities) {
 		const allAbilities = Dex.abilities.all().filter(a => !a.isNonstandard);
 		return allAbilities[Math.floor(Math.random() * allAbilities.length)].id;
@@ -317,7 +316,6 @@ function calculateEffectivePower(move: Move): number {
 }
 
 function pickBestMoves(speciesId: string, chosenLevel: number, genNumber: number, floor: number, config?: ModeConfig): string[] {
-	// Support for "Random" mode chaos toggles
 	if (config?.randomizeMoves) {
 		const allMoves = Dex.moves.all().filter(m => !m.isNonstandard && m.category !== 'Status');
 		const randomMoves: string[] = [];
@@ -555,7 +553,6 @@ export function genPokemon(
 	const gennedMons: AIPokemonSet[] = [];
 	let depth = 0;
 
-	// Establish the currently active datasets from the injected ModeData
 	const activeBiomes = data?.biomes || {};
 
 	while (gennedMons.length < quantity) {
@@ -599,7 +596,7 @@ export function genPokemon(
 			let pool: { species: string, weight: number }[] = [];
 
 			const biomeName = getDisplayBiome(floor, currentBiome);
-			
+
 			if (starter) {
 				for (const b of Object.values(activeBiomes)) {
 					if (b[rarity as keyof typeof b]) {
@@ -607,28 +604,34 @@ export function genPokemon(
 					}
 				}
 			} else {
-				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes['Town']?.[rarity];
+				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes[currentBiome]?.[rarity];
 			}
 
 			// Unified Empty Pool Fallback (Boss & Wild)
 			if (!pool || pool.length === 0) {
-				pool = []; 
-				
+				pool = [];
+
+				const excludedBiomes = new Set(data?.excludedBiomes ?? []);
+
 				for (const [bName, biomeData] of Object.entries(activeBiomes)) {
-					// Exclude the Endless biome from global pooling
-					if (bName === 'Endless') continue; 
-					
-					// Gather all Pokémon matching the exact rolled rarity
+					if (excludedBiomes.has(bName)) continue;
+
 					const tierPool = (biomeData as any)[rarity];
 					if (tierPool && tierPool.length > 0) {
 						pool.push(...tierPool);
 					}
 				}
 
-				// Absolute safety net in case no biome in the game has this rarity
+				// Absolute safety net in case no biome has this rarity
 				if (pool.length === 0) {
-					const fallback = isBossFloor ? 'Boss' : 'Common';
-					pool = activeBiomes['Town']?.[fallback] ?? [];
+					const fallbackTier = isBossFloor ? 'Boss' : 'Common';
+					for (const biomeData of Object.values(activeBiomes)) {
+						const tierPool = (biomeData as any)[fallbackTier];
+						if (tierPool && tierPool.length > 0) {
+							pool = tierPool;
+							break;
+						}
+					}
 				}
 			}
 
@@ -636,13 +639,11 @@ export function genPokemon(
 			if (floor < 100) {
 				pool = pool.filter(mon => {
 					let sp = Dex.species.get(mon.species);
-					
-					// Trace back to the very first base stage
+
 					while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
 						sp = sp.prevo ? Dex.species.get(sp.prevo) : Dex.species.get(sp.baseSpecies);
 					}
-					
-					// Keep the Pokémon only if its base stage has evolutions. 
+
 					return sp.evos && sp.evos.length > 0;
 				});
 			}
@@ -799,8 +800,7 @@ export function genAIPokemon(
 	data?: ModeData
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
 	const scale = levelScaleForFloor(floor);
-	
-	// Default Boss Interval fallback incase config isn't provided
+
 	const bossInterval = config?.bossInterval || 10;
 	const isBossFloor = floor % bossInterval === 0;
 
@@ -818,7 +818,6 @@ export function genAIPokemon(
 	let trainerName: string | undefined = undefined;
 	const lookupKey = trainerKey || floor.toString();
 
-	// Injected Data Check for Trainers
 	if (config?.hasTrainers && data?.trainers && data.trainers[lookupKey]?.[forcedTrainer!]) {
 		isTrainerBattle = true;
 		trainerName = forcedTrainer;
@@ -843,7 +842,6 @@ export function genAIPokemon(
 		actualQuantity = 1;
 	}
 
-	// Pass config and data down to the underlying generator
 	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data);
 
 	mons.sort((a, b) => a.level - b.level);

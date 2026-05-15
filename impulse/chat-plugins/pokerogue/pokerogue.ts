@@ -352,8 +352,8 @@ function processBattleExperience(
 }
 
 function processFloorRewards(
-	state: PokeRogueState, 
-	clearedFloor: number, 
+	state: PokeRogueState,
+	clearedFloor: number,
 	bossInterval: number
 ): { bpGained: number, extraNotifs: string[] } {
 	let bpGained = clearedFloor >= 100 ? 10 : BP_PER_WIN;
@@ -417,6 +417,7 @@ function handleBattleLoss(state: PokeRogueState, floor: number): void {
 
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
+
 		start(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			let state = getState(user.id);
@@ -430,10 +431,12 @@ export const commands: Chat.ChatCommands = {
 				const recordTeam = state?.recordTeam || [];
 				const isFirstEverVisit = !state && highestFloor === 0;
 
+				const defaultConfig = MODE_CONFIGS['classic'];
+
 				state = {
 					floor: 1,
 					gameMode: 'classic',
-					currentBiome: 'Town',
+					currentBiome: defaultConfig.startingBiome,
 					team: [],
 					battlePoints: STARTING_BP,
 					timesRerolled: 0,
@@ -458,7 +461,7 @@ export const commands: Chat.ChatCommands = {
 		newgame(target, room, user) {
 			const existing = getState(user.id);
 			const hasProgress = existing && (existing.team?.length > 0 || (existing.floor ?? 1) > 1);
-			
+
 			const targetParts = target.trim().toLowerCase().split(' ');
 			const isConfirm = targetParts.includes('confirm');
 			let modeStr = targetParts[0];
@@ -473,33 +476,32 @@ export const commands: Chat.ChatCommands = {
 			const requestedMode = (modeStr || 'classic') as GameMode;
 			const finalMode = MODE_CONFIGS[requestedMode] ? requestedMode : 'classic';
 
-			// Fetch the specific starters for the chosen mode from the registry
+			const config = MODE_CONFIGS[finalMode];
 			const modeData = MODE_REGISTRY[finalMode] || MODE_REGISTRY['classic'];
 			const modeStarters = modeData.starters;
 
 			const highestFloor = existing?.highestFloor || 0;
 			const displayName = existing?.displayName || user.name;
 			const recordTeam = existing?.recordTeam || [];
-			
+
 			const newState: PokeRogueState = {
 				floor: 1,
 				gameMode: finalMode,
-				currentBiome: 'Town',
+				currentBiome: config.startingBiome,
 				team: [],
 				battlePoints: STARTING_BP,
 				timesRerolled: 0,
 				keyItems: ['Exp. Charm', 'Exp. All', 'Exp. All'],
 				inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
-				pendingChoice: pickStarterOptions(modeStarters), // Generate mode-specific starters!
+				pendingChoice: pickStarterOptions(modeStarters),
 				pendingChoiceType: 'starter',
 				highestFloor,
 				displayName,
 				recordTeam,
 			};
-			
-			// Bypass welcome screen now that a mode was selected
+
 			(newState as any).view = 'main';
-			
+
 			setState(user.id, newState);
 			return this.parse('/pokerogue start');
 		},
@@ -548,7 +550,6 @@ export const commands: Chat.ChatCommands = {
 			let trainerKey: string | null = null;
 			let selectedTrainer: string | null = null;
 
-			// Detached Trainer Engine
 			if (config.hasTrainers) {
 				const fixedWaves = new Set([5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200]);
 
@@ -609,7 +610,7 @@ export const commands: Chat.ChatCommands = {
 				refreshGamePage(user);
 			}
 		},
-		
+
 		choose(target, room, user) {
 			const state = getState(user.id);
 			const n = parseInt(target) - 1;
@@ -645,18 +646,16 @@ export const commands: Chat.ChatCommands = {
 			let newMon: PokemonEntry;
 
 			if (config.randomizeMoves || config.randomizeAbilities) {
-				// Use genPokemon so random mode config is respected
 				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
 				const g = generated[0];
 				newMon = {
 					species: g.species,
 					level: g.level,
-					exp: expForLevel(g.level, g.species),
+					exp: expForLevel(g.level, getExpType(g.species)),
 					expType: getExpType(g.species),
 					moves: g.moves,
 					ppLeft: g.moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					nature: g.nature,
-					ability: g.ability,
 				} as PokemonEntry;
 			} else {
 				const finalExpType = getExpType(finalSpecies);
@@ -690,7 +689,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-		
+
 		resolve(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return;
@@ -1458,23 +1457,24 @@ export const handlers: Chat.Handlers = {
 
 			const prevFloor = state.floor;
 			state.floor++;
-			
+
 			// Detached Graph-Based Biome Rotation
 			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.townEscapeFloor) {
-				// Traverse the injected graph to the next connected node
-				const options = data.transitions[state.currentBiome || 'Town'];
-				state.currentBiome = (options && options.length > 0) ? options[Math.floor(Math.random() * options.length)] : 'Plains';
-				
-				// Determine if we show the real biome or the Endless override
+				const options = data.transitions[state.currentBiome || config.startingBiome];
+				state.currentBiome = (options && options.length > 0) ? options[Math.floor(Math.random() * options.length)] : Object.keys(data.biomes)[0];
+
 				let displayBiome = state.currentBiome;
-				if (state.floor >= 191 && state.floor <= 200) {
+				if (
+					config.endlessFloorRange &&
+					state.floor >= config.endlessFloorRange.start &&
+					state.floor <= config.endlessFloorRange.end
+				) {
 					displayBiome = 'Endless';
 				}
-				
+
 				battleLogMsgs.push(`<b>You have entered the ${displayBiome} biome!</b>`);
 			} else if (!state.currentBiome) {
-				// Safety net for existing save files mid-run
-				state.currentBiome = state.floor <= config.townEscapeFloor ? 'Town' : 'Plains';
+				state.currentBiome = config.startingBiome;
 			}
 
 			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor, config.bossInterval);
