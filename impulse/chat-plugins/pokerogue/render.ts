@@ -4,7 +4,8 @@ import { nameColor } from '../customization/custom-color';
 import { SHOP_ITEMS } from './items';
 import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { savedData } from './state';
-import { expForLevel, getLevelUpMoves, TRAINERS } from './pokemon';
+import { expForLevel, getLevelUpMoves } from './pokemon';
+import { MODE_REGISTRY, LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 
 export function refreshGamePage(user: User): void {
 	for (const conn of user.connections) {
@@ -496,7 +497,8 @@ function renderReleaseMon(state: PokeRogueState): string {
 function renderTrainerIntroView(state: PokeRogueState): string {
 	const trainerName = state.pendingTrainer!;
 	const lookupKey = state.pendingTrainerKey || state.floor.toString();
-	const trainerData = TRAINERS[lookupKey]?.[trainerName];
+	const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+	const trainerData = modeData.trainers?.[lookupKey]?.[trainerName];
 
 	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
 
