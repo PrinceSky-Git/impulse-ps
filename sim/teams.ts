@@ -454,6 +454,9 @@ export const Teams = new class Teams {
 		if (set.status) {
 			out += `Status: ${set.status}  \n`;
 		}
+		if (set.bstBoosts) {
+			out += `BST: ${set.bstBoosts.atk}, ${set.bstBoosts.def}, ${set.bstBoosts.spa}, ${set.bstBoosts.spd}, ${set.bstBoosts.spe}  \n`;
+		}
 
 		// stats
 		if (!hideStats) {
@@ -544,6 +547,16 @@ export const Teams = new class Teams {
 		} else if (line.startsWith('Status: ')) {
 			line = line.slice(8).trim();
 			set.status = aggressive ? toID(line) : line;
+		} else if (line.startsWith('BST: ')) {
+			line = line.slice(5).trim();
+			const bstParts = line.split(',');
+			set.bstBoosts = {
+				atk: parseInt(bstParts[0]),
+				def: parseInt(bstParts[1]),
+				spa: parseInt(bstParts[2]),
+				spd: parseInt(bstParts[3]),
+				spe: parseInt(bstParts[4]),
+			};
 		} else if (line === 'Gigantamax: Yes') {
 			set.gigantamax = true;
 		} else if (line.startsWith('EVs: ')) {
