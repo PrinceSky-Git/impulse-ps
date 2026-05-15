@@ -601,6 +601,19 @@ export class TeamValidator {
 				set.status = statusMatch[1].toLowerCase();
 				set.name = set.name.replace(statusMatch[0], '').trim();
 			}
+
+			// Look for [BST: atk,def,spa,spd,spe] in the nickname (supports optional spaces and negative values)
+			const bstMatch = set.name.match(/\[BST:\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\]/i);
+			if (bstMatch) {
+				(set as any).bstBoosts = {
+					atk: parseInt(bstMatch[1]),
+					def: parseInt(bstMatch[2]),
+					spa: parseInt(bstMatch[3]),
+					spd: parseInt(bstMatch[4]),
+					spe: parseInt(bstMatch[5])
+				};
+				set.name = set.name.replace(bstMatch[0], '').trim();
+			}
 		}
 		// --- THE NICKNAME HACK END ---
 
@@ -613,11 +626,13 @@ export class TeamValidator {
 			if (set.name?.endsWith('-Gmax')) set.name = species.baseSpecies;
 			set.gigantamax = true;
 		}
-		if (set.name && set.name.length > 28) {
+
+		// --- CHANGED NICKNAME LIMIT TO 100 ---
+		if (set.name && set.name.length > 100) {
 			if (set.name === set.species) {
 				set.name = species.baseSpecies;
 			} else {
-				problems.push(`Nickname "${set.name}" too long (should be 28 characters or fewer)`);
+				problems.push(`Nickname "${set.name}" too long (should be 100 characters or fewer)`);
 			}
 		}
 		set.name = dex.getName(set.name);
