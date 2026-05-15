@@ -9,7 +9,7 @@ import {
 	applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween,
 	calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, TRAINERS,
+	packTeam, TRAINERS, getBiome,
 } from './pokemon';
 import { renderGamePage, refreshGamePage } from './render';
 import {
@@ -1408,6 +1408,13 @@ export const handlers: Chat.Handlers = {
 
 			const prevFloor = state.floor;
 			state.floor++;
+			
+			// Linear Biome Rotation Announcement
+			if (state.floor % 10 === 1 && state.floor > 10) {
+				const newBiome = getBiome(state.floor);
+				battleLogMsgs.push(`<b>You have entered the ${newBiome} biome!</b>`);
+			}
+
 			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor);
 
 			if (state.caughtPokemon) {

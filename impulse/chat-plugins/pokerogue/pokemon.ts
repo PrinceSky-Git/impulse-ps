@@ -529,9 +529,20 @@ function pickRandomHeldItem(speciesName: string): string {
 	return allItems[Math.floor(Math.random() * allItems.length)].id;
 }
 
-function getBiome(floor: number): string {
+export function getBiome(floor: number): string {
+	// 1. Start biome is exclusively Town
 	if (floor <= 10) return 'Town';
-	return BIOME_POOL[Math.floor(Math.random() * BIOME_POOL.length)];
+	
+	// 2. Floors 191-200 are exclusively Endless
+	if (floor >= 191 && floor <= 200) return 'Endless';
+
+	// 3. Mathematical Linear Progression for everything else
+	// Subtract 11 so floors 11-20 = index 0, 21-30 = index 1, etc.
+	const chunkIndex = Math.floor((floor - 11) / 10);
+	
+	// Modulo (%) ensures that if you go past the end of the array (or into endless mode past 200), 
+	// it safely loops back to the beginning of the BIOME_POOL.
+	return BIOME_POOL[chunkIndex % BIOME_POOL.length];
 }
 
 function rollRarity(floor: number, isBoss: boolean, isStarter: boolean, luck = 0): string {
@@ -637,6 +648,7 @@ export function genPokemon(
 			let pool: { species: string, weight: number }[] = [];
 
 			const biomeName = getBiome(floor);
+			
 			if (starter) {
 				for (const b of Object.values(BIOMES)) {
 					if (b[rarity as keyof typeof b]) {
