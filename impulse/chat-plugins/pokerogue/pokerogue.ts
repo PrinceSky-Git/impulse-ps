@@ -1,8 +1,7 @@
 import { Utils } from '../../../lib';
 import { CATCH_RATES } from './pokemon-basic-data';
-import { getNextBiome, getDisplayBiome } from './pokemon-biomes-data';
 import { SHOP_ITEMS, genItem } from './items';
-import { type PokemonEntry, type PokeRogueState, type StatusCondition } from './types';
+import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, MODE_CONFIGS, MODE_REGISTRY } from './types';
 import { getState, setState, deleteState, savedData, saveAllData } from './state';
 import {
 	pickStarterOptions,
@@ -10,7 +9,7 @@ import {
 	applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween,
 	calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, TRAINERS, getBiome,
+	packTeam,
 } from './pokemon';
 import { renderGamePage, refreshGamePage } from './render';
 import {
@@ -29,12 +28,13 @@ const pendingLadderResetConfirmations = new Map<ID, number>();
 
 function repairEmptyPendingChoice(state: PokeRogueState, userId: string): void {
 	if (!state.pendingChoice || state.pendingChoice.length) return;
-	state.pendingChoice = pickStarterOptions();
+	const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+	state.pendingChoice = pickStarterOptions(modeData.starters);
 	setState(userId, state);
 }
 
-function isBossFloorBoundary(floor: number): boolean {
-	return floor % 10 === 0;
+function isBossFloorBoundary(floor: number, bossInterval: number = 10): boolean {
+	return floor % bossInterval === 0;
 }
 
 function fullHealPP(mon: PokemonEntry): void {
@@ -101,10 +101,6 @@ const SELF_KO_MOVES = new Set([
 	'healingwish', 'lunardance', 'finalgambit',
 ]);
 
-/* * Dev Note: EXP Distribution Logic
- * Parses the Showdown battle log PR_EXP messages to distribute base EXP
- * evenly among active participants, accounting for boss/trainer multipliers.
- */
 function parseKillExp(
 	logLines: string[],
 	state: PokeRogueState,
@@ -192,10 +188,6 @@ function applyExpShare(
 	return result;
 }
 
-/* * Dev Note: State Synchronization
- * Parses end-of-battle Showdown logs sequentially to reconstruct the exact HP percentages,
- * faint states, and status conditions of the virtual party without relying on simulator memory.
- */
 function syncBattleOutcome(
 	logLines: string[],
 	state: PokeRogueState,
@@ -359,7 +351,11 @@ function processBattleExperience(
 	return detailMsgs;
 }
 
-function processFloorRewards(state: PokeRogueState, clearedFloor: number): { bpGained: number, extraNotifs: string[] } {
+function processFloorRewards(
+	state: PokeRogueState, 
+	clearedFloor: number, 
+	bossInterval: number
+): { bpGained: number, extraNotifs: string[] } {
 	let bpGained = clearedFloor >= 100 ? 10 : BP_PER_WIN;
 	const extraNotifs: string[] = [];
 
@@ -380,7 +376,7 @@ function processFloorRewards(state: PokeRogueState, clearedFloor: number): { bpG
 		extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b></div>`);
 	}
 
-	if (isBossFloorBoundary(clearedFloor)) {
+	if (isBossFloorBoundary(clearedFloor, bossInterval)) {
 		bpGained += clearedFloor >= 100 ? 10 : BP_PER_BOSS;
 		for (const mon of state.team) {
 			mon.currentHp = 100;
@@ -433,49 +429,79 @@ export const commands: Chat.ChatCommands = {
 				const highestFloor = state?.highestFloor || 0;
 				const displayName = state?.displayName || user.name;
 				const recordTeam = state?.recordTeam || [];
+				
 				state = {
 					floor: 1,
+					gameMode: 'classic',
 					currentBiome: 'Town',
 					team: [],
 					battlePoints: STARTING_BP,
 					timesRerolled: 0,
 					keyItems: ['Exp. Charm', 'Exp. All', 'Exp. All'],
 					inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
-					pendingChoice: pickStarterOptions(),
-					pendingChoiceType: 'starter',
 					highestFloor,
 					displayName,
 					recordTeam,
 				} as PokeRogueState;
+				
+				// Show Welcome Screen on completely fresh start
+				(state as any).view = 'welcome'; 
 				setState(user.id, state);
 			}
-			repairEmptyPendingChoice(state, user.id);
+			
+			// Only populate pendingChoice if they bypassed welcome screen somehow, else welcome handles it in `newgame`
+			if ((state as any).view !== 'welcome') {
+				repairEmptyPendingChoice(state, user.id);
+			}
+			
 			return this.parse('/join view-pokerogue');
 		},
 
 		newgame(target, room, user) {
 			const existing = getState(user.id);
 			const hasProgress = existing && (existing.team?.length > 0 || (existing.floor ?? 1) > 1);
-			if (hasProgress && !existing.gameOver && target !== 'confirm') {
-				return this.sendReplyBox(`<b>Warning: Run in progress!</b><br><button name="send" value="/pokerogue newgame confirm" class="button">Yes, start fresh</button>`);
+			
+			const targetParts = target.trim().toLowerCase().split(' ');
+			const isConfirm = targetParts.includes('confirm');
+			let modeStr = targetParts[0];
+			if (isConfirm && targetParts.length > 1) {
+				modeStr = targetParts.find(p => p !== 'confirm') || 'classic';
 			}
+
+			if (hasProgress && !existing.gameOver && !isConfirm) {
+				return this.sendReplyBox(`<b>Warning: Run in progress!</b><br><button name="send" value="/pokerogue newgame ${modeStr || 'classic'} confirm" class="button">Yes, start fresh</button>`);
+			}
+
+			const requestedMode = (modeStr || 'classic') as GameMode;
+			const finalMode = MODE_CONFIGS[requestedMode] ? requestedMode : 'classic';
+
+			// Fetch the specific starters for the chosen mode from the registry
+			const modeData = MODE_REGISTRY[finalMode] || MODE_REGISTRY['classic'];
+			const modeStarters = modeData.starters;
+
 			const highestFloor = existing?.highestFloor || 0;
 			const displayName = existing?.displayName || user.name;
 			const recordTeam = existing?.recordTeam || [];
+			
 			const newState: PokeRogueState = {
 				floor: 1,
+				gameMode: finalMode,
 				currentBiome: 'Town',
 				team: [],
 				battlePoints: STARTING_BP,
 				timesRerolled: 0,
 				keyItems: ['Exp. Charm', 'Exp. All', 'Exp. All'],
 				inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
-				pendingChoice: pickStarterOptions(),
+				pendingChoice: pickStarterOptions(modeStarters), // Generate mode-specific starters!
 				pendingChoiceType: 'starter',
 				highestFloor,
 				displayName,
 				recordTeam,
 			};
+			
+			// Bypass welcome screen now that a mode was selected
+			(newState as any).view = 'main';
+			
 			setState(user.id, newState);
 			return this.parse('/pokerogue start');
 		},
@@ -484,7 +510,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state) return;
 			const v = target.trim() as any;
-			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm'].includes(v)) {
+			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome'].includes(v)) {
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
@@ -505,10 +531,6 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
 			}
 
-			/* * Dev Note: Anti-Exploit Lock
-			 * If a trainer is already pending for this floor, bypass the selection logic
-			 * to prevent users from re-rolling the encounter pool via the 'Back' button or commands.
-			 */
 			if (state.pendingTrainer && state.pendingTrainerKey) {
 				(state as any).view = 'trainer';
 				setState(user.id, state);
@@ -516,50 +538,50 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
 			const floor = state.floor;
-			const isBossFloor = floor % 10 === 0;
+			const isBossFloor = floor % config.bossInterval === 0;
 			let trainerKey: string | null = null;
 			let selectedTrainer: string | null = null;
 
-			const fixedWaves = new Set([5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200]);
+			// Detached Trainer Engine
+			if (config.hasTrainers) {
+				const fixedWaves = new Set([5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200]);
 
-			/* * Dev Note: Trainer Spawning Logic
-			 * 1. Checks specific hardcoded progression waves (Rivals, Evil Teams, E4, Champions).
-			 * 2. Processes Gym Leader intervals. Leaders have a 50/50 chance to appear on wave 20 or 30.
-			 * Once decided, they rigidly appear every 30 waves, scaling in team size.
-			 * 3. Fallback: 15% random chance on standard floors to trigger basic trainers.
-			 */
-			if (fixedWaves.has(floor)) {
-				trainerKey = `fixed_${floor}`;
-			} else if (isBossFloor) {
-				if (!state.firstGymLeaderWave && (floor === 20 || floor === 30)) {
-					if (Math.random() < 0.5 || floor === 30) state.firstGymLeaderWave = floor;
+				if (fixedWaves.has(floor)) {
+					trainerKey = `fixed_${floor}`;
+				} else if (isBossFloor) {
+					if (!state.firstGymLeaderWave && (floor === 20 || floor === 30)) {
+						if (Math.random() < 0.5 || floor === 30) state.firstGymLeaderWave = floor;
+					}
+					if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % 30 === 0) {
+						const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / 30);
+						trainerKey = `gym_leader_tier_${Math.min(5, encounterNum)}`;
+					}
+				} else {
+					if (Math.random() < 0.15) {
+						if (floor <= 30) trainerKey = 'random_early';
+						else if (floor <= 100) trainerKey = 'random_mid';
+						else trainerKey = 'random_late';
+					}
 				}
-				if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % 30 === 0) {
-					const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / 30);
-					trainerKey = `gym_leader_tier_${Math.min(5, encounterNum)}`;
-				}
-			} else {
-				if (Math.random() < 0.15) {
-					if (floor <= 30) trainerKey = 'random_early';
-					else if (floor <= 100) trainerKey = 'random_mid';
-					else trainerKey = 'random_late';
-				}
-			}
 
-			if (trainerKey && TRAINERS[trainerKey]) {
-				const trainerNames = Object.keys(TRAINERS[trainerKey]);
-				selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
+				if (trainerKey && data.trainers && data.trainers[trainerKey]) {
+					const trainerNames = Object.keys(data.trainers[trainerKey]);
+					selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
 
-				const trainerData = TRAINERS[trainerKey][selectedTrainer];
-				state.pendingTrainer = selectedTrainer;
-				state.pendingTrainerKey = trainerKey;
+					const trainerData = data.trainers[trainerKey][selectedTrainer];
+					state.pendingTrainer = selectedTrainer;
+					state.pendingTrainerKey = trainerKey;
 
-				if (trainerData.spriteUrl || trainerData.dialog) {
-					(state as any).view = 'trainer';
-					setState(user.id, state);
-					refreshGamePage(user);
-					return;
+					if (trainerData.spriteUrl || trainerData.dialog) {
+						(state as any).view = 'trainer';
+						setState(user.id, state);
+						refreshGamePage(user);
+						return;
+					}
 				}
 			}
 
@@ -1012,8 +1034,9 @@ export const commands: Chat.ChatCommands = {
 			if (!room.battle.turn) return this.errorReply("The battle hasn't started yet!");
 			if (state.caughtPokemon) return this.errorReply("You already caught this Pokémon!");
 
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 			const floor = state.floor;
-			if (floor % 10 === 0 || catchMatch.isTrainerBattle) {
+			if (floor % config.bossInterval === 0 || catchMatch.isTrainerBattle) {
 				return this.errorReply("You cannot catch Trainer or Boss Pokémon!");
 			}
 
@@ -1303,7 +1326,7 @@ export const commands: Chat.ChatCommands = {
 			const tId = toID(target) || user.id;
 			const s = getState(tId);
 			if (!s) return this.errorReply(`No run found for ${tId}.`);
-			const buf = `<b>PokéRogue Status: ${tId}</b><br>Floor ${s.floor} | BP: ${s.battlePoints ?? 0}<br>${s.team.map(m => `Lv.${m.level} ${m.species}`).join(', ')}`;
+			const buf = `<b>PokéRogue Status: ${tId}</b><br>Mode: ${s.gameMode || 'classic'} | Floor ${s.floor} | BP: ${s.battlePoints ?? 0}<br>${s.team.map(m => `Lv.${m.level} ${m.species}`).join(', ')}`;
 			this.sendReplyBox(buf);
 		},
 
@@ -1390,7 +1413,10 @@ export const handlers: Chat.Handlers = {
 		const state = getState(match.userId);
 		if (!state) return;
 
-		const isBossFloor = match.floor % 10 === 0;
+		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+		const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
+		const isBossFloor = match.floor % config.bossInterval === 0;
 		const room = Rooms.get(battle.roomid);
 		const logLines: string[] = room?.log?.log ?? [];
 
@@ -1412,20 +1438,25 @@ export const handlers: Chat.Handlers = {
 			const prevFloor = state.floor;
 			state.floor++;
 			
-			// Graph-Based Biome Rotation
-			if (state.floor % 10 === 1 && state.floor > 10) {
-				// Traverse the graph to the next connected node
-				state.currentBiome = getNextBiome(state.currentBiome || 'Town');
+			// Detached Graph-Based Biome Rotation
+			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.townEscapeFloor) {
+				// Traverse the injected graph to the next connected node
+				const options = data.transitions[state.currentBiome || 'Town'];
+				state.currentBiome = (options && options.length > 0) ? options[Math.floor(Math.random() * options.length)] : 'Plains';
 				
 				// Determine if we show the real biome or the Endless override
-				const displayBiome = getDisplayBiome(state.floor, state.currentBiome);
+				let displayBiome = state.currentBiome;
+				if (state.floor >= 191 && state.floor <= 200) {
+					displayBiome = 'Endless';
+				}
+				
 				battleLogMsgs.push(`<b>You have entered the ${displayBiome} biome!</b>`);
 			} else if (!state.currentBiome) {
 				// Safety net for existing save files mid-run
-				state.currentBiome = state.floor <= 10 ? 'Town' : 'Plains';
+				state.currentBiome = state.floor <= config.townEscapeFloor ? 'Town' : 'Plains';
 			}
 
-			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor);
+			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor, config.bossInterval);
 
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;

@@ -1,8 +1,122 @@
+// --- Data Registry Imports ---
+import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from './pokemon-biomes-data';
+import { TRAINERS as ClassicTrainers } from './pokemon-trainers-data';
+
+// IMPORTANT: Create these files to support the Gen 1 mode, or comment these out temporarily!
+import { BIOMES as Gen1Biomes, BIOME_TRANSITIONS as Gen1Transitions } from './pokemon-biomes-gen1';
+import { TRAINERS as Gen1Trainers } from './pokemon-trainers-gen1';
+
 export const LEGENDARY_TAGS = new Set<string>([
 	'Sub-Legendary', 'Restricted Legendary', 'Mythical', 'Ultra Beast', 'Paradox',
 ]);
 
 export type StatusCondition = 'brn' | 'psn' | 'tox' | 'par' | 'slp' | 'frz';
+
+// --- Game Mode Architecture ---
+
+export type GameMode = 'classic' | 'endless' | 'random' | 'gen1';
+
+// The universal ruleset interface
+export interface ModeConfig {
+	biomeRotationInterval: number; // e.g., 10 or 5
+	bossInterval: number;          // e.g., 10
+	hasTrainers: boolean;          // true for Classic, false for Endless
+	randomizeMoves: boolean;       // true for Random mode
+	randomizeAbilities: boolean;   // true for Random mode
+	townEscapeFloor: number;       // e.g., 10 for Classic, 5 for Endless
+}
+
+// The Data Registry interface
+export interface ModeData {
+	biomes: Record<string, any>;
+	transitions: Record<string, string[]>;
+	trainers: Record<string, any>;
+	starters: string[]; // <--- NEW: Mode-specific starters pool
+}
+
+// --- Mode-Specific Starter Pools ---
+
+const CLASSIC_STARTERS = [
+	'bulbasaur', 'charmander', 'squirtle', 'pikachu', 'eevee',
+	'chikorita', 'cyndaquil', 'totodile',
+	'treecko', 'torchic', 'mudkip',
+	'turtwig', 'chimchar', 'piplup',
+	'snivy', 'tepig', 'oshawott',
+	'chespin', 'fennekin', 'froakie',
+	'rowlet', 'litten', 'popplio',
+	'grookey', 'scorbunny', 'sobble',
+	'sprigatito', 'fuecoco', 'quaxly',
+];
+
+const GEN1_STARTERS = [
+	'bulbasaur', 'charmander', 'squirtle', 'pikachu', 'eevee',
+];
+
+// Map the modes to their specific rulesets
+export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
+	classic: {
+		biomeRotationInterval: 10,
+		bossInterval: 10,
+		hasTrainers: true,
+		randomizeMoves: false,
+		randomizeAbilities: false,
+		townEscapeFloor: 10,
+	},
+	endless: {
+		biomeRotationInterval: 5,
+		bossInterval: 10,
+		hasTrainers: false,
+		randomizeMoves: false,
+		randomizeAbilities: false,
+		townEscapeFloor: 5,
+	},
+	random: {
+		biomeRotationInterval: 10,
+		bossInterval: 10,
+		hasTrainers: true,
+		randomizeMoves: true,
+		randomizeAbilities: true,
+		townEscapeFloor: 10,
+	},
+	gen1: {
+		biomeRotationInterval: 10,
+		bossInterval: 10,
+		hasTrainers: true,
+		randomizeMoves: false,
+		randomizeAbilities: false,
+		townEscapeFloor: 10,
+	},
+};
+
+// Map the modes to their specific content cartridges
+export const MODE_REGISTRY: Record<GameMode, ModeData> = {
+	classic: {
+		biomes: ClassicBiomes,
+		transitions: ClassicTransitions,
+		trainers: ClassicTrainers,
+		starters: CLASSIC_STARTERS,
+	},
+	endless: {
+		biomes: ClassicBiomes, // Endless reuses classic biomes
+		transitions: ClassicTransitions,
+		trainers: {},          // Endless has no trainers
+		starters: CLASSIC_STARTERS,
+	},
+	random: {
+		biomes: ClassicBiomes, // Random reuses classic biomes
+		transitions: ClassicTransitions,
+		trainers: ClassicTrainers,
+		starters: CLASSIC_STARTERS,
+	},
+	gen1: {
+		biomes: Gen1Biomes,
+		transitions: Gen1Transitions,
+		trainers: Gen1Trainers,
+		starters: GEN1_STARTERS,
+	},
+};
+
+// --- Core Data Structures ---
 
 export interface PokemonEntry {
 	species: string;
@@ -25,7 +139,8 @@ export interface PokemonEntry {
  */
 export interface PokeRogueState {
 	floor: number;
-	currentBiome?: string;
+	gameMode: GameMode;    // Keeps track of the ruleset for the run
+	currentBiome?: string; // Keeps track of map traversal
 	team: PokemonEntry[];
 	battlePoints: number;
 	timesRerolled: number;

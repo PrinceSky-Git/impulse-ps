@@ -1,6 +1,6 @@
 import { ObjectReadWriteStream } from '../../../lib/streams';
 import { StreamWorker } from '../../../lib/process-manager';
-import { type PokeRogueState } from './types';
+import { type PokeRogueState, MODE_CONFIGS, MODE_REGISTRY } from './types';
 import {
 	genAIPokemon, packAITeam, packTeam,
 	type AIPokemonSet, botLevel,
@@ -790,8 +790,14 @@ interface ActiveRougeMatch {
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
 function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string } {
+	// 1. Fetch the rules and data for the player's specific mode
+	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+	const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
 	const floor = state.floor;
-	const isBossFloor = floor % 10 === 0;
+	
+	// 2. Use the dynamic boss interval from the config
+	const isBossFloor = floor % config.bossInterval === 0;
 
 	let size = 1;
 	if (!isBossFloor) {
@@ -802,9 +808,23 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	const luck = state.luck ?? 0;
 	const trainerKey = state.pendingTrainerKey;
 
-	const result = genAIPokemon(size, floor, luck, state.pendingTrainer, trainerKey, state.currentBiome || 'Town');
-	
-	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer, trainerName: result.trainerName };
+	// 3. Inject the config and data into the AI generator!
+	const result = genAIPokemon(
+		size, 
+		floor, 
+		luck, 
+		state.pendingTrainer, 
+		trainerKey, 
+		state.currentBiome || 'Town', 
+		config, 
+		data
+	);
+
+	return { 
+		packedTeam: packAITeam(result.team), 
+		isTrainer: result.isTrainer, 
+		trainerName: result.trainerName 
+	};
 }
 
 export function startBattle(user: User, state: PokeRogueState): boolean {
@@ -829,7 +849,9 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		delete state.pendingTrainerKey;
 	}
 
-	const isBoss = state.floor % 10 === 0;
+	// Make boss checking dynamic based on the mode config!
+	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+	const isBoss = state.floor % config.bossInterval === 0;
 	const botUser = createBotUser(user.id);
 
 	let opponentTitle = isTrainer && trainerName ? trainerName : (isTrainer ? TRAINER_NAME : 'Wild Encounter');
@@ -872,32 +894,36 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		const match = activeMatches.get(roomid as RoomID);
 		if (match) {
 			const activeState = getState(match.userId);
-			if (activeState && activeState.floor % 10 !== 0 && !match.isTrainerBattle) {
-				const turn = room.battle.turn || 0;
+			if (activeState) {
+				// Use the dynamic config boss interval here as well
+				const activeConfig = MODE_CONFIGS[activeState.gameMode] || MODE_CONFIGS['classic'];
+				if (activeState.floor % activeConfig.bossInterval !== 0 && !match.isTrainerBattle) {
+					const turn = room.battle.turn || 0;
 
-				if (turn > 0 && match.lastPanelTurn !== turn) {
-					const inv = activeState.inventory || {};
-					const pb = inv['pokeball'] || 0;
-					const gb = inv['greatball'] || 0;
-					const ub = inv['ultraball'] || 0;
-					const mb = inv['masterball'] || 0;
+					if (turn > 0 && match.lastPanelTurn !== turn) {
+						const inv = activeState.inventory || {};
+						const pb = inv['pokeball'] || 0;
+						const gb = inv['greatball'] || 0;
+						const ub = inv['ultraball'] || 0;
+						const mb = inv['masterball'] || 0;
 
-					const catchHTML = `<div class="pr-catch-panel" style="padding:8px; background:rgba(0,0,0,0.2); border-radius:6px; text-align:center; margin-top:5px;">` +
-						`<div style="font-weight:bold; margin-bottom:6px; color:#ddd;">Wild Encounter!</div>` +
-						`<button name="send" value="/pokerogue catch pokeball" class="button" ${pb ? '' : 'disabled'}>Poké Ball (${pb})</button> ` +
-						`<button name="send" value="/pokerogue catch greatball" class="button" ${gb ? '' : 'disabled'}>Great Ball (${gb})</button> ` +
-						`<button name="send" value="/pokerogue catch ultraball" class="button" ${ub ? '' : 'disabled'}>Ultra Ball (${ub})</button> ` +
-						`<button name="send" value="/pokerogue catch masterball" class="button" ${mb ? '' : 'disabled'}>Master Ball (${mb})</button>` +
-						`</div>`;
+						const catchHTML = `<div class="pr-catch-panel" style="padding:8px; background:rgba(0,0,0,0.2); border-radius:6px; text-align:center; margin-top:5px;">` +
+							`<div style="font-weight:bold; margin-bottom:6px; color:#ddd;">Wild Encounter!</div>` +
+							`<button name="send" value="/pokerogue catch pokeball" class="button" ${pb ? '' : 'disabled'}>Poké Ball (${pb})</button> ` +
+							`<button name="send" value="/pokerogue catch greatball" class="button" ${gb ? '' : 'disabled'}>Great Ball (${gb})</button> ` +
+							`<button name="send" value="/pokerogue catch ultraball" class="button" ${ub ? '' : 'disabled'}>Ultra Ball (${ub})</button> ` +
+							`<button name="send" value="/pokerogue catch masterball" class="button" ${mb ? '' : 'disabled'}>Master Ball (${mb})</button>` +
+							`</div>`;
 
-					const playerUser = Users.get(match.userId);
-					if (playerUser) {
-						if (match.lastPanelTurn) {
-							playerUser.sendTo(room, `|uhtmlchange|catchpanel-${match.lastPanelTurn}|`);
+						const playerUser = Users.get(match.userId);
+						if (playerUser) {
+							if (match.lastPanelTurn) {
+								playerUser.sendTo(room, `|uhtmlchange|catchpanel-${match.lastPanelTurn}|`);
+							}
+							playerUser.sendTo(room, `|uhtml|catchpanel-${turn}|${catchHTML}`);
 						}
-						playerUser.sendTo(room, `|uhtml|catchpanel-${turn}|${catchHTML}`);
+						match.lastPanelTurn = turn;
 					}
-					match.lastPanelTurn = turn;
 				}
 			}
 		}

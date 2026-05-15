@@ -138,7 +138,7 @@ function renderStatBar(state: PokeRogueState, cols2 = false): string {
 }
 
 function renderHeader(view: string, hasGameOver: boolean): string {
-	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', guide: 'PokèRogue Guide', trainer: 'Encounter!' };
+	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', guide: 'PokèRogue Guide', trainer: 'Encounter!', welcome: 'Welcome' };
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
 
 	if (view === 'main' && !hasGameOver) {
@@ -149,7 +149,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += `&nbsp;&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
-	} else if (view !== 'main' && view !== 'trainer' && !hasGameOver) {
+	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome' && !hasGameOver) {
 		/* * Dev Note: UI Lock
 		 * We exclude the 'Back' button from the 'trainer' view to ensure players
 		 * commit to the rolled encounter and cannot navigate back to the main menu.
@@ -523,6 +523,31 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 	return buf;
 }
 
+// ─── Welcome View ─────────────────────────────────────────────────────────────
+
+function renderWelcomeView(): string {
+	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
+
+	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">Prince Sky</div>`;
+
+	buf += `<div style="margin-bottom: 8px;">`;
+	buf += `<img src="https://play.pokemonshowdown.com/sprites/trainers/oak.png" alt="Prince Sky" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
+	buf += `</div>`;
+
+	buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 300px; margin: 0 auto 16px auto; border-left: 4px solid #8ab4f8; font-size: 12px; line-height: 1.4; display: block;">`;
+	buf += `"PokèRogue is currently in Beta. Features may change, bugs may occur, and balancing updates will happen frequently. Your feedback helps shape the future of the game!"`;
+	buf += `</div>`;
+
+	buf += `<div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">`;
+	buf += renderBtn('/pokerogue newgame classic', 'Classic', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	buf += renderBtn('/pokerogue newgame random', 'Random', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	buf += renderBtn('/pokerogue newgame endless', 'Endless', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	buf += renderBtn('/pokerogue newgame gen1', 'Gen 1', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	buf += `</div></div>`;
+
+	return buf;
+}
+
 // ─── Full Page Views ──────────────────────────────────────────────────────────
 
 function renderMainView(state: PokeRogueState, user: User): string {
@@ -662,7 +687,7 @@ function renderResetConfirmView(state: PokeRogueState): string {
 function renderGameOverView(state: PokeRogueState): string {
 	return `<div class="pr-gameover"><div class="pr-go-title">Game over</div>` +
 		`<div class="pr-go-sub">Your run ended on Floor <b>${state.lastRunFloor || 1}</b>.</div>` +
-		renderBtn('/pokerogue newgame confirm', 'Start new run', 'pr-newrun-btn') + `</div>`;
+		renderBtn('/pokerogue start', 'Start new run', 'pr-newrun-btn') + `</div>`;
 }
 
 function renderGuideView(): string {
@@ -718,6 +743,9 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (state.gameOver) return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderGameOverView(state)}</div></div>`;
 	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderResetConfirmView(state)}</div></div>`;
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderTopView()}</div></div>`;
+
+	// --- Welcome View Intercept ---
+	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderWelcomeView()}</div></div>`;
 
 	buf += renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 

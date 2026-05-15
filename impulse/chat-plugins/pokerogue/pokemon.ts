@@ -1,10 +1,17 @@
-import { type PokemonEntry } from './types';
+import { type PokemonEntry, type ModeConfig, type ModeData } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
 import { BOSSES } from './pokemon-bosses-data';
-import { TRAINERS, type TrainerMon } from './pokemon-trainers-data';
-import { BIOMES, BIOME_POOL, getDisplayBiome } from './pokemon-biomes-data';
+import { getDisplayBiome } from './pokemon-biomes-data';
 
-export { TRAINERS };
+export interface TrainerMon {
+	species: string;
+	moves?: string[];
+	ivs?: any;
+	evs?: any;
+	ability?: string;
+	teraType?: string;
+	item?: string;
+}
 
 export function getExpYield(speciesId: string): number {
 	const id = toID(speciesId);
@@ -51,10 +58,6 @@ function getMediumFastExp(level: number): number {
 	return Math.floor(level ** 3);
 }
 
-/* * Dev Note: Level & EXP Extrapolation
- * Uses a closed-form polynomial evaluation for levels > 100 to map directly
- * onto official core series EXP scaling equations at limitless levels.
- */
 export function expForLevel(level: number, expType = 'Medium Fast'): number {
 	if (level <= 1) return 0;
 
@@ -78,25 +81,13 @@ export function expForLevel(level: number, expType = 'Medium Fast'): number {
 
 	let raw: number;
 	switch (expType) {
-	case 'Erratic':
-		raw = (level ** 4 + level ** 3 * 2000) / 3500;
-		break;
-	case 'Fast':
-		raw = (level ** 3 * 4) / 5;
-		break;
-	case 'Medium Fast':
-		return Math.floor(level ** 3);
-	case 'Medium Slow':
-		raw = (level ** 3 * 6) / 5 - 15 * level ** 2 + 100 * level - 140;
-		break;
-	case 'Slow':
-		raw = (level ** 3 * 5) / 4;
-		break;
-	case 'Fluctuating':
-		raw = (level ** 3 * (level / 2 + 8) * 4) / (100 + level);
-		break;
-	default:
-		return Math.floor(level ** 3);
+	case 'Erratic': raw = (level ** 4 + level ** 3 * 2000) / 3500; break;
+	case 'Fast': raw = (level ** 3 * 4) / 5; break;
+	case 'Medium Fast': return Math.floor(level ** 3);
+	case 'Medium Slow': raw = (level ** 3 * 6) / 5 - 15 * level ** 2 + 100 * level - 140; break;
+	case 'Slow': raw = (level ** 3 * 5) / 4; break;
+	case 'Fluctuating': raw = (level ** 3 * (level / 2 + 8) * 4) / (100 + level); break;
+	default: return Math.floor(level ** 3);
 	}
 	return Math.floor(raw * 0.325 + getMediumFastExp(level) * 0.675);
 }
@@ -124,54 +115,6 @@ export function calcKillExp(
 	}
 
 	return Math.max(1, expValue);
-}
-
-type MoveLearnCategory = 'M' | 'T' | 'L' | 'R' | 'E' | 'D' | 'S' | 'V' | 'C' | 'any';
-
-function getMovesAtTarget(pokemon: string, target: MoveLearnCategory, level?: number): string[] {
-	let genNumber = 9;
-	while (genNumber > 1) {
-		if (Dex.mod(`gen${genNumber}`).species.get(toID(pokemon)).isNonstandard) {
-			genNumber--;
-			continue;
-		}
-		break;
-	}
-	if (toID(pokemon) === 'floetteeternal') genNumber = 6;
-	else if (toID(pokemon) === 'eternatuseternamax') genNumber = 8;
-
-	const prevoList: string[] = [];
-	let dexSpecies = Dex.species.get(pokemon);
-	while (dexSpecies.prevo) {
-		prevoList.push(dexSpecies.prevo);
-		dexSpecies = Dex.species.get(dexSpecies.prevo);
-	}
-
-	const fullLearn = Dex.species.getFullLearnset(toID(pokemon));
-	const movesAtLevel: string[] = [];
-
-	for (const learnsetIndex of fullLearn) {
-		if (prevoList.length && prevoList.includes(learnsetIndex.species.name)) continue;
-		const learnset = learnsetIndex.learnset;
-		for (const move in learnset) {
-			if (target === 'any') {
-				if (!movesAtLevel.includes(move)) movesAtLevel.push(move);
-				continue;
-			}
-			const learnSetString = target === 'L' ?
-				`${genNumber}${target}${level}` :
-				`${genNumber}${target}`;
-			if (learnset[move].some(src => src === learnSetString)) {
-				if (!movesAtLevel.includes(move)) movesAtLevel.push(move);
-			}
-		}
-	}
-
-	for (let i = movesAtLevel.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[movesAtLevel[i], movesAtLevel[j]] = [movesAtLevel[j], movesAtLevel[i]];
-	}
-	return movesAtLevel;
 }
 
 export function getLevelUpMoves(speciesId: string, level: number): string[] {
@@ -247,7 +190,13 @@ const STRONG_ABILITIES = new Set([
 	'pixilate', 'aerilate', 'refrigerate', 'galvanize', 'liquidvoice',
 ]);
 
-function pickBestAbility(species: Species, floor: number): string {
+function pickBestAbility(species: Species, floor: number, config?: ModeConfig): string {
+	// Support for "Random" mode chaos toggles
+	if (config?.randomizeAbilities) {
+		const allAbilities = Dex.abilities.all().filter(a => !a.isNonstandard);
+		return allAbilities[Math.floor(Math.random() * allAbilities.length)].id;
+	}
+
 	const abilities = species.abilities as Record<string, string>;
 	const candidates: { id: string, priority: number }[] = [];
 
@@ -324,21 +273,14 @@ const GOOD_STATUS_MOVES = new Set([
 
 function calculateExpectedHits(move: Move): number {
 	const acc = typeof move.accuracy === 'number' ? move.accuracy / 100 : 1;
-
 	if (!move.multihit) return acc;
-
 	if (Array.isArray(move.multihit)) {
 		const [min, max] = move.multihit;
-
 		if (min === 2 && max === 5) {
 			const expectedHits = 2 * (1 / 6) + 3 * (1 / 3) + 4 * (1 / 3) + 5 * (1 / 6);
 			return acc * expectedHits;
 		}
-
-		if (min === 2 && max === 3) {
-			return acc * (1 + acc + acc ** 2) / 2;
-		}
-
+		if (min === 2 && max === 3) return acc * (1 + acc + acc ** 2) / 2;
 		let expected = 0;
 		for (let hits = min; hits <= max; hits++) {
 			const prob = hits < max ? acc ** hits * (1 - acc) : acc ** max;
@@ -346,7 +288,6 @@ function calculateExpectedHits(move: Move): number {
 		}
 		return expected;
 	}
-
 	const fixedHits = move.multihit;
 	let expected = 0;
 	for (let hits = 1; hits <= fixedHits; hits++) {
@@ -375,12 +316,17 @@ function calculateEffectivePower(move: Move): number {
 	return Math.floor((bp * acc) / turns);
 }
 
-/* * Dev Note: AI Move Heuristics
- * Filters the viable full-learnset of a given species down to 4 optimal moves.
- * Prefers STAB, penalizes status moves unless specifically flagged as 'GOOD_STATUS_MOVES',
- * and prioritizes type coverage to avoid monotype walls.
- */
-function pickBestMoves(speciesId: string, chosenLevel: number, genNumber: number, floor: number): string[] {
+function pickBestMoves(speciesId: string, chosenLevel: number, genNumber: number, floor: number, config?: ModeConfig): string[] {
+	// Support for "Random" mode chaos toggles
+	if (config?.randomizeMoves) {
+		const allMoves = Dex.moves.all().filter(m => !m.isNonstandard && m.category !== 'Status');
+		const randomMoves: string[] = [];
+		for (let i = 0; i < 4; i++) {
+			randomMoves.push(allMoves[Math.floor(Math.random() * allMoves.length)].id);
+		}
+		return randomMoves;
+	}
+
 	const species = Dex.species.get(toID(speciesId));
 	const fullLearn = Dex.species.getFullLearnset(toID(speciesId));
 	const viableMoves: string[] = [];
@@ -529,22 +475,6 @@ function pickRandomHeldItem(speciesName: string): string {
 	return allItems[Math.floor(Math.random() * allItems.length)].id;
 }
 
-export function getBiome(floor: number): string {
-	// 1. Start biome is exclusively Town
-	if (floor <= 10) return 'Town';
-	
-	// 2. Floors 191-200 are exclusively Endless
-	if (floor >= 191 && floor <= 200) return 'Endless';
-
-	// 3. Mathematical Linear Progression for everything else
-	// Subtract 11 so floors 11-20 = index 0, 21-30 = index 1, etc.
-	const chunkIndex = Math.floor((floor - 11) / 10);
-	
-	// Modulo (%) ensures that if you go past the end of the array (or into endless mode past 200), 
-	// it safely loops back to the beginning of the BIOME_POOL.
-	return BIOME_POOL[chunkIndex % BIOME_POOL.length];
-}
-
 function rollRarity(floor: number, isBoss: boolean, isStarter: boolean, luck = 0): string {
 	if (isStarter) {
 		const rand = Math.random() * 100;
@@ -584,15 +514,32 @@ function rollRarity(floor: number, isBoss: boolean, isStarter: boolean, luck = 0
 	return 'Common';
 }
 
+export interface AIPokemonSet {
+	species: string;
+	name: string;
+	level: number;
+	ability: string;
+	nature: string;
+	ivs: any;
+	evs: any;
+	item: string;
+	shiny: boolean;
+	teraType: string;
+	moves: string[];
+	gender: string;
+}
+
 export function genPokemon(
 	quantity: number,
 	level: number | number[],
-	starter?: boolean,
+	starter = false,
 	floor = 1,
-	isBossFloor?: boolean,
+	isBossFloor = false,
 	luck = 0,
 	forcedSpeciesPool?: (string | TrainerMon)[],
-	currentBiome: string = 'Town'
+	currentBiome = 'Town',
+	config?: ModeConfig,
+	data?: ModeData
 ): AIPokemonSet[] {
 	let minLevel: number;
 	let maxLevel: number;
@@ -607,6 +554,9 @@ export function genPokemon(
 	const allTypes = Dex.types.all().map(t => t.name);
 	const gennedMons: AIPokemonSet[] = [];
 	let depth = 0;
+
+	// Establish the currently active datasets from the injected ModeData
+	const activeBiomes = data?.biomes || {};
 
 	while (gennedMons.length < quantity) {
 		let chosenLevel: number;
@@ -648,23 +598,23 @@ export function genPokemon(
 			const rarity = rollRarity(floor, !!isBossFloor, !!starter, luck);
 			let pool: { species: string, weight: number }[] = [];
 
-			const biomeName = getBiome(floor);
+			const biomeName = getDisplayBiome(floor, currentBiome);
 			
 			if (starter) {
-				for (const b of Object.values(BIOMES)) {
+				for (const b of Object.values(activeBiomes)) {
 					if (b[rarity as keyof typeof b]) {
 						pool.push(...b[rarity as keyof typeof b]);
 					}
 				}
 			} else {
-				pool = BIOMES[biomeName as keyof typeof BIOMES][rarity as keyof typeof BIOMES['Town']] || BIOMES['Town'][rarity as keyof typeof BIOMES['Town']];
+				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes['Town']?.[rarity];
 			}
 
 			// Unified Empty Pool Fallback (Boss & Wild)
 			if (!pool || pool.length === 0) {
-				pool = []; // Initialize to ensure we can push into it
+				pool = []; 
 				
-				for (const [bName, biomeData] of Object.entries(BIOMES)) {
+				for (const [bName, biomeData] of Object.entries(activeBiomes)) {
 					// Exclude the Endless biome from global pooling
 					if (bName === 'Endless') continue; 
 					
@@ -678,7 +628,7 @@ export function genPokemon(
 				// Absolute safety net in case no biome in the game has this rarity
 				if (pool.length === 0) {
 					const fallback = isBossFloor ? 'Boss' : 'Common';
-					pool = BIOMES['Town'][fallback as keyof typeof BIOMES['Town']] ?? [];
+					pool = activeBiomes['Town']?.[fallback] ?? [];
 				}
 			}
 
@@ -693,7 +643,6 @@ export function genPokemon(
 					}
 					
 					// Keep the Pokémon only if its base stage has evolutions. 
-					// The applyExpAndLevelUp logic will handle keeping early bosses in their pre-evolved states.
 					return sp.evos && sp.evos.length > 0;
 				});
 			}
@@ -774,7 +723,7 @@ export function genPokemon(
 
 		const evs = forcedEvs ? { ...forcedEvs } : calcEVSpread(finalSpecie, floor);
 		const nature = pickNatureForSpecies(finalSpecie, floor);
-		const ability = forcedAbility ?? pickBestAbility(finalSpecie, floor);
+		const ability = forcedAbility ?? pickBestAbility(finalSpecie, floor, config);
 
 		const shiny = Math.floor(Math.random() * 1024) === 69;
 		const item = forcedItem ?? pickRandomHeldItem(finalSpecie.name);
@@ -786,7 +735,7 @@ export function genPokemon(
 		if (forcedMoves) {
 			moves = forcedMoves.slice(0, 4).map(m => Dex.moves.get(m).id || toID(m));
 		} else {
-			moves = pickBestMoves(finalSpecie.name, chosenLevel, genNumber, floor);
+			moves = pickBestMoves(finalSpecie.name, chosenLevel, genNumber, floor, config);
 		}
 
 		gennedMons.push({
@@ -810,10 +759,6 @@ export function genPokemon(
 	return gennedMons;
 }
 
-/* * Dev Note: Level Scale Formula
- * Implements the core mathematical progression equation mapping wave integers
- * to dynamic level brackets spanning from level 10 to limits exceeding 10,000.
- */
 export function levelScaleForFloor(floor: number): [number, number] {
 	const waveIndex = Math.ceil(Math.max(1, floor) / 10) * 10;
 	const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
@@ -833,20 +778,8 @@ export function levelScaleForFloor(floor: number): [number, number] {
 	return [minLevel, maxLevel];
 }
 
-export function pickStarterOptions(): string[] {
-	const TRADITIONAL_STARTERS = [
-		'bulbasaur', 'charmander', 'squirtle', 'pikachu', 'eevee',
-		'chikorita', 'cyndaquil', 'totodile',
-		'treecko', 'torchic', 'mudkip',
-		'turtwig', 'chimchar', 'piplup',
-		'snivy', 'tepig', 'oshawott',
-		'chespin', 'fennekin', 'froakie',
-		'rowlet', 'litten', 'popplio',
-		'grookey', 'scorbunny', 'sobble',
-		'sprigatito', 'fuecoco', 'quaxly',
-	];
-
-	const shuffled = [...TRADITIONAL_STARTERS];
+export function pickStarterOptions(availableStarters: string[]): string[] {
+	const shuffled = [...availableStarters];
 	for (let i = shuffled.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
 		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -855,20 +788,21 @@ export function pickStarterOptions(): string[] {
 	return shuffled.slice(0, 5);
 }
 
-/* * Dev Note: Trainer/AI Instantiation
- * Serves as the master handler for translating state instructions (e.g. `gym_leader_tier_2`)
- * into concrete, generated opposing teams, properly scaling levels via `levelScaleForFloor`.
- */
 export function genAIPokemon(
 	quantity: number,
 	floor = 1,
 	luck = 0,
 	forcedTrainer?: string,
 	trainerKey?: string,
-	currentBiome: string = 'Town'
+	currentBiome = 'Town',
+	config?: ModeConfig,
+	data?: ModeData
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
 	const scale = levelScaleForFloor(floor);
-	const isBossFloor = floor % 10 === 0;
+	
+	// Default Boss Interval fallback incase config isn't provided
+	const bossInterval = config?.bossInterval || 10;
+	const isBossFloor = floor % bossInterval === 0;
 
 	let effectiveScale: [number, number] = scale;
 	if (isBossFloor) {
@@ -884,10 +818,11 @@ export function genAIPokemon(
 	let trainerName: string | undefined = undefined;
 	const lookupKey = trainerKey || floor.toString();
 
-	if (forcedTrainer && TRAINERS[lookupKey] && TRAINERS[lookupKey][forcedTrainer]) {
+	// Injected Data Check for Trainers
+	if (config?.hasTrainers && data?.trainers && data.trainers[lookupKey]?.[forcedTrainer!]) {
 		isTrainerBattle = true;
 		trainerName = forcedTrainer;
-		const trainerData = TRAINERS[lookupKey][forcedTrainer];
+		const trainerData = data.trainers[lookupKey][forcedTrainer!];
 
 		actualQuantity = trainerData.teamSize;
 
@@ -908,7 +843,8 @@ export function genAIPokemon(
 		actualQuantity = 1;
 	}
 
-	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam);
+	// Pass config and data down to the underlying generator
+	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data);
 
 	mons.sort((a, b) => a.level - b.level);
 	return { team: mons, isTrainer: isTrainerBattle, trainerName };
