@@ -507,8 +507,8 @@ export const commands: Chat.ChatCommands = {
 				team: [],
 				battlePoints: config.economy.startingBP,
 				timesRerolled: 0,
-				keyItems: [...(defaultConfig.economy.startingKeyItems || [])],
-				inventory: { ...(defaultConfig.economy.startingInventory || {}) },
+				keyItems: [...(config.economy.startingKeyItems || [])],
+				inventory: { ...(config.economy.startingInventory || {}) },
 				pendingChoice: pickStarterOptions(modeStarters),
 				pendingChoiceType: 'starter',
 				highestFloor,
@@ -638,9 +638,9 @@ export const commands: Chat.ChatCommands = {
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
-			let addedLevel = 5;
+			let addedLevel = config.starterLevel ?? 5;
 			if (!isStarterChoice) {
-				const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : 5;
+				const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
 				if (state.floor <= 30) {
 					addedLevel = Math.max(1, maxPlayerLevel - 1);
 				} else if (state.floor <= 50) {
@@ -667,7 +667,6 @@ export const commands: Chat.ChatCommands = {
 				const g = generated[0];
 				newMon = {
 					species: g.species,
-					ability: g.ability,
 					level: g.level,
 					exp: expForLevel(g.level, getExpType(g.species)),
 					expType: getExpType(g.species),
@@ -851,13 +850,8 @@ export const commands: Chat.ChatCommands = {
 						if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
 						if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
 						state.battlePoints -= item.cost;
-						let healAmt = 20;
-						switch (item.name) {
-						case 'Potion': healAmt = 30; break;
-						case 'Super Potion': healAmt = 60; break;
-						case 'Hyper Potion': healAmt = 120; break;
-						case 'Max Potion': healAmt = 100; break;
-						}
+						
+						const healAmt = (item as any).healAmount || 20;
 						mon.currentHp = item.name === 'Max Potion' ? 100 : Math.min(100, hp + healAmt);
 						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
 					} else if (item.type === 'cureStatus') {
@@ -1333,15 +1327,15 @@ export const commands: Chat.ChatCommands = {
 				if (hp < 40) {
 					if (hyperItem && bp >= hyperItem.cost) {
 						usedItem = hyperItem;
-						healAmt = 120;
+						healAmt = (hyperItem as any).healAmount || 120;
 					} else if (superItem && bp >= superItem.cost) {
 						usedItem = superItem;
-						healAmt = 60;
+						healAmt = (superItem as any).healAmount || 60;
 					}
 				} else {
 					if (superItem && bp >= superItem.cost) {
 						usedItem = superItem;
-						healAmt = 60;
+						healAmt = (superItem as any).healAmount || 60;
 					}
 				}
 
