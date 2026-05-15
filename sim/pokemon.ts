@@ -1426,9 +1426,26 @@ export class Pokemon {
 		this.knownType = true;
 		this.weighthg = species.weighthg;
 
-		const stats = this.battle.spreadModify(this.species.baseStats, this.set);
+		// --- CUSTOM BST BOOST START ---
+		// We clone the baseStats object before modifying so we don't corrupt the server's global Dex data
+		let baseStats = this.species.baseStats;
+		const bstBoosts = (this.set as any).bstBoosts;
+		
+		if (bstBoosts) {
+			baseStats = {
+				hp: baseStats.hp, // HP uses the separate [H:] tag, so we leave base HP alone
+				atk: Math.max(1, Math.floor(baseStats.atk * (1 + (bstBoosts.atk / 100)))),
+				def: Math.max(1, Math.floor(baseStats.def * (1 + (bstBoosts.def / 100)))),
+				spa: Math.max(1, Math.floor(baseStats.spa * (1 + (bstBoosts.spa / 100)))),
+				spd: Math.max(1, Math.floor(baseStats.spd * (1 + (bstBoosts.spd / 100)))),
+				spe: Math.max(1, Math.floor(baseStats.spe * (1 + (bstBoosts.spe / 100)))),
+			};
+		}
+		const stats = this.battle.spreadModify(baseStats, this.set);
+		
+		// --- CUSTOM BST BOOST END ---
+		
 		if (this.species.maxHP) stats.hp = this.species.maxHP;
-
 		if (!this.maxhp) {
 			this.baseMaxhp = stats.hp;
 			this.maxhp = stats.hp;
