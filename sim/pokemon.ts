@@ -1446,6 +1446,13 @@ export class Pokemon {
 		// --- CUSTOM BST BOOST END ---
 		
 		if (this.species.maxHP) stats.hp = this.species.maxHP;
+
+		--- CUSTOM HPX MODIFIER START ---
+		if ((this.set as any).hpMultiplier) {
+			stats.hp = Math.floor(stats.hp * (this.set as any).hpMultiplier);
+		}
+		// --- CUSTOM HPX MODIFIER END ---
+		
 		if (!this.maxhp) {
 			this.baseMaxhp = stats.hp;
 			this.maxhp = stats.hp;
@@ -1545,6 +1552,11 @@ export class Pokemon {
 
 	updateMaxHp() {
 		const newBaseMaxHp = this.battle.statModify(this.species.baseStats, this.set, 'hp');
+		// --- CUSTOM HPX MODIFIER START ---
+		if ((this.set as any).hpMultiplier) {
+			newBaseMaxHp = Math.floor(newBaseMaxHp * (this.set as any).hpMultiplier);
+		}
+		// --- CUSTOM HPX MODIFIER END ---
 		if (newBaseMaxHp === this.baseMaxhp) return;
 		this.baseMaxhp = newBaseMaxHp;
 		const newMaxHP = this.volatiles['dynamax'] ? (2 * this.baseMaxhp) : this.baseMaxhp;
