@@ -35,6 +35,7 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		townEscapeFloor: 10,
 		startingBiome: 'Town',
 		endlessFloorRange: { start: 191, end: 200 },
+		starterLevel: 5,
 		generation: 9,
 		baseFormat: '[Gen 9] PokeRogue',
 		economy: {
@@ -67,6 +68,7 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		randomizeAbilities: false,
 		townEscapeFloor: 5,
 		startingBiome: 'Town',
+		starterLevel: 5,
 		generation: 9,
 		baseFormat: '[Gen 9] PokeRogue',
 		economy: {
@@ -75,7 +77,7 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 			bpPerBoss: 5,
 			doubleBpFloor: 100,
 			startingKeyItems: ['Exp. All', 'Exp. All', 'Exp. All'],
-			startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },			
+			startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 		},
 		mechanicUnlocks: {
 			terastallize: 25,
@@ -94,6 +96,7 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		townEscapeFloor: 10,
 		startingBiome: 'Town',
 		endlessFloorRange: { start: 191, end: 200 },
+		starterLevel: 5,
 		generation: 9,
 		baseFormat: '[Gen 9] PokeRogue',
 		economy: {
@@ -127,6 +130,7 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		townEscapeFloor: 10,
 		startingBiome: 'Town',
 		endlessFloorRange: { start: 191, end: 200 },
+		starterLevel: 5,
 	},*/
 };
 
