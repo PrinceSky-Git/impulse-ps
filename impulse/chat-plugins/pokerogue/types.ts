@@ -3,8 +3,8 @@ import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from
 import { TRAINERS as ClassicTrainers } from './pokemon-trainers-data';
 
 // IMPORTANT: Create these files to support the Gen 1 mode, or comment these out temporarily!
-import { BIOMES as Gen1Biomes, BIOME_TRANSITIONS as Gen1Transitions } from './pokemon-biomes-gen1';
-import { TRAINERS as Gen1Trainers } from './pokemon-trainers-gen1';
+/*import { BIOMES as Gen1Biomes, BIOME_TRANSITIONS as Gen1Transitions } from './pokemon-biomes-gen1';
+import { TRAINERS as Gen1Trainers } from './pokemon-trainers-gen1';*/
 
 export const LEGENDARY_TAGS = new Set<string>([
 	'Sub-Legendary', 'Restricted Legendary', 'Mythical', 'Ultra Beast', 'Paradox',
@@ -31,7 +31,7 @@ export interface ModeData {
 	biomes: Record<string, any>;
 	transitions: Record<string, string[]>;
 	trainers: Record<string, any>;
-	starters: string[]; // <--- NEW: Mode-specific starters pool
+	starters: string[];
 }
 
 // --- Mode-Specific Starter Pools ---
@@ -78,14 +78,14 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 		randomizeAbilities: true,
 		townEscapeFloor: 10,
 	},
-	gen1: {
+	/*gen1: {
 		biomeRotationInterval: 10,
 		bossInterval: 10,
 		hasTrainers: true,
 		randomizeMoves: false,
 		randomizeAbilities: false,
 		townEscapeFloor: 10,
-	},
+	},*/
 };
 
 // Map the modes to their specific content cartridges
@@ -108,12 +108,12 @@ export const MODE_REGISTRY: Record<GameMode, ModeData> = {
 		trainers: ClassicTrainers,
 		starters: CLASSIC_STARTERS,
 	},
-	gen1: {
+	/*gen1: {
 		biomes: Gen1Biomes,
 		transitions: Gen1Transitions,
 		trainers: Gen1Trainers,
 		starters: GEN1_STARTERS,
-	},
+	},*/
 };
 
 // --- Core Data Structures ---
