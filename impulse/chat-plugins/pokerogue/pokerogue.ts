@@ -801,7 +801,8 @@ export const commands: Chat.ChatCommands = {
 					}
 
 					if (state.purchasedItem) {
-						const item = SHOP_ITEMS[state.purchasedItem];
+						const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+						const item = activeShop[state.purchasedItem];
 						if (item) {
 							state.battlePoints -= item.cost;
 						}
@@ -838,8 +839,9 @@ export const commands: Chat.ChatCommands = {
 					delete state.purchasedItem;
 					delete state.pendingConsumableType;
 				} else {
+					const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 					const itemKey = state.purchasedItem;
-					const item = SHOP_ITEMS[itemKey];
+					const item = activeShop[itemKey];
 					if (!item) return this.errorReply("Unknown item.");
 
 					const slot = parseInt(rest) - 1;
@@ -852,22 +854,25 @@ export const commands: Chat.ChatCommands = {
 						if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
 						state.battlePoints -= item.cost;
 						
-						const healAmt = (item as any).healAmount || 20;
-						mon.currentHp = item.name === 'Max Potion' ? 100 : Math.min(100, hp + healAmt);
+						const healAmt = item.healAmount || 20;
+						mon.currentHp = item.isMax ? 100 : Math.min(100, hp + healAmt);
 						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
 					} else if (item.type === 'cureStatus') {
 						if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
 						if (!mon.status) return this.errorReply("That Pokémon has no status condition.");
 						state.battlePoints -= item.cost;
+						
 						const oldStatus = mon.status;
 						delete mon.status;
 						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
 					} else if (item.type === 'revive') {
 						if (hp > 0) return this.errorReply("That Pokémon hasn't fainted.");
 						state.battlePoints -= item.cost;
-						mon.currentHp = (item.name === 'Max Revive' || mon.species === 'shedinja') ? 100 : 50;
+						
+						const revAmt = item.reviveAmount || 50;
+						mon.currentHp = (item.isMax || mon.species === 'shedinja') ? 100 : revAmt;
 						delete mon.status;
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.name === 'Max Revive' ? ' to full health' : ''}!`;
+						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
 					}
 
 					delete state.purchasedItem;
@@ -983,8 +988,10 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("Resolve pending choices first.");
 			}
 
+			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+
 			const key = toID(target);
-			const item = SHOP_ITEMS[key];
+			const item = activeShop[key];
 			if (!item) return this.errorReply("Unknown item.");
 
 			const bp = state.battlePoints ?? 0;
@@ -1075,7 +1082,7 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("You can only catch Pokémon in your own battle.");
 			}
 
-			if (!room.battle.turn) return this.errorReply("The battle hasn't started yet!");
+			if (!room.battle.turn) return this.errorReply("The battle hasnt started yet!");
 			if (state.caughtPokemon) return this.errorReply("You already caught this Pokémon!");
 
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
@@ -1102,7 +1109,7 @@ export const commands: Chat.ChatCommands = {
 			const log = room.log?.log || [];
 			let p2Species = '';
 			
-			// Passed config to botLevel here so wild encounters catch levels correctly!
+			// Use the mode's config to determine the wild pokemon's level
 			let p2Level = botLevel(floor, config);
 			
 			let p2Hp = -1;
@@ -1320,40 +1327,49 @@ export const commands: Chat.ChatCommands = {
 			const mon = state.team[slot];
 			const hp = mon.currentHp ?? 100;
 			const bp = state.battlePoints ?? 0;
+			
+			// Dynamically fetch the current game mode's shop
+			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 
 			if (type === 'heal') {
 				if (hp <= 0 || hp >= 100) return this.errorReply("Pokémon cannot be Q Healed.");
 
-				const hyperItem = Object.values(SHOP_ITEMS).find(i => i.name === 'Hyper Potion');
-				const superItem = Object.values(SHOP_ITEMS).find(i => i.name === 'Super Potion');
+				// Get all healing items sorted by cost (cheapest first)
+				const healItems = Object.values(activeShop)
+					.filter((i: any) => i.type === 'healHP')
+					.sort((a: any, b: any) => a.cost - b.cost);
+
+				if (!healItems.length) return this.errorReply("No healing items found in the shop.");
 
 				let usedItem = null;
-				let healAmt = 0;
+				let bestAffordable = null;
+				const missingHp = 100 - hp;
 
-				if (hp < 40) {
-					if (hyperItem && bp >= hyperItem.cost) {
-						usedItem = hyperItem;
-						healAmt = (hyperItem as any).healAmount || 120;
-					} else if (superItem && bp >= superItem.cost) {
-						usedItem = superItem;
-						healAmt = (superItem as any).healAmount || 60;
-					}
-				} else {
-					if (superItem && bp >= superItem.cost) {
-						usedItem = superItem;
-						healAmt = (superItem as any).healAmount || 60;
+				// Find the cheapest item that fully heals the missing HP.
+				// If none exist or they are unaffordable, pick the best one they CAN afford.
+				for (const i of healItems as any[]) {
+					if (bp >= i.cost) {
+						bestAffordable = i;
+						if ((i.healAmount || 20) >= missingHp || i.isMax) {
+							usedItem = i;
+							break;
+						}
 					}
 				}
 
+				if (!usedItem && bestAffordable) usedItem = bestAffordable;
 				if (!usedItem) return this.errorReply("Not enough BP for Q Heal.");
 
 				state.battlePoints -= usedItem.cost;
-				mon.currentHp = Math.min(100, hp + healAmt);
+				const healAmt = usedItem.healAmount || 20;
+				mon.currentHp = usedItem.isMax ? 100 : Math.min(100, hp + healAmt);
 				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was Q-Healed using a ${usedItem.name}! (${hp}% → ${mon.currentHp}%)`;
+				
 			} else if (type === 'cure') {
 				if (hp <= 0 || !mon.status) return this.errorReply("Pokémon cannot be Q Cured.");
 
-				const cureItem = Object.values(SHOP_ITEMS).find(i => i.type === 'cureStatus');
+				// Dynamically grab ANY cure item
+				const cureItem = Object.values(activeShop).find((i: any) => i.type === 'cureStatus') as any;
 				if (!cureItem) return this.errorReply("No cure item found in shop.");
 				if (bp < cureItem.cost) return this.errorReply("Not enough BP for Q Cure.");
 
