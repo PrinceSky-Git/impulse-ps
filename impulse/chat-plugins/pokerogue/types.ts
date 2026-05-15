@@ -21,6 +21,9 @@ export interface ModeConfig {
 	
 	starterLevel?: number;
 
+	// Returns the exact level cap, and the min/max range for wild encounters on that floor.
+	levelScalingFn?: (floor: number) => { cap: number, min: number, max: number };
+
 	// Core Engine Rules
 	generation: number;
 	baseFormat: string;
