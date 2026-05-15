@@ -916,7 +916,7 @@ export function botLevel(floor: number): number {
 export function packPokemon(mon: PokemonEntry): string {
 	const sp = Dex.species.get(toID(mon.species));
 	const name = sp.exists ? sp.name : mon.species;
-	const ability = (sp.abilities as any)['0'] || '';
+	const ability = mon.ability || (sp.abilities as any)['0'] || '';
 	const nature = mon.nature || 'Hardy';
 	if (!mon.moves) mon.moves = getLevelUpMoves(toID(mon.species), mon.level);
 	if ((mon.currentHp ?? 100) <= 0) {
