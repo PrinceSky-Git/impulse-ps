@@ -724,7 +724,11 @@ export function genPokemon(
 
 		const evs = forcedEvs ? { ...forcedEvs } : calcEVSpread(finalSpecie, floor);
 		const nature = pickNatureForSpecies(finalSpecie, floor);
-		const ability = forcedAbility ?? pickBestAbility(finalSpecie, floor, config);
+		
+		// Randomize ability if config allows, bypassing the boss's forced ability
+		const ability = config?.randomizeAbilities 
+			? pickBestAbility(finalSpecie, floor, config) 
+			: (forcedAbility ?? pickBestAbility(finalSpecie, floor, config));
 
 		const shiny = Math.floor(Math.random() * 1024) === 69;
 		const item = forcedItem ?? pickRandomHeldItem(finalSpecie.name);
@@ -733,7 +737,10 @@ export function genPokemon(
 			finalSpecie.types[Math.floor(Math.random() * finalSpecie.types.length)]);
 
 		let moves: string[] = [];
-		if (forcedMoves) {
+		// Randomize moves if config allows, bypassing the boss's forced moves
+		if (config?.randomizeMoves) {
+			moves = pickBestMoves(finalSpecie.name, chosenLevel, genNumber, floor, config);
+		} else if (forcedMoves) {
 			moves = forcedMoves.slice(0, 4).map(m => Dex.moves.get(m).id || toID(m));
 		} else {
 			moves = pickBestMoves(finalSpecie.name, chosenLevel, genNumber, floor, config);
