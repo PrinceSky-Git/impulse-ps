@@ -780,7 +780,7 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 		luck, 
 		state.pendingTrainer, 
 		trainerKey, 
-		state.currentBiome || 'Town', 
+		state.currentBiome || config.startingBiome, 
 		config, 
 		data
 	);

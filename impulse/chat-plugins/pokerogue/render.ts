@@ -199,8 +199,10 @@ function renderHpBar(mon: PokemonEntry): string {
 function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber = 9): string {
 	const spData = Dex.species.get(toID(mon.species));
 	const expNeeded = mon.level < 9999 ? expForLevel(mon.level + 1) - mon.exp : 0;
-	//const abilities = spData.abilities as Record<string, string>;
+	
+	const abilities = spData.abilities as Record<string, string>;
 	const ability = mon.ability || abilities['0'] || '';
+
 	let nature = mon.nature;
 	if (!nature) {
 		const natures = Dex.natures.all().map(n => n.name);
