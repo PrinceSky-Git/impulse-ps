@@ -1,7 +1,7 @@
 import { type PokemonEntry, type ModeConfig, type ModeData } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
 import { BOSSES } from './pokemon-bosses-data';
-import { getDisplayBiome } from './pokemon-biomes-data';
+import { getDisplayBiome } from './mods/classic/biomes';
 
 export interface TrainerMon {
 	species: string;
