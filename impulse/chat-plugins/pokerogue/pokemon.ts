@@ -647,64 +647,45 @@ export function genPokemon(
 				pool = BIOMES[biomeName as keyof typeof BIOMES][rarity as keyof typeof BIOMES['Town']] || BIOMES['Town'][rarity as keyof typeof BIOMES['Town']];
 			}
 
+			// Unified Empty Pool Fallback (Boss & Wild)
 			if (!pool || pool.length === 0) {
-				if (isBossFloor) {
-					const bossRarityFallback: Record<string, string> = {
-						'Boss Ultra Rare': 'Boss Super Rare',
-						'Boss Super Rare': 'Boss Rare',
-						'Boss Rare': 'Boss',
-						'Boss': 'Boss',
-					};
-					let fallbackRarity = bossRarityFallback[rarity] ?? 'Boss';
-					while (fallbackRarity !== rarity) {
-						pool = BIOMES[biomeName as keyof typeof BIOMES]?.[fallbackRarity as keyof typeof BIOMES['Town']] ?? [];
-						if (pool.length > 0) break;
-						const next = bossRarityFallback[fallbackRarity];
-						if (!next || next === fallbackRarity) break;
-						fallbackRarity = next;
+				pool = []; // Initialize to ensure we can push into it
+				
+				for (const [bName, biomeData] of Object.entries(BIOMES)) {
+					// Exclude the Endless biome from global pooling
+					if (bName === 'Endless') continue; 
+					
+					// Gather all Pokémon matching the exact rolled rarity
+					const tierPool = (biomeData as any)[rarity];
+					if (tierPool && tierPool.length > 0) {
+						pool.push(...tierPool);
 					}
-					if (!pool || pool.length === 0) {
-						pool = BIOMES['Town']['Boss'] ?? [];
-					}
-				} else {
-					for (const b of Object.values(BIOMES)) {
-						const tierPool = b[rarity as keyof typeof b];
-						if (tierPool && tierPool.length > 0) {
-							pool.push(...tierPool);
-						}
-					}
+				}
+
+				// Absolute safety net in case no biome in the game has this rarity
+				if (pool.length === 0) {
+					const fallback = isBossFloor ? 'Boss' : 'Common';
+					pool = BIOMES['Town'][fallback as keyof typeof BIOMES['Town']] ?? [];
 				}
 			}
 
-			if ((starter || !isBossFloor) && floor <= 15) {
+			// Exclude all single-stage Pokémon from appearing below floor 100
+			if (floor < 100) {
 				pool = pool.filter(mon => {
 					let sp = Dex.species.get(mon.species);
+					
+					// Trace back to the very first base stage
 					while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
 						sp = sp.prevo ? Dex.species.get(sp.prevo) : Dex.species.get(sp.baseSpecies);
 					}
-					const bst = sp.baseStats.hp + sp.baseStats.atk + sp.baseStats.def + sp.baseStats.spa + sp.baseStats.spd + sp.baseStats.spe;
-					return (sp.evos && sp.evos.length > 0) || bst < 450;
+					
+					// Keep the Pokémon only if its base stage has evolutions. 
+					// The applyExpAndLevelUp logic will handle keeping early bosses in their pre-evolved states.
+					return sp.evos && sp.evos.length > 0;
 				});
 			}
 
-			if (isBossFloor && floor <= 50) {
-				pool = pool.filter(mon => {
-					const sp = Dex.species.get(mon.species);
-					const isBaseStage = !sp.prevo;
-
-					if (floor <= 20) {
-						return isBaseStage;
-					}
-
-					if (floor <= 40) {
-						return sp.evos && sp.evos.length > 0;
-					}
-
-					const bst = sp.baseStats.hp + sp.baseStats.atk + sp.baseStats.def + sp.baseStats.spa + sp.baseStats.spd + sp.baseStats.spe;
-					return bst <= 520;
-				});
-			}
-
+			// Absolute last-resort fallback if filtering removes everything
 			if (!pool || pool.length === 0) {
 				pool = [{ species: 'eevee', weight: 100 }, { species: 'porygon', weight: 100 }];
 			}
