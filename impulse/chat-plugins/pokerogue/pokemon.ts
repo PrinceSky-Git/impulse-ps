@@ -527,6 +527,65 @@ export interface AIPokemonSet {
 	gender: string;
 }
 
+export function genAIPokemon(
+	quantity: number,
+	floor = 1,
+	luck = 0,
+	forcedTrainer?: string,
+	trainerKey?: string,
+	currentBiome?: string,
+	config?: ModeConfig,
+	data?: ModeData
+): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
+	const scale = levelScaleForFloor(floor);
+
+	const bossInterval = config?.bossInterval || 10;
+	const isBossFloor = floor % bossInterval === 0;
+
+	let effectiveScale: [number, number] = scale;
+	if (isBossFloor) {
+		const waveIndex = Math.ceil(Math.max(1, floor) / 10) * 10;
+		const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
+		const cap = Math.max(2, Math.ceil(baseLevel / 2) * 2 + 2);
+		effectiveScale = [cap, cap];
+	}
+
+	let forcedTeam: (string | TrainerMon)[] | undefined = undefined;
+	let actualQuantity = quantity;
+	let isTrainerBattle = false;
+	let trainerName: string | undefined = undefined;
+	const lookupKey = trainerKey || floor.toString();
+
+	if (config?.hasTrainers && data?.trainers && data.trainers[lookupKey]?.[forcedTrainer!]) {
+		isTrainerBattle = true;
+		trainerName = forcedTrainer;
+		const trainerData = data.trainers[lookupKey][forcedTrainer!];
+
+		actualQuantity = trainerData.teamSize;
+
+		if (!trainerData.random && trainerData.pool) {
+			const shuffledPool = [...trainerData.pool].sort(() => 0.5 - Math.random());
+			forcedTeam = shuffledPool.slice(0, trainerData.teamSize);
+			actualQuantity = forcedTeam.length;
+		}
+	}
+
+	if (!isTrainerBattle && isBossFloor && BOSSES[floor.toString()]) {
+		const bossNames = Object.keys(BOSSES[floor.toString()]);
+		const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];
+		const bossData = BOSSES[floor.toString()][selectedBoss];
+
+		const shuffledPool = [...bossData.pool].sort(() => 0.5 - Math.random());
+		forcedTeam = [shuffledPool[0]];
+		actualQuantity = 1;
+	}
+
+	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data);
+
+	mons.sort((a, b) => a.level - b.level);
+	return { team: mons, isTrainer: isTrainerBattle, trainerName };
+}
+
 export function genPokemon(
 	quantity: number,
 	level: number | number[],
@@ -535,7 +594,7 @@ export function genPokemon(
 	isBossFloor = false,
 	luck = 0,
 	forcedSpeciesPool?: (string | TrainerMon)[],
-	currentBiome = 'Town',
+	currentBiome?: string,
 	config?: ModeConfig,
 	data?: ModeData
 ): AIPokemonSet[] {
@@ -595,7 +654,8 @@ export function genPokemon(
 			const rarity = rollRarity(floor, !!isBossFloor, !!starter, luck);
 			let pool: { species: string, weight: number }[] = [];
 
-			const biomeName = getDisplayBiome(floor, currentBiome);
+			const activeBiome = currentBiome || config?.startingBiome || 'Town';
+			const biomeName = getDisplayBiome(floor, activeBiome);
 
 			if (starter) {
 				for (const b of Object.values(activeBiomes)) {
@@ -604,7 +664,7 @@ export function genPokemon(
 					}
 				}
 			} else {
-				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes[currentBiome]?.[rarity];
+				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes[activeBiome]?.[rarity];
 			}
 
 			// Unified Empty Pool Fallback (Boss & Wild)
@@ -794,65 +854,6 @@ export function pickStarterOptions(availableStarters: string[]): string[] {
 	}
 
 	return shuffled.slice(0, 5);
-}
-
-export function genAIPokemon(
-	quantity: number,
-	floor = 1,
-	luck = 0,
-	forcedTrainer?: string,
-	trainerKey?: string,
-	currentBiome = 'Town',
-	config?: ModeConfig,
-	data?: ModeData
-): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
-	const scale = levelScaleForFloor(floor);
-
-	const bossInterval = config?.bossInterval || 10;
-	const isBossFloor = floor % bossInterval === 0;
-
-	let effectiveScale: [number, number] = scale;
-	if (isBossFloor) {
-		const waveIndex = Math.ceil(Math.max(1, floor) / 10) * 10;
-		const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
-		const cap = Math.max(2, Math.ceil(baseLevel / 2) * 2 + 2);
-		effectiveScale = [cap, cap];
-	}
-
-	let forcedTeam: (string | TrainerMon)[] | undefined = undefined;
-	let actualQuantity = quantity;
-	let isTrainerBattle = false;
-	let trainerName: string | undefined = undefined;
-	const lookupKey = trainerKey || floor.toString();
-
-	if (config?.hasTrainers && data?.trainers && data.trainers[lookupKey]?.[forcedTrainer!]) {
-		isTrainerBattle = true;
-		trainerName = forcedTrainer;
-		const trainerData = data.trainers[lookupKey][forcedTrainer!];
-
-		actualQuantity = trainerData.teamSize;
-
-		if (!trainerData.random && trainerData.pool) {
-			const shuffledPool = [...trainerData.pool].sort(() => 0.5 - Math.random());
-			forcedTeam = shuffledPool.slice(0, trainerData.teamSize);
-			actualQuantity = forcedTeam.length;
-		}
-	}
-
-	if (!isTrainerBattle && isBossFloor && BOSSES[floor.toString()]) {
-		const bossNames = Object.keys(BOSSES[floor.toString()]);
-		const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];
-		const bossData = BOSSES[floor.toString()][selectedBoss];
-
-		const shuffledPool = [...bossData.pool].sort(() => 0.5 - Math.random());
-		forcedTeam = [shuffledPool[0]];
-		actualQuantity = 1;
-	}
-
-	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data);
-
-	mons.sort((a, b) => a.level - b.level);
-	return { team: mons, isTrainer: isTrainerBattle, trainerName };
 }
 
 const EVO_TYPE_FALLBACK_LEVEL: Partial<Record<string, number>> = {
