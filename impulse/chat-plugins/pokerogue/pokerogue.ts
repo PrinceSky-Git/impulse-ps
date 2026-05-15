@@ -667,12 +667,14 @@ export const commands: Chat.ChatCommands = {
 				const g = generated[0];
 				newMon = {
 					species: g.species,
+					ability: g.ability,
 					level: g.level,
 					exp: expForLevel(g.level, getExpType(g.species)),
 					expType: getExpType(g.species),
 					moves: g.moves,
 					ppLeft: g.moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					nature: g.nature,
+					ability: g.ability,
 				} as PokemonEntry;
 			} else {
 				const finalExpType = getExpType(finalSpecies);
