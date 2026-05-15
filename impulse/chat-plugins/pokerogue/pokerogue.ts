@@ -1,5 +1,6 @@
 import { Utils } from '../../../lib';
 import { CATCH_RATES } from './pokemon-basic-data';
+import { getNextBiome, getDisplayBiome } from './pokemon-biomes-data';
 import { SHOP_ITEMS, genItem } from './items';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition } from './types';
 import { getState, setState, deleteState, savedData, saveAllData } from './state';
@@ -434,6 +435,7 @@ export const commands: Chat.ChatCommands = {
 				const recordTeam = state?.recordTeam || [];
 				state = {
 					floor: 1,
+					currentBiome: 'Town',
 					team: [],
 					battlePoints: STARTING_BP,
 					timesRerolled: 0,
@@ -462,6 +464,7 @@ export const commands: Chat.ChatCommands = {
 			const recordTeam = existing?.recordTeam || [];
 			const newState: PokeRogueState = {
 				floor: 1,
+				currentBiome: 'Town',
 				team: [],
 				battlePoints: STARTING_BP,
 				timesRerolled: 0,
@@ -1409,10 +1412,17 @@ export const handlers: Chat.Handlers = {
 			const prevFloor = state.floor;
 			state.floor++;
 			
-			// Linear Biome Rotation Announcement
+			// Graph-Based Biome Rotation
 			if (state.floor % 10 === 1 && state.floor > 10) {
-				const newBiome = getBiome(state.floor);
-				battleLogMsgs.push(`<b>You have entered the ${newBiome} biome!</b>`);
+				// Traverse the graph to the next connected node
+				state.currentBiome = getNextBiome(state.currentBiome || 'Town');
+				
+				// Determine if we show the real biome or the Endless override
+				const displayBiome = getDisplayBiome(state.floor, state.currentBiome);
+				battleLogMsgs.push(`<b>You have entered the ${displayBiome} biome!</b>`);
+			} else if (!state.currentBiome) {
+				// Safety net for existing save files mid-run
+				state.currentBiome = state.floor <= 10 ? 'Town' : 'Plains';
 			}
 
 			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor);
