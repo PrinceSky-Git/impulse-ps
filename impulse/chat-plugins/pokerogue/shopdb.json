@@ -39,13 +39,32 @@
 		"cost": 3,
 		"minFloor": 1
 	},
+	"potion": {
+		"name": "Potion",
+		"icon": "Potion",
+		"type": "healHP",
+		"desc": "Heals 30% HP for a Pokemon.",
+		"cost": 1,
+		"minFloor": 1,
+		"healAmount": 30
+	},
 	"superpotion": {
 		"name": "Super Potion",
 		"icon": "Super Potion",
 		"type": "healHP",
 		"desc": "Heals 60% HP for a Pokemon.",
 		"cost": 1,
-		"minFloor": 1
+		"minFloor": 1,
+		"healAmount": 60
+	},
+	"hyperpotion": {
+		"name": "Hyper Potion",
+		"icon": "Hyper Potion",
+		"type": "healHP",
+		"desc": "Heals 120% HP for a Pokemon.",
+		"cost": 2,
+		"minFloor": 1,
+		"healAmount": 120
 	},
 	"maxpotion": {
 		"name": "Max Potion",
@@ -53,7 +72,8 @@
 		"type": "healHP",
 		"desc": "Heals a pokemon's HP fully.",
 		"cost": 2,
-		"minFloor": 1
+		"minFloor": 1,
+		"healAmount": 100
 	},
 	"fullheal": {
 		"name": "Full Heal",
@@ -63,14 +83,14 @@
 		"cost": 2,
 		"minFloor": 1
 	},
-  "lure": {
-    "name": "Lure",
-    "icon": "Chipped Pot",
-    "type": "key",
-    "desc": "50% chance to encounter 2 wild Pokémon instead of 1.",
-    "cost": 15,
-    "minFloor": 1
-  },
+	"lure": {
+		"name": "Lure",
+		"icon": "Chipped Pot",
+		"type": "key",
+		"desc": "50% chance to encounter 2 wild Pokémon instead of 1.",
+		"cost": 15,
+		"minFloor": 1
+	},
 	"revive": {
 		"name": "Revive",
 		"icon": "Revive",
