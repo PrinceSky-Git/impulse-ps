@@ -74,6 +74,8 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 			bpPerWin: 5,
 			bpPerBoss: 5,
 			doubleBpFloor: 100,
+			startingKeyItems: ['Exp. All', 'Exp. All', 'Exp. All'],
+			startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },			
 		},
 		mechanicUnlocks: {
 			terastallize: 25,
@@ -99,6 +101,8 @@ export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
 			bpPerWin: 5,
 			bpPerBoss: 5,
 			doubleBpFloor: 100,
+			startingKeyItems: ['Exp. All', 'Exp. All', 'Exp. All'],
+			startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 		},
 		storyRouting: {
 			fixedTrainerWaves: [5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200],
