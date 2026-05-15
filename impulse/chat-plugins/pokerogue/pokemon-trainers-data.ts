@@ -1188,6 +1188,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Champion Leon': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/leon.png',
+			dialog: "I'm the greatest Trainer in all of Galar! I won't lose — not even once!",
 			pool: [
 				{
 					species: 'aegislash', ability: 'Stance Change', item: 'leftovers', teraType: 'Ghost',
@@ -1224,6 +1225,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Champion Geeta': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/geeta.png',
+			dialog: "As chairwoman of the Pokémon League, I must personally test your strength!",
 			pool: [
 				{
 					species: 'espathra', ability: 'Speed Boost', item: 'leftovers', teraType: 'Psychic',
@@ -1316,6 +1318,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Eternatus': {
 			teamSize: 1,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/unknown.png',
+			dialog: "...",
 			pool: [
 				{
 					species: 'eternatus', ability: 'Pressure', item: 'leftovers', teraType: 'Poison',
@@ -1337,7 +1340,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Erika': { teamSize: 3, pool: ['tangela', 'weepinbell', 'vileplume'] },
 		'Gym Leader Koga': { teamSize: 3, pool: ['koffing', 'muk', 'weezing'] },
 		'Gym Leader Sabrina': { teamSize: 3, pool: ['abra', 'kadabra', 'mr-mime'] },
-		'Gym Leader Blaine': { teamSize: 3, pool: ['growlithe', 'ponyta', 'arcanine'] },
+		'Gym Leader Blaine': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blaine.png', dialog: "My fiery Pokémon will burn you to a crisp!", pool: ['growlithe', 'ponyta', 'arcanine'] },
 		// Gen 2
 		'Gym Leader Falkner': { teamSize: 3, pool: ['pidgey', 'pidgeotto', 'spearow'] },
 		'Gym Leader Bugsy': { teamSize: 3, pool: ['caterpie', 'metapod', 'scyther'] },
@@ -1345,7 +1348,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Morty': { teamSize: 3, pool: ['gastly', 'haunter', 'gengar'] },
 		'Gym Leader Chuck': { teamSize: 3, pool: ['primeape', 'machoke', 'poliwrath'] },
 		'Gym Leader Jasmine': { teamSize: 3, pool: ['magnemite', 'steelix'] },
-		'Gym Leader Pryce': { teamSize: 3, pool: ['seel', 'dewgong', 'piloswine'] },
+		'Gym Leader Pryce': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/pryce.png', dialog: "I have trained for 50 years, preparing for this day!", pool: ['seel', 'dewgong', 'piloswine'] },
 		// Gen 3
 		'Gym Leader Roxanne': { teamSize: 3, pool: ['geodude', 'nosepass'] },
 		'Gym Leader Brawly': { teamSize: 3, pool: ['machop', 'makuhita', 'mankey'] },
@@ -1353,14 +1356,14 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Flannery': { teamSize: 3, pool: ['slugma', 'numel', 'torkoal'] },
 		'Gym Leader Norman': { teamSize: 3, pool: ['spinda', 'vigoroth', 'slaking'] },
 		'Gym Leader Winona': { teamSize: 3, pool: ['swablu', 'beautifly', 'skarmory'] },
-		'Gym Leader Tate & Liza': { teamSize: 3, pool: ['solrock', 'lunatone', 'claydol'] },
+		'Gym Leader Tate & Liza': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png', dialog: "We don't need to talk to know what the other is thinking!", pool: ['solrock', 'lunatone', 'claydol'] },
 		// Gen 4
 		'Gym Leader Roark': { teamSize: 3, pool: ['geodude', 'onix', 'cranidos'] },
 		'Gym Leader Gardenia': { teamSize: 3, pool: ['cherubi', 'turtwig', 'roserade'] },
 		'Gym Leader Fantina': { teamSize: 3, pool: ['misdreavus', 'haunter', 'drifblim'] },
 		'Gym Leader Maylene': { teamSize: 3, pool: ['meditite', 'machoke', 'lucario'] },
 		'Gym Leader Byron': { teamSize: 3, pool: ['bronzor', 'steelix', 'bastiodon'] },
-		'Gym Leader Candice': { teamSize: 3, pool: ['snover', 'sneasel', 'piloswine'] },
+		'Gym Leader Candice': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/candice.png', dialog: "You want to challenge me? That gets me fired up — or should I say, iced up!", pool: ['snover', 'sneasel', 'piloswine'] },
 		// Gen 5
 		'Gym Leader Cilan': { teamSize: 3, pool: ['pansage', 'lillipup', 'pidove'] },
 		'Gym Leader Lenora': { teamSize: 3, pool: ['herdier', 'watchog', 'audino'] },
@@ -1368,7 +1371,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Elesa': { teamSize: 3, pool: ['emolga', 'zebstrika'] },
 		'Gym Leader Clay': { teamSize: 3, pool: ['krokorok', 'palpitoad', 'excadrill'] },
 		'Gym Leader Skyla': { teamSize: 3, pool: ['swoobat', 'unfezant', 'swanna'] },
-		'Gym Leader Brycen': { teamSize: 3, pool: ['vanillish', 'beartic', 'cryogonal'] },
+		'Gym Leader Brycen': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/brycen.png', dialog: "I have honed my icy skills through years of training. Face me!", pool: ['vanillish', 'beartic', 'cryogonal'] },
 		// Gen 6
 		'Gym Leader Viola': { teamSize: 3, pool: ['surskit', 'vivillon', 'masquerain'] },
 		'Gym Leader Grant': { teamSize: 3, pool: ['amaura', 'tyrunt', 'onix'] },
@@ -1377,7 +1380,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Clemont': { teamSize: 3, pool: ['emolga', 'magneton', 'heliolisk'] },
 		'Gym Leader Valerie': { teamSize: 3, pool: ['mawile', 'mr-mime', 'sylveon'] },
 		'Gym Leader Olympia': { teamSize: 3, pool: ['sigilyph', 'slowking', 'meowstic'] },
-		'Gym Leader Wulfric': { teamSize: 3, pool: ['bergmite', 'snover', 'avalugg'] },
+		'Gym Leader Wulfric': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/wulfric.png', dialog: "My ice-cold Pokémon will give you a chilly reception!", pool: ['bergmite', 'snover', 'avalugg'] },
 		// Gen 7
 		'Trial Captain Ilima': { teamSize: 3, pool: ['yungoos', 'smeargle', 'gumshoos'] },
 		'Kahuna Hala': { teamSize: 3, pool: ['mankey', 'makuhita', 'crabrawler'] },
@@ -1389,7 +1392,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Trial Captain Acerola': { teamSize: 3, pool: ['shuppet', 'drifblim', 'mimikyu'] },
 		'Kahuna Nanu': { teamSize: 3, pool: ['alolan-persian', 'sableye', 'krokorok'] },
 		'Trial Captain Mina': { teamSize: 3, pool: ['ribombee', 'granbull', 'wigglytuff'] },
-		'Kahuna Hapu': { teamSize: 3, pool: ['mudbray', 'gastrodon', 'flygon'] },
+		'Kahuna Hapu': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hapu.png', dialog: "I am Hapu, kahuna of Poni Island. I shall show you what real power looks like!", pool: ['mudbray', 'gastrodon', 'flygon'] },
 		// Gen 8
 		'Gym Leader Milo': { teamSize: 3, pool: ['gossifleur', 'eldegoss', 'applin'] },
 		'Gym Leader Nessa': { teamSize: 3, pool: ['goldeen', 'arrokuda', 'drednaw'] },
@@ -1401,7 +1404,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Melony': { teamSize: 3, pool: ['frosmoth', 'eiscue', 'lapras'] },
 		'Gym Leader Piers': { teamSize: 3, pool: ['scrafty', 'malamar', 'obstagoon'] },
 		'Gym Leader Marnie': { teamSize: 3, pool: ['morpeko', 'liepard', 'toxicroak'] },
-		'Gym Leader Raihan': { teamSize: 3, pool: ['flygon', 'gigalith', 'sandaconda'] },
+		'Gym Leader Raihan': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/raihan.png', dialog: "I'm the strongest Gym Leader in Galar — and I'll prove it to you!", pool: ['flygon', 'gigalith', 'sandaconda'] },
 		// Gen 9
 		'Gym Leader Katy': { teamSize: 3, pool: ['teddiursa', 'nymble', 'lokix'] },
 		'Gym Leader Brassius': { teamSize: 3, pool: ['petilil', 'smoliv', 'sudowoodo'] },
@@ -1409,7 +1412,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Kofu': { teamSize: 3, pool: ['veluza', 'wugtrio', 'crabominable'] },
 		'Gym Leader Larry': { teamSize: 3, pool: ['komala', 'starly', 'staraptor'] },
 		'Gym Leader Ryme': { teamSize: 3, pool: ['banette', 'mimikyu', 'houndstone'] },
-		'Gym Leader Tulip': { teamSize: 3, pool: ['girafarig', 'farigiraf', 'gardevoir'] },
+		'Gym Leader Tulip': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tulip.png', dialog: "My Pokémon will make you beautiful — beautifully defeated!", pool: ['girafarig', 'farigiraf', 'gardevoir'] },
 	},
 
 	'gym_leader_tier_3': {
@@ -1420,7 +1423,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Erika': { teamSize: 4, pool: ['victreebel', 'tangela', 'vileplume', 'jumpluff'] },
 		'Gym Leader Koga': { teamSize: 4, pool: ['weezing', 'muk', 'venomoth', 'ariados'] },
 		'Gym Leader Sabrina': { teamSize: 4, pool: ['kadabra', 'alakazam', 'mr-mime', 'espeon'] },
-		'Gym Leader Blaine': { teamSize: 4, pool: ['arcanine', 'rapidash', 'ninetales', 'magmar'] },
+		'Gym Leader Blaine': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blaine.png', dialog: "My fiery Pokémon will burn you to a crisp!", pool: ['arcanine', 'rapidash', 'ninetales', 'magmar'] },
 		// Gen 2
 		'Gym Leader Falkner': { teamSize: 4, pool: ['pidgeotto', 'pidgeot', 'hoothoot', 'noctowl'] },
 		'Gym Leader Bugsy': { teamSize: 4, pool: ['scyther', 'beedrill', 'butterfree', 'heracross'] },
@@ -1428,7 +1431,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Morty': { teamSize: 4, pool: ['haunter', 'gengar', 'misdreavus', 'drifblim'] },
 		'Gym Leader Chuck': { teamSize: 4, pool: ['primeape', 'poliwrath', 'machamp', 'heracross'] },
 		'Gym Leader Jasmine': { teamSize: 4, pool: ['magneton', 'skarmory', 'steelix', 'forretress'] },
-		'Gym Leader Pryce': { teamSize: 4, pool: ['dewgong', 'piloswine', 'lapras', 'cloyster'] },
+		'Gym Leader Pryce': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/pryce.png', dialog: "I have trained for 50 years, preparing for this day!", pool: ['dewgong', 'piloswine', 'lapras', 'cloyster'] },
 		// Gen 3
 		'Gym Leader Roxanne': { teamSize: 4, pool: ['graveler', 'nosepass', 'golem', 'lunatone'] },
 		'Gym Leader Brawly': { teamSize: 4, pool: ['hariyama', 'medicham', 'machamp', 'breloom'] },
@@ -1436,7 +1439,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Flannery': { teamSize: 4, pool: ['torkoal', 'camerupt', 'arcanine', 'rapidash'] },
 		'Gym Leader Norman': { teamSize: 4, pool: ['slaking', 'vigoroth', 'spinda', 'zangoose'] },
 		'Gym Leader Winona': { teamSize: 4, pool: ['pelipper', 'skarmory', 'altaria', 'swellow'] },
-		'Gym Leader Tate & Liza': { teamSize: 4, pool: ['solrock', 'lunatone', 'claydol', 'xatu'] },
+		'Gym Leader Tate & Liza': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png', dialog: "We don't need to talk to know what the other is thinking!", pool: ['solrock', 'lunatone', 'claydol', 'xatu'] },
 		// Gen 4
 		'Gym Leader Roark': { teamSize: 4, pool: ['rampardos', 'golem', 'onix', 'aerodactyl'] },
 		'Gym Leader Gardenia': { teamSize: 4, pool: ['roserade', 'cherrim', 'torterra', 'leafeon'] },
@@ -1445,7 +1448,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Wake': { teamSize: 4, pool: ['gyarados', 'quagsire', 'floatzel', 'pelipper'] },
 		'Gym Leader Byron': { teamSize: 4, pool: ['steelix', 'bastiodon', 'magnezone', 'probopass'] },
 		'Gym Leader Candice': { teamSize: 4, pool: ['froslass', 'mamoswine', 'glaceon', 'abomasnow'] },
-		'Gym Leader Volkner': { teamSize: 4, pool: ['raichu', 'luxray', 'electivire', 'magnezone'] },
+		'Gym Leader Volkner': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/volkner.png', dialog: "I've been waiting for a Trainer who can make me feel alive again. Let's go!", pool: ['raichu', 'luxray', 'electivire', 'magnezone'] },
 		// Gen 5
 		'Gym Leader Cilan': { teamSize: 4, pool: ['simisage', 'lilligant', 'leavanny', 'ferrothorn'] },
 		'Gym Leader Lenora': { teamSize: 4, pool: ['stoutland', 'watchog', 'cinccino', 'audino'] },
@@ -1454,7 +1457,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Clay': { teamSize: 4, pool: ['excadrill', 'krokorok', 'palpitoad', 'sandslash'] },
 		'Gym Leader Skyla': { teamSize: 4, pool: ['swoobat', 'unfezant', 'swanna', 'sigilyph'] },
 		'Gym Leader Brycen': { teamSize: 4, pool: ['cryogonal', 'beartic', 'vanilluxe', 'weavile'] },
-		'Gym Leader Drayden': { teamSize: 4, pool: ['druddigon', 'flygon', 'haxorus', 'altaria'] },
+		'Gym Leader Drayden': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/drayden.png', dialog: "My dragons are forged through strict discipline. Can you handle their fury?", pool: ['druddigon', 'flygon', 'haxorus', 'altaria'] },
 		// Gen 6
 		'Gym Leader Viola': { teamSize: 4, pool: ['vivillon', 'masquerain', 'scizor', 'yanmega'] },
 		'Gym Leader Grant': { teamSize: 4, pool: ['tyrunt', 'amaura', 'aerodactyl', 'golem'] },
@@ -1463,12 +1466,12 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Clemont': { teamSize: 4, pool: ['emolga', 'magneton', 'heliolisk', 'luxray'] },
 		'Gym Leader Valerie': { teamSize: 4, pool: ['sylveon', 'togekiss', 'gardevoir', 'mawile'] },
 		'Gym Leader Olympia': { teamSize: 4, pool: ['slowking', 'meowstic', 'gothitelle', 'sigilyph'] },
-		'Gym Leader Wulfric': { teamSize: 4, pool: ['avalugg', 'abomasnow', 'mamoswine', 'froslass'] },
+		'Gym Leader Wulfric': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/wulfric.png', dialog: "My ice-cold Pokémon will give you a chilly reception!", pool: ['avalugg', 'abomasnow', 'mamoswine', 'froslass'] },
 		// Gen 7
 		'Kahuna Hala': { teamSize: 4, pool: ['hariyama', 'crabominable', 'poliwrath', 'bewear'] },
 		'Kahuna Olivia': { teamSize: 4, pool: ['lycanroc', 'probopass', 'carbink', 'golem'] },
 		'Kahuna Nanu': { teamSize: 4, pool: ['alolan-persian', 'krookodile', 'alolan-muk', 'sableye'] },
-		'Kahuna Hapu': { teamSize: 4, pool: ['mudsdale', 'gastrodon', 'dugtrio', 'flygon'] },
+		'Kahuna Hapu': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hapu.png', dialog: "I am Hapu, kahuna of Poni Island. I shall show you what real power looks like!", pool: ['mudsdale', 'gastrodon', 'dugtrio', 'flygon'] },
 		// Gen 8
 		'Gym Leader Milo': { teamSize: 4, pool: ['eldegoss', 'tsareena', 'ferrothorn', 'appletun'] },
 		'Gym Leader Nessa': { teamSize: 4, pool: ['drednaw', 'pelipper', 'lanturn', 'barraskewda'] },
@@ -1479,7 +1482,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Gordie': { teamSize: 4, pool: ['coalossal', 'stonjourner', 'rhyperior', 'tyranitar'] },
 		'Gym Leader Melony': { teamSize: 4, pool: ['lapras', 'frosmoth', 'glaceon', 'eiscue'] },
 		'Gym Leader Piers': { teamSize: 4, pool: ['obstagoon', 'scrafty', 'malamar', 'crawdaunt'] },
-		'Gym Leader Raihan': { teamSize: 4, pool: ['flygon', 'gigalith', 'sandaconda', 'duraludon'] },
+		'Gym Leader Raihan': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/raihan.png', dialog: "I'm the strongest Gym Leader in Galar — and I'll prove it to you!", pool: ['flygon', 'gigalith', 'sandaconda', 'duraludon'] },
 		// Gen 9
 		'Gym Leader Katy': { teamSize: 4, pool: ['lokix', 'heracross', 'ursaring', 'crustle'] },
 		'Gym Leader Brassius': { teamSize: 4, pool: ['sudowoodo', 'lilligant', 'leafeon', 'breloom'] },
@@ -1488,12 +1491,14 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Larry': { teamSize: 4, pool: ['dudunsparce', 'staraptor', 'komala', 'flamigo'] },
 		'Gym Leader Ryme': { teamSize: 4, pool: ['houndstone', 'toxtricity', 'mimikyu', 'gengar'] },
 		'Gym Leader Tulip': { teamSize: 4, pool: ['farigiraf', 'gardevoir', 'florges', 'espathra'] },
-		'Gym Leader Grusha': { teamSize: 4, pool: ['cetitan', 'weavile', 'froslass', 'glaceon'] },
+		'Gym Leader Grusha': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/grusha.png', dialog: "My ice-type Pokémon are as cool as I am. Let's see if you can keep up!", pool: ['cetitan', 'weavile', 'froslass', 'glaceon'] },
 	},
 
 	'gym_leader_tier_5': {
 		'Gym Leader Giovanni': {
 			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/giovanni.png',
+			dialog: "You dare challenge the boss of Team Rocket?! You will regret this!",
 			pool: [
 				{
 					species: 'dugtrio', ability: 'Arena Trap', item: 'focus-sash', teraType: 'Ground',
@@ -1529,6 +1534,8 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 		'Gym Leader Clair': {
 			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/clair.png',
+			dialog: "I am the world's best dragon master — and I shall prove it!",
 			pool: [
 				{
 					species: 'dragonair', ability: 'Shed Skin', item: 'eviolite', teraType: 'Dragon',
@@ -1564,6 +1571,8 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 		'Gym Leader Wallace': {
 			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/wallace.png',
+			dialog: "I shall show you the grace and power of water — prepare to be overwhelmed!",
 			pool: [
 				{
 					species: 'whiscash', ability: 'Anticipation', item: 'leftovers', teraType: 'Water',
@@ -1599,6 +1608,8 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 		'Gym Leader Volkner': {
 			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/volkner.png',
+			dialog: "I've been waiting for a Trainer who can make me feel alive again. Let's go!",
 			pool: [
 				{
 					species: 'jolteon', ability: 'Volt Absorb', item: 'choice-specs', teraType: 'Electric',
@@ -1634,6 +1645,8 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 		'Gym Leader Drayden': {
 			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/drayden.png',
+			dialog: "My dragons are forged through strict discipline. Can you handle their fury?",
 			pool: [
 				{
 					species: 'druddigon', ability: 'Rough Skin', item: 'rocky-helmet', teraType: 'Dragon',
@@ -1669,6 +1682,8 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 		'Gym Leader Wulfric': {
 			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/wulfric.png',
+			dialog: "My ice-cold Pokémon will give you a chilly reception!",
 			pool: [
 				{
 					species: 'abomasnow', ability: 'Snow Warning', item: 'choice-band', teraType: 'Ice',
@@ -1704,6 +1719,8 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 		'Gym Leader Grusha': {
 			teamSize: 6,
+			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/grusha.png',
+			dialog: "My ice-type Pokémon are as cool as I am. Let's see if you can keep up!",
 			pool: [
 				{
 					species: 'frosmoth', ability: 'Ice Scales', item: 'leftovers', teraType: 'Ice',
@@ -1743,47 +1760,47 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	// RANDOM TRAINER ENCOUNTERS
 	// ==========================================
 	'random_early': {
-		'Bug Catcher Rick': { teamSize: 2, pool: ['caterpie', 'weedle', 'venonat', 'paras', 'spinarak', 'ledyba', 'wurmple', 'silcoon', 'cascoon', 'surskit', 'kricketot', 'burmy', 'sewaddle', 'venipede', 'scatterbug'] },
-		'Hiker David': { teamSize: 3, pool: ['geodude', 'machop', 'zubat', 'makuhita', 'aron', 'nosepass', 'roggenrola', 'timburr', 'drilbur', 'bunnelby', 'rockruff', 'rolycoly', 'nacli'] },
-		'Lass Sally': { teamSize: 2, pool: ['jigglypuff', 'clefairy', 'marill', 'skitty', 'snubbull', 'igglybuff', 'togepi', 'munchlax', 'happiny', 'cottonee', 'flabebe', 'sylveon', 'fidough'] },
-		'Youngster Jake': { teamSize: 2, pool: ['rattata', 'pidgey', 'sentret', 'zigzagoon', 'poochyena', 'bidoof', 'patrat', 'bunnelby', 'yungoos', 'skwovet'] },
-		'Camper Tom': { teamSize: 2, pool: ['nidoran-m', 'ekans', 'sandshrew', 'growlithe', 'psyduck', 'horsea', 'staryu', 'krabby', 'barboach', 'buizel'] },
-		'Picnicker Lisa': { teamSize: 2, pool: ['nidoran-f', 'oddish', 'bellsprout', 'vulpix', 'meowth', 'happiny', 'pachirisu', 'cherubi', 'buneary', 'minccino'] },
-		'Fisherman Wade': { teamSize: 2, pool: ['magikarp', 'poliwag', 'tentacool', 'horsea', 'goldeen', 'shellder', 'remoraid', 'barboach', 'finneon', 'basculin', 'wishiwashi', 'arrokuda', 'bruxish'] },
-		'Bird Keeper Rudy': { teamSize: 2, pool: ['pidgey', 'spearow', 'hoothoot', 'taillow', 'starly', 'pidove', 'fletchling', 'rookidee', 'squawkabilly'] },
-		'Twins Amy & May': { teamSize: 2, pool: ['plusle', 'minun', 'volbeat', 'illumise', 'pachirisu', 'marill', 'pikachu', 'dedenne', 'togedemaru'] },
-		'Preschooler Mia': { teamSize: 1, pool: ['lillipup', 'patrat', 'purrloin', 'pidove', 'tepig', 'oshawott', 'snivy', 'fennekin', 'chespin', 'froakie', 'rowlet', 'litten', 'popplio', 'grookey', 'scorbunny', 'sobble', 'sprigatito', 'fuecoco', 'quaxly'] },
-		'School Kid Jack': { teamSize: 2, pool: ['magnemite', 'voltorb', 'exeggcute', 'oddish', 'drowzee', 'slowpoke', 'abra', 'natu', 'ralts', 'spoink', 'chingling', 'munna', 'elgyem'] },
-		'Rich Boy Winston': { teamSize: 2, pool: ['meowth', 'persian', 'growlithe', 'vulpix', 'eevee', 'snorunt', 'seel', 'snorlax', 'munchlax', 'indeedee'] },
-		'Lady Sarah': { teamSize: 2, pool: ['clefairy', 'snubbull', 'smoochum', 'togekiss', 'gardevoir', 'sylveon', 'comfey', 'alcremie'] },
+		'Bug Catcher Rick': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bugcatcher.png', dialog: "My bug Pokémon are gonna wrap you up tight!", pool: ['caterpie', 'weedle', 'venonat', 'paras', 'spinarak', 'ledyba', 'wurmple', 'silcoon', 'cascoon', 'surskit', 'kricketot', 'burmy', 'sewaddle', 'venipede', 'scatterbug'] },
+		'Hiker David': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hiker.png', dialog: "I've climbed every mountain — now I'll climb over you!", pool: ['geodude', 'machop', 'zubat', 'makuhita', 'aron', 'nosepass', 'roggenrola', 'timburr', 'drilbur', 'bunnelby', 'rockruff', 'rolycoly', 'nacli'] },
+		'Lass Sally': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lass.png', dialog: "Hehe, don't underestimate me just because I look cute!", pool: ['jigglypuff', 'clefairy', 'marill', 'skitty', 'snubbull', 'igglybuff', 'togepi', 'munchlax', 'happiny', 'cottonee', 'flabebe', 'sylveon', 'fidough'] },
+		'Youngster Jake': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/youngster.png', dialog: "I just got my first Pokémon and I'm ready to battle!", pool: ['rattata', 'pidgey', 'sentret', 'zigzagoon', 'poochyena', 'bidoof', 'patrat', 'bunnelby', 'yungoos', 'skwovet'] },
+		'Camper Tom': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/camper.png', dialog: "Nothing like a good battle in the great outdoors!", pool: ['nidoran-m', 'ekans', 'sandshrew', 'growlithe', 'psyduck', 'horsea', 'staryu', 'krabby', 'barboach', 'buizel'] },
+		'Picnicker Lisa': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/picnicker.png', dialog: "We're taking a break from our picnic to battle you!", pool: ['nidoran-f', 'oddish', 'bellsprout', 'vulpix', 'meowth', 'happiny', 'pachirisu', 'cherubi', 'buneary', 'minccino'] },
+		'Fisherman Wade': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/fisherman.png', dialog: "I hooked myself a challenger! You won't get away!", pool: ['magikarp', 'poliwag', 'tentacool', 'horsea', 'goldeen', 'shellder', 'remoraid', 'barboach', 'finneon', 'basculin', 'wishiwashi', 'arrokuda', 'bruxish'] },
+		'Bird Keeper Rudy': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/birdkeeper.png', dialog: "My birds will swoop down and take you out!", pool: ['pidgey', 'spearow', 'hoothoot', 'taillow', 'starly', 'pidove', 'fletchling', 'rookidee', 'squawkabilly'] },
+		'Twins Amy & May': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/twins.png', dialog: "Two against one? No, two Trainers, one battle!", pool: ['plusle', 'minun', 'volbeat', 'illumise', 'pachirisu', 'marill', 'pikachu', 'dedenne', 'togedemaru'] },
+		'Preschooler Mia': { teamSize: 1, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/preschooler.png', dialog: "I wanna battle! My Pokémon is my bestest friend!", pool: ['lillipup', 'patrat', 'purrloin', 'pidove', 'tepig', 'oshawott', 'snivy', 'fennekin', 'chespin', 'froakie', 'rowlet', 'litten', 'popplio', 'grookey', 'scorbunny', 'sobble', 'sprigatito', 'fuecoco', 'quaxly'] },
+		'School Kid Jack': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/schoolkid.png', dialog: "I studied all the type matchups — I've got this in the bag!", pool: ['magnemite', 'voltorb', 'exeggcute', 'oddish', 'drowzee', 'slowpoke', 'abra', 'natu', 'ralts', 'spoink', 'chingling', 'munna', 'elgyem'] },
+		'Rich Boy Winston': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/richboy.png', dialog: "Money can buy the finest Pokémon — and they'll crush you!", pool: ['meowth', 'persian', 'growlithe', 'vulpix', 'eevee', 'snorunt', 'seel', 'snorlax', 'munchlax', 'indeedee'] },
+		'Lady Sarah': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lady.png', dialog: "Only the finest Pokémon for someone of my status!", pool: ['clefairy', 'snubbull', 'smoochum', 'togekiss', 'gardevoir', 'sylveon', 'comfey', 'alcremie'] },
 	},
 	'random_mid': {
-		'Ace Trainer Chase': { teamSize: 4, pool: ['staraptor', 'luxray', 'gastrodon', 'rapidash', 'roselia', 'floatzel', 'lucario', 'garchomp', 'togekiss', 'gallade', 'magnezone', 'leafeon', 'glaceon', 'umbreon', 'espeon'] },
-		'Black Belt Kenji': { teamSize: 3, pool: ['machamp', 'hitmonlee', 'hitmonchan', 'primeape', 'poliwrath', 'hariyama', 'heracross', 'medicham', 'toxicroak', 'mienshao', 'pangoro', 'hawlucha', 'passimian', 'falinks', 'annihilape'] },
-		'Scientist Albert': { teamSize: 3, pool: ['magneton', 'porygon2', 'muk', 'weezing', 'electrode', 'raichu', 'starmie', 'kadabra', 'hypno', 'grimer', 'voltorb', 'beheeyem', 'magnezone', 'toxtricity', 'pawmot'] },
-		'Swimmer Tina': { teamSize: 3, pool: ['tentacruel', 'starmie', 'vaporeon', 'poliwrath', 'seaking', 'dewgong', 'kingler', 'corsola', 'lanturn', 'pelipper', 'floatzel', 'lumineon', 'simipour', 'barbaracle', 'wishiwashi', 'bruxish', 'araquanid'] },
-		'Psychic Phoebe': { teamSize: 3, pool: ['kadabra', 'slowbro', 'hypno', 'jynx', 'exeggutor', 'xatu', 'espeon', 'girafarig', 'gardevoir', 'grumpig', 'claydol', 'chingling', 'gothitelle', 'reuniclus', 'meowstic', 'oranguru', 'hatterene', 'rabsca', 'farigiraf'] },
-		'Pokémon Ranger Kyle': { teamSize: 3, pool: ['arcanine', 'manectric', 'raichu', 'golem', 'steelix', 'mightyena', 'linoone', 'flygon', 'walrein', 'shiftry', 'camerupt', 'swellow', 'wailord', 'breloom', 'whiscash'] },
-		'Cooltrainer Rex': { teamSize: 4, pool: ['alakazam', 'gengar', 'machamp', 'golem', 'rhydon', 'clefable', 'kangaskhan', 'lapras', 'snorlax', 'tauros', 'starmie', 'exeggutor', 'dragonite', 'aerodactyl'] },
-		'Cooltrainer Fran': { teamSize: 4, pool: ['ninetales', 'wigglytuff', 'vileplume', 'parasect', 'poliwrath', 'slowbro', 'arcanine', 'rapidash', 'raichu', 'mrmime', 'jynx', 'electabuzz', 'magmar', 'scyther'] },
-		'Beauty Nina': { teamSize: 3, pool: ['milotic', 'gardevoir', 'togekiss', 'ninetales', 'lopunny', 'delcatty', 'liligant', 'florges', 'sylveon', 'aromatisse', 'comfey', 'primarina', 'alcremie', 'dachsbun'] },
-		'Gentleman Alfred': { teamSize: 3, pool: ['persian', 'clefable', 'breloom', 'snorlax', 'dragonite', 'gardevoir', 'togekiss', 'umbreon', 'espeon', 'furfrou', 'meowstic', 'pyroar'] },
-		'Dragon Tamer Drake': { teamSize: 4, pool: ['dragonair', 'seadra', 'horsea', 'dratini', 'altaria', 'flygon', 'shelgon', 'vibrava', 'swablu', 'noibat', 'sliggoo', 'fraxure', 'zweilous'] },
-		'Hex Maniac Celeste': { teamSize: 3, pool: ['misdreavus', 'shuppet', 'duskull', 'sableye', 'haunter', 'drifblim', 'spiritomb', 'cofagrigus', 'jellicent', 'litwick', 'lampent', 'pumpkaboo', 'phantump', 'mimikyu'] },
-		'Guitarist Josh': { teamSize: 3, pool: ['jigglypuff', 'loudred', 'exploud', 'whismur', 'electrode', 'magnemite', 'toxtricity', 'rillaboom', 'obstagoon', 'noivern'] },
-		'Biker Rex': { teamSize: 3, pool: ['weezing', 'koffing', 'grimer', 'muk', 'scyther', 'magmar', 'electabuzz', 'pinsir', 'hitmonchan', 'hitmonlee', 'machoke', 'jynx'] },
-		'Sailor Cid': { teamSize: 3, pool: ['poliwrath', 'machamp', 'dewgong', 'tentacruel', 'slowbro', 'seel', 'shellder', 'cloyster', 'lapras', 'kingler', 'seaking', 'gyarados'] },
+		'Ace Trainer Chase': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainer.png', dialog: "I've trained relentlessly for this moment. Don't hold back!", pool: ['staraptor', 'luxray', 'gastrodon', 'rapidash', 'roselia', 'floatzel', 'lucario', 'garchomp', 'togekiss', 'gallade', 'magnezone', 'leafeon', 'glaceon', 'umbreon', 'espeon'] },
+		'Black Belt Kenji': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blackbelt.png', dialog: "I have mastered the fighting arts. Your defeat is certain!", pool: ['machamp', 'hitmonlee', 'hitmonchan', 'primeape', 'poliwrath', 'hariyama', 'heracross', 'medicham', 'toxicroak', 'mienshao', 'pangoro', 'hawlucha', 'passimian', 'falinks', 'annihilape'] },
+		'Scientist Albert': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/scientist.png', dialog: "According to my calculations, your probability of winning is negligible!", pool: ['magneton', 'porygon2', 'muk', 'weezing', 'electrode', 'raichu', 'starmie', 'kadabra', 'hypno', 'grimer', 'voltorb', 'beheeyem', 'magnezone', 'toxtricity', 'pawmot'] },
+		'Swimmer Tina': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/swimmer.png', dialog: "I spend all day in the water — and so will you when I'm done!", pool: ['tentacruel', 'starmie', 'vaporeon', 'poliwrath', 'seaking', 'dewgong', 'kingler', 'corsola', 'lanturn', 'pelipper', 'floatzel', 'lumineon', 'simipour', 'barbaracle', 'wishiwashi', 'bruxish', 'araquanid'] },
+		'Psychic Phoebe': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/psychic.png', dialog: "I already foresee your defeat. Shall we confirm it?", pool: ['kadabra', 'slowbro', 'hypno', 'jynx', 'exeggutor', 'xatu', 'espeon', 'girafarig', 'gardevoir', 'grumpig', 'claydol', 'chingling', 'gothitelle', 'reuniclus', 'meowstic', 'oranguru', 'hatterene', 'rabsca', 'farigiraf'] },
+		'Pokémon Ranger Kyle': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/pokemonranger.png', dialog: "As a Ranger it's my duty to protect Pokémon — and to test challengers!", pool: ['arcanine', 'manectric', 'raichu', 'golem', 'steelix', 'mightyena', 'linoone', 'flygon', 'walrein', 'shiftry', 'camerupt', 'swellow', 'wailord', 'breloom', 'whiscash'] },
+		'Cooltrainer Rex': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainer.png', dialog: "Only the coolest Trainers make it to this level. Prepare yourself!", pool: ['alakazam', 'gengar', 'machamp', 'golem', 'rhydon', 'clefable', 'kangaskhan', 'lapras', 'snorlax', 'tauros', 'starmie', 'exeggutor', 'dragonite', 'aerodactyl'] },
+		'Cooltrainer Fran': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainerf.png', dialog: "Style and strength — I have both. Can you keep up?", pool: ['ninetales', 'wigglytuff', 'vileplume', 'parasect', 'poliwrath', 'slowbro', 'arcanine', 'rapidash', 'raichu', 'mrmime', 'jynx', 'electabuzz', 'magmar', 'scyther'] },
+		'Beauty Nina': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/beauty.png', dialog: "My Pokémon are as beautiful as they are powerful!", pool: ['milotic', 'gardevoir', 'togekiss', 'ninetales', 'lopunny', 'delcatty', 'liligant', 'florges', 'sylveon', 'aromatisse', 'comfey', 'primarina', 'alcremie', 'dachsbun'] },
+		'Gentleman Alfred': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/gentleman.png', dialog: "A battle with a refined Trainer such as myself is quite the privilege.", pool: ['persian', 'clefable', 'breloom', 'snorlax', 'dragonite', 'gardevoir', 'togekiss', 'umbreon', 'espeon', 'furfrou', 'meowstic', 'pyroar'] },
+		'Dragon Tamer Drake': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/dragontamer.png', dialog: "Only a true Dragon Tamer can control beasts like mine — face them!", pool: ['dragonair', 'seadra', 'horsea', 'dratini', 'altaria', 'flygon', 'shelgon', 'vibrava', 'swablu', 'noibat', 'sliggoo', 'fraxure', 'zweilous'] },
+		'Hex Maniac Celeste': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hexmaniac.png', dialog: "Hehehe... my spirits have been waiting for a soul like yours...", pool: ['misdreavus', 'shuppet', 'duskull', 'sableye', 'haunter', 'drifblim', 'spiritomb', 'cofagrigus', 'jellicent', 'litwick', 'lampent', 'pumpkaboo', 'phantump', 'mimikyu'] },
+		'Guitarist Josh': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/guitarist.png', dialog: "Get ready to hear the loudest battle of your life!", pool: ['jigglypuff', 'loudred', 'exploud', 'whismur', 'electrode', 'magnemite', 'toxtricity', 'rillaboom', 'obstagoon', 'noivern'] },
+		'Biker Rex': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/biker.png', dialog: "You picked the wrong biker to mess with, kid!", pool: ['weezing', 'koffing', 'grimer', 'muk', 'scyther', 'magmar', 'electabuzz', 'pinsir', 'hitmonchan', 'hitmonlee', 'machoke', 'jynx'] },
+		'Sailor Cid': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/sailor.png', dialog: "I've sailed every sea and battled every storm. You're nothing!", pool: ['poliwrath', 'machamp', 'dewgong', 'tentacruel', 'slowbro', 'seel', 'shellder', 'cloyster', 'lapras', 'kingler', 'seaking', 'gyarados'] },
 	},
 	'random_late': {
-		'Veteran Harold': { teamSize: 5, pool: ['snorlax', 'lapras', 'dragonite', 'arcanine', 'gyarados', 'aerodactyl', 'kangaskhan', 'tauros', 'starmie', 'exeggutor', 'slowbro', 'machamp', 'golem', 'alakazam', 'gengar'] },
-		'Ace Trainer Lara': { teamSize: 5, pool: ['garchomp', 'lucario', 'milotic', 'togekiss', 'roserade', 'gallade', 'electivire', 'magmortar', 'leafeon', 'glaceon', 'mamoswine', 'rhyperior', 'tangrowth', 'porygon-z', 'magnezone'] },
-		'Dragon Tamer Lance (Fan)': { teamSize: 5, pool: ['dragonite', 'salamence', 'flygon', 'haxorus', 'hydreigon', 'dragonair', 'altaria', 'goodra', 'kommo-o', 'dragapult', 'roaring-moon', 'iron-jugulis', 'cyclizar'] },
-		'Pokémon Master Felix': { teamSize: 6, pool: ['metagross', 'tyranitar', 'salamence', 'garchomp', 'dragonite', 'hydreigon', 'goodra', 'kommo-o', 'dragapult', 'volcarona', 'toxapex', 'ferrothorn', 'clefable', 'heatran', 'landorus'] },
-		'Socialite Elena': { teamSize: 5, pool: ['gardevoir', 'togekiss', 'sylveon', 'florges', 'primarina', 'ninetales', 'aromatisse', 'alcremie', 'dachsbun', 'hattrene', 'milotic', 'froslass', 'mismagius'] },
-		'Pokémon Ranger Sophia': { teamSize: 4, pool: ['arcanine', 'steelix', 'flygon', 'talonflame', 'braviary', 'lycanroc', 'bewear', 'stufful', 'mudsdale', 'drampa', 'tsareena', 'lurantis', 'salazzle'] },
-		'Battle Girl Maya': { teamSize: 4, pool: ['lucario', 'mienshao', 'hawlucha', 'medicham', 'toxicroak', 'conkeldurr', 'infernape', 'heracross', 'machamp', 'gallade', 'sirfetchd', 'falinks', 'annihilape'] },
-		'Veteran Trainer Mina': { teamSize: 6, pool: ['blissey', 'steelix', 'snorlax', 'lapras', 'dragonite', 'gyarados', 'clefable', 'kangaskhan', 'tauros', 'aerodactyl', 'arcanine', 'vaporeon', 'jolteon', 'flareon'] },
-		'Pokémon Professor Elm': { teamSize: 5, pool: ['ampharos', 'espeon', 'umbreon', 'steelix', 'feraligatr', 'meganium', 'typhlosion', 'azumarill', 'politoed', 'slowking', 'heracross', 'togekiss', 'blissey', 'scizor', 'kingdra'] },
-		'Collector Warren': { teamSize: 6, pool: ['kangaskhan', 'scyther', 'pinsir', 'tauros', 'lapras', 'snorlax', 'aerodactyl', 'heracross', 'miltank', 'shuckle', 'steelix', 'umbreon', 'espeon', 'blissey'] },
+		'Veteran Harold': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/veteran.png', dialog: "I've been battling since before you were born. Show some respect!", pool: ['snorlax', 'lapras', 'dragonite', 'arcanine', 'gyarados', 'aerodactyl', 'kangaskhan', 'tauros', 'starmie', 'exeggutor', 'slowbro', 'machamp', 'golem', 'alakazam', 'gengar'] },
+		'Ace Trainer Lara': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainerf.png', dialog: "I've dedicated everything to becoming the best. Let's see where you stand!", pool: ['garchomp', 'lucario', 'milotic', 'togekiss', 'roserade', 'gallade', 'electivire', 'magmortar', 'leafeon', 'glaceon', 'mamoswine', 'rhyperior', 'tangrowth', 'porygon-z', 'magnezone'] },
+		'Dragon Tamer Lance (Fan)': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/dragontamer.png', dialog: "The Lance of the Elite Four is my idol — and my dragons will match his!", pool: ['dragonite', 'salamence', 'flygon', 'haxorus', 'hydreigon', 'dragonair', 'altaria', 'goodra', 'kommo-o', 'dragapult', 'roaring-moon', 'iron-jugulis', 'cyclizar'] },
+		'Pokémon Master Felix': { teamSize: 6, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainer.png', dialog: "To be a Pokémon Master means never losing. I intend to keep that record!", pool: ['metagross', 'tyranitar', 'salamence', 'garchomp', 'dragonite', 'hydreigon', 'goodra', 'kommo-o', 'dragapult', 'volcarona', 'toxapex', 'ferrothorn', 'clefable', 'heatran', 'landorus'] },
+		'Socialite Elena': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lady.png', dialog: "Darling, my Pokémon are as exquisite as my taste. Prepare to be overwhelmed!", pool: ['gardevoir', 'togekiss', 'sylveon', 'florges', 'primarina', 'ninetales', 'aromatisse', 'alcremie', 'dachsbun', 'hattrene', 'milotic', 'froslass', 'mismagius'] },
+		'Pokémon Ranger Sophia': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/pokemonrangerf.png', dialog: "Rangers never back down from a challenge — especially to protect what we love!", pool: ['arcanine', 'steelix', 'flygon', 'talonflame', 'braviary', 'lycanroc', 'bewear', 'stufful', 'mudsdale', 'drampa', 'tsareena', 'lurantis', 'salazzle'] },
+		'Battle Girl Maya': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/battlegirl.png', dialog: "I train every day to push my limits. Come on, let's go!", pool: ['lucario', 'mienshao', 'hawlucha', 'medicham', 'toxicroak', 'conkeldurr', 'infernape', 'heracross', 'machamp', 'gallade', 'sirfetchd', 'falinks', 'annihilape'] },
+		'Veteran Trainer Mina': { teamSize: 6, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/veteranf.png', dialog: "Decades of experience have made me formidable. Don't take me lightly!", pool: ['blissey', 'steelix', 'snorlax', 'lapras', 'dragonite', 'gyarados', 'clefable', 'kangaskhan', 'tauros', 'aerodactyl', 'arcanine', 'vaporeon', 'jolteon', 'flareon'] },
+		'Pokémon Professor Elm': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/elm.png', dialog: "My research on Pokémon breeding has led to some very powerful teams!", pool: ['ampharos', 'espeon', 'umbreon', 'steelix', 'feraligatr', 'meganium', 'typhlosion', 'azumarill', 'politoed', 'slowking', 'heracross', 'togekiss', 'blissey', 'scizor', 'kingdra'] },
+		'Collector Warren': { teamSize: 6, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/collector.png', dialog: "I've spent a fortune collecting rare Pokémon — let me show you my prized collection!", pool: ['kangaskhan', 'scyther', 'pinsir', 'tauros', 'lapras', 'snorlax', 'aerodactyl', 'heracross', 'miltank', 'shuckle', 'steelix', 'umbreon', 'espeon', 'blissey'] },
 	},
 };
