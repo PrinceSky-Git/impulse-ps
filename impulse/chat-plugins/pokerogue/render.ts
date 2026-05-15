@@ -1,11 +1,10 @@
 import { Utils } from '../../../lib';
 import { Table } from '../../utils';
 import { nameColor } from '../customization/custom-color';
+import { MODE_REGISTRY, LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { SHOP_ITEMS } from './items';
-import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { savedData } from './state';
 import { expForLevel, getLevelUpMoves } from './pokemon';
-import { MODE_REGISTRY, LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 
 export function refreshGamePage(user: User): void {
 	for (const conn of user.connections) {
