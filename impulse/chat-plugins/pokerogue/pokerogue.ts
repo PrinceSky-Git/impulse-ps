@@ -1,7 +1,8 @@
 import { Utils } from '../../../lib';
 import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem } from './items';
-import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, MODE_CONFIGS, MODE_REGISTRY } from './types';
+import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
+import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { getState, setState, deleteState, savedData, saveAllData } from './state';
 import {
 	pickStarterOptions,
@@ -17,10 +18,6 @@ import {
 	startBattle, destroyBotUser,
 } from './battle';
 import { devCommands } from './dev-tools';
-
-const BP_PER_WIN = 5;
-const BP_PER_BOSS = 5;
-const STARTING_BP = 20;
 
 const EXP_SHARE_NAME = 'Exp. All';
 const LADDER_RESET_CONFIRM_WINDOW = 2 * 60 * 1000;
@@ -51,6 +48,7 @@ function processLevelUp(
 	evolved: boolean,
 	teamIdx: number,
 	state: PokeRogueState,
+	genNumber: number,
 ): string[] {
 	const detailMsgs: string[] = [];
 
@@ -63,11 +61,11 @@ function processLevelUp(
 		detailMsgs.push(`&nbsp;&nbsp;↳ <b>${currentName}</b> reached Lv. ${mon.level}!`);
 	}
 
-	if (!mon.moves) mon.moves = getLevelUpMoves(mon.species, oldLevel);
+	if (!mon.moves) mon.moves = getLevelUpMoves(mon.species, oldLevel, genNumber);
 
-	const newMoves = getMovesLearnedBetween(oldSpecies, oldLevel, mon.level);
+	const newMoves = getMovesLearnedBetween(oldSpecies, oldLevel, mon.level, false, genNumber);
 	if (evolved) {
-		const evoMoves = getMovesLearnedBetween(mon.species, oldLevel, mon.level, true);
+		const evoMoves = getMovesLearnedBetween(mon.species, oldLevel, mon.level, true, genNumber);
 		for (const m of evoMoves) if (!newMoves.includes(m)) newMoves.push(m);
 	}
 
@@ -294,8 +292,10 @@ function syncBattleOutcome(
 			const sid = toID(sw[2].trim());
 			const prev = itemSlotMap[slot];
 			if (prev !== undefined) itemAssigned.delete(prev);
+			const logBase = toID(Dex.species.get(sid).baseSpecies || sid);
 			for (let i = 0; i < state.team.length; i++) {
-				if (!itemAssigned.has(i) && toID(state.team[i].species) === sid) {
+				const teamBase = toID(Dex.species.get(state.team[i].species).baseSpecies || state.team[i].species);
+				if (!itemAssigned.has(i) && teamBase === logBase) {
 					itemSlotMap[slot] = i;
 					itemAssigned.add(i);
 					break;
@@ -324,7 +324,8 @@ function processBattleExperience(
 	state: PokeRogueState,
 	floor: number,
 	isBossFloor: boolean,
-	isTrainerBattle: boolean
+	isTrainerBattle: boolean,
+	config: ModeConfig
 ): string[] {
 	const detailMsgs: string[] = [];
 	const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(logLines, state, floor, isBossFloor, isTrainerBattle);
@@ -344,7 +345,7 @@ function processBattleExperience(
 			detailMsgs.push(`<b>${spName}</b> gained ${expGained} Exp.${sourceTag}`);
 
 			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor);
-			detailMsgs.push(...processLevelUp(mon, oldLevel, oldSpecies, evolved, teamIdx, state));
+			detailMsgs.push(...processLevelUp(mon, oldLevel, oldSpecies, evolved, teamIdx, state, config.generation || 9));
 		}
 	}
 
@@ -354,9 +355,9 @@ function processBattleExperience(
 function processFloorRewards(
 	state: PokeRogueState,
 	clearedFloor: number,
-	bossInterval: number
+	config: ModeConfig
 ): { bpGained: number, extraNotifs: string[] } {
-	let bpGained = clearedFloor >= 100 ? 10 : BP_PER_WIN;
+	let bpGained = (config.economy.doubleBpFloor && clearedFloor >= config.economy.doubleBpFloor) ? config.economy.bpPerWin * 2 : config.economy.bpPerWin;
 	const extraNotifs: string[] = [];
 
 	if (clearedFloor > (state.highestFloor ?? 0)) {
@@ -364,20 +365,35 @@ function processFloorRewards(
 		state.recordTeam = state.team.map(m => ({ ...m }));
 	}
 
-	if (clearedFloor % 50 === 0) {
-		state.inventory = state.inventory || {};
-		state.inventory.masterball = (state.inventory.masterball || 0) + 1;
-		extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received 1x Master Ball for clearing Floor ${clearedFloor}!</b></div>`);
+	if (config.milestoneRewards) {
+		for (const reward of config.milestoneRewards) {
+			const trigger = reward.interval ? clearedFloor % reward.floor === 0 : clearedFloor === reward.floor;
+			if (trigger) {
+				if (reward.itemType === 'keyItem') {
+					state.keyItems = state.keyItems ?? [];
+					let added = 0;
+					for (let i = 0; i < reward.amount; i++) {
+						if (reward.itemName === 'Exp. All' && state.keyItems.filter(k => k === 'Exp. All').length >= 5) continue;
+						if (reward.itemName === 'Exp. Charm' && state.keyItems.filter(k => k === 'Exp. Charm').length >= 99) continue;
+						if (reward.itemName !== 'Exp. All' && reward.itemName !== 'Exp. Charm' && state.keyItems.includes(reward.itemName)) continue;
+						state.keyItems.push(reward.itemName);
+						added++;
+					}
+					if (added > 0) {
+						extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received ${added}x ${reward.itemName} for clearing Floor ${clearedFloor}!</b></div>`);
+					}
+				} else if (reward.itemType === 'inventory') {
+					const ballType = reward.itemName.replace(' ', '').toLowerCase();
+					state.inventory = state.inventory || {};
+					state.inventory[ballType] = (state.inventory[ballType] || 0) + reward.amount;
+					extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received ${reward.amount}x ${reward.itemName} for clearing Floor ${clearedFloor}!</b></div>`);
+				}
+			}
+		}
 	}
 
-	if (clearedFloor === 10) {
-		state.keyItems = state.keyItems ?? [];
-		state.keyItems.push('Exp. Charm');
-		extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received 1x Exp. Charm for clearing Floor 10!</b></div>`);
-	}
-
-	if (isBossFloorBoundary(clearedFloor, bossInterval)) {
-		bpGained += clearedFloor >= 100 ? 10 : BP_PER_BOSS;
+	if (isBossFloorBoundary(clearedFloor, config.bossInterval)) {
+		bpGained += (config.economy.doubleBpFloor && clearedFloor >= config.economy.doubleBpFloor) ? config.economy.bpPerBoss * 2 : config.economy.bpPerBoss;
 		for (const mon of state.team) {
 			mon.currentHp = 100;
 			delete mon.status;
@@ -438,7 +454,7 @@ export const commands: Chat.ChatCommands = {
 					gameMode: 'classic',
 					currentBiome: defaultConfig.startingBiome,
 					team: [],
-					battlePoints: STARTING_BP,
+					battlePoints: defaultConfig.economy.startingBP,
 					timesRerolled: 0,
 					keyItems: ['Exp. Charm', 'Exp. All', 'Exp. All'],
 					inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
@@ -489,7 +505,7 @@ export const commands: Chat.ChatCommands = {
 				gameMode: finalMode,
 				currentBiome: config.startingBiome,
 				team: [],
-				battlePoints: STARTING_BP,
+				battlePoints: config.economy.startingBP,
 				timesRerolled: 0,
 				keyItems: ['Exp. Charm', 'Exp. All', 'Exp. All'],
 				inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
@@ -550,18 +566,19 @@ export const commands: Chat.ChatCommands = {
 			let trainerKey: string | null = null;
 			let selectedTrainer: string | null = null;
 
-			if (config.hasTrainers) {
-				const fixedWaves = new Set([5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200]);
+			if (config.hasTrainers && config.storyRouting) {
+				const fixedWaves = config.storyRouting.fixedTrainerWaves ? new Set(config.storyRouting.fixedTrainerWaves) : new Set();
 
 				if (fixedWaves.has(floor)) {
 					trainerKey = `fixed_${floor}`;
-				} else if (isBossFloor) {
-					if (!state.firstGymLeaderWave && (floor === 20 || floor === 30)) {
-						if (Math.random() < 0.5 || floor === 30) state.firstGymLeaderWave = floor;
+				} else if (isBossFloor && config.storyRouting.gymLeaderInterval) {
+					const firstWaves = config.storyRouting.firstGymLeaderWaves || [];
+					if (!state.firstGymLeaderWave && firstWaves.includes(floor)) {
+						if (Math.random() < 0.5 || floor === firstWaves[firstWaves.length - 1]) state.firstGymLeaderWave = floor;
 					}
-					if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % 30 === 0) {
-						const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / 30);
-						trainerKey = `gym_leader_tier_${Math.min(5, encounterNum)}`;
+					if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % config.storyRouting.gymLeaderInterval === 0) {
+						const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / config.storyRouting.gymLeaderInterval);
+						trainerKey = `gym_leader_tier_${Math.min(config.storyRouting.maxGymLeaderTier || 5, encounterNum)}`;
 					}
 				} else {
 					if (Math.random() < 0.15) {
@@ -659,7 +676,7 @@ export const commands: Chat.ChatCommands = {
 				} as PokemonEntry;
 			} else {
 				const finalExpType = getExpType(finalSpecies);
-				const initialMoves = getLevelUpMoves(finalSpecies, addedLevel);
+				const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
 				const natures = Dex.natures.all().map(n => n.name);
 				const hash = ((state.floor ?? 1) * 37) + (n * 13) + Dex.species.get(finalSpecies).id.length;
 				const displayNature = natures[hash % natures.length] ?? 'Hardy';
@@ -703,7 +720,7 @@ export const commands: Chat.ChatCommands = {
 				if (!state.pendingMoves?.length) return;
 				const pending = state.pendingMoves[0];
 				const mon = state.team[pending.pokemonIndex];
-				if (!mon.moves) mon.moves = getLevelUpMoves(mon.species, mon.level);
+				if (!mon.moves) mon.moves = getLevelUpMoves(mon.species, mon.level, MODE_CONFIGS[state.gameMode]?.generation || 9);
 				if (rest === 'skip') {
 					state.notification = `Your Pokémon gave up on learning <b>${Dex.moves.get(pending.move).name}</b>.`;
 				} else {
@@ -746,6 +763,7 @@ export const commands: Chat.ChatCommands = {
 					if (!dexItem.exists) return this.errorReply("Unknown item.");
 					state.pendingItemName = dexItem.name;
 					delete state.itemOptions;
+					delete state.purchasedItem;
 				}
 				break;
 			}
@@ -828,6 +846,7 @@ export const commands: Chat.ChatCommands = {
 					const hp = mon.currentHp ?? 100;
 
 					if (item.type === 'healHP') {
+						if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
 						if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
 						state.battlePoints -= item.cost;
 						let healAmt = 20;
@@ -872,6 +891,10 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't organize your team during a battle.");
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				return this.errorReply("Resolve pending choices first.");
+			}
 
 			const args = target.split(' ').map(s => s.trim());
 
@@ -911,6 +934,10 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't release Pokémon during a battle.");
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				return this.errorReply("Resolve pending choices first.");
+			}
 
 			const args = target.split(' ').map(s => s.trim());
 
@@ -1215,10 +1242,13 @@ export const commands: Chat.ChatCommands = {
 				const participantsStr = Array.from(p1Participants).join(',');
 				room.add(`|-message|PR_EXP|${p2Species}|${p2Level}|${participantsStr}`).update();
 
-				const moves = getLevelUpMoves(p2Species, p2Level);
+				const moves = getLevelUpMoves(p2Species, p2Level, config.generation);
 				const hpPct = Math.max(1, Math.round((p2Hp / p2MaxHp) * 100));
 				const natures = Dex.natures.all().map(n => n.name);
 				const randomNature = natures[Math.floor(Math.random() * natures.length)];
+
+				let caughtItem = '';
+				try { caughtItem = room.battle.p2.active[0]?.item || ''; } catch {}
 
 				const caught: any = {
 					species: p2Species,
@@ -1230,8 +1260,12 @@ export const commands: Chat.ChatCommands = {
 					ppLeft: moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					currentHp: hpPct,
 					evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+					ivs: { hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32), def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32), spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32) },
+					ability: (Dex.species.get(p2Species).abilities as any)['0'] || '',
 					ball: ballType,
 				};
+
+				if (caughtItem) caught.heldItem = caughtItem;
 
 				if (p2Status && p2Status !== 'none') {
 					caught.status = p2Status;
@@ -1324,6 +1358,10 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state) return;
 			if (state.battleRoomId) return this.errorReply("Can't manage items during a battle.");
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				return this.errorReply("Resolve pending choices first.");
+			}
 			const slot = parseInt(target.trim()) - 1;
 			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
 			const mon = state.team[slot];
@@ -1453,7 +1491,7 @@ export const handlers: Chat.Handlers = {
 		if (toID(winner) === match.userId) {
 			const isTrainerBattle = match.isTrainerBattle ?? false;
 
-			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle);
+			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle, config);
 
 			const prevFloor = state.floor;
 			state.floor++;
@@ -1477,7 +1515,7 @@ export const handlers: Chat.Handlers = {
 				state.currentBiome = config.startingBiome;
 			}
 
-			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor, config.bossInterval);
+			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor, config);
 
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;

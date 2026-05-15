@@ -1,6 +1,7 @@
 import { ObjectReadWriteStream } from '../../../lib/streams';
 import { StreamWorker } from '../../../lib/process-manager';
-import { type PokeRogueState, MODE_CONFIGS, MODE_REGISTRY } from './types';
+import { type PokeRogueState } from './types';
+import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import {
 	genAIPokemon, packAITeam, packTeam,
 	type AIPokemonSet, botLevel,
@@ -87,7 +88,7 @@ function createBotUser(playerId: string): User {
 					break;
 				} else if (line.startsWith('|error|[Invalid choice]')) {
 					setTimeout(() => {
-						void Rooms.get(roomidStr as RoomID)?.battle?.stream.write(`>p2 move 1`);
+						void Rooms.get(roomidStr as RoomID)?.battle?.stream.write(`>p2 default`);
 					}, 50);
 				}
 			}
@@ -97,52 +98,13 @@ function createBotUser(playerId: string): User {
 	return botUser;
 }
 
-// ─── Hardcoded Gen 9 Type Chart ───────────────────────────────────────────────
-// Values: 0 = immune, 0.5 = not very effective, 1 = neutral (omitted), 2 = super effective
-// Row = attacking type, Col = defending type
-
-const TYPES = [
-	'Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice',
-	'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug',
-	'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy',
-] as const;
-
-type TypeName = typeof TYPES[number];
-
-const TYPE_CHART: Record<TypeName, Partial<Record<TypeName, number>>> = {
-	Normal:   { Rock: 0.5, Ghost: 0, Steel: 0.5 },
-	Fire:     { Fire: 0.5, Water: 0.5, Grass: 2, Ice: 2, Bug: 2, Rock: 0.5, Dragon: 0.5, Steel: 2 },
-	Water:    { Fire: 2, Water: 0.5, Grass: 0.5, Ground: 2, Rock: 2, Dragon: 0.5 },
-	Electric: { Water: 2, Electric: 0.5, Grass: 0.5, Ground: 0, Flying: 2, Dragon: 0.5 },
-	Grass:    { Fire: 0.5, Water: 2, Grass: 0.5, Poison: 0.5, Ground: 2, Flying: 0.5, Bug: 0.5, Rock: 2, Dragon: 0.5, Steel: 0.5 },
-	Ice:      { Water: 0.5, Grass: 2, Ice: 0.5, Ground: 2, Flying: 2, Dragon: 2, Steel: 0.5 },
-	Fighting: { Normal: 2, Ice: 2, Poison: 0.5, Flying: 0.5, Psychic: 0.5, Bug: 0.5, Rock: 2, Ghost: 0, Dark: 2, Steel: 2, Fairy: 0.5 },
-	Poison:   { Grass: 2, Poison: 0.5, Ground: 0.5, Rock: 0.5, Ghost: 0.5, Steel: 0, Fairy: 2 },
-	Ground:   { Fire: 2, Electric: 2, Grass: 0.5, Poison: 2, Flying: 0, Bug: 0.5, Rock: 2, Steel: 2 },
-	Flying:   { Electric: 0.5, Grass: 2, Fighting: 2, Bug: 2, Rock: 0.5, Steel: 0.5 },
-	Psychic:  { Fighting: 2, Poison: 2, Psychic: 0.5, Dark: 0, Steel: 0.5 },
-	Bug:      { Fire: 0.5, Grass: 2, Fighting: 0.5, Flying: 0.5, Psychic: 2, Ghost: 0.5, Dark: 2, Steel: 0.5, Fairy: 0.5 },
-	Rock:     { Fire: 2, Ice: 2, Fighting: 0.5, Ground: 0.5, Flying: 2, Bug: 2, Steel: 0.5 },
-	Ghost:    { Normal: 0, Psychic: 2, Ghost: 2, Dark: 0.5 },
-	Dragon:   { Dragon: 2, Steel: 0.5, Fairy: 0 },
-	Dark:     { Fighting: 0.5, Psychic: 2, Ghost: 2, Dark: 0.5, Fairy: 0.5 },
-	Steel:    { Fire: 0.5, Water: 0.5, Electric: 0.5, Ice: 2, Rock: 2, Steel: 0.5, Fairy: 2 },
-	Fairy:    { Fire: 0.5, Fighting: 2, Poison: 0.5, Dragon: 2, Dark: 2, Steel: 0.5 },
-};
-
-/**
- * Returns the combined type multiplier for an attacking type against one or two defending types.
- * Handles dual-type defenders correctly (e.g. Water/Flying vs Electric = 2*0.5 = 1... wait, no:
- * Electric vs Water = 2, Electric vs Flying = 2, so combined = 4).
- * Immunities short-circuit immediately and return 0.
- */
-function getTypeMultiplier(atkType: string, defTypes: string[]): number {
-	const chart = TYPE_CHART[atkType as TypeName];
+function getTypeMultiplier(gen: number, atkType: string, defTypes: string[]): number {
 	let multiplier = 1;
 	for (const defType of defTypes) {
-		const val = chart?.[defType as TypeName] ?? 1;
-		if (val === 0) return 0; // immune — short-circuit
-		multiplier *= val;
+		const val = Dex.mod(`gen${gen}`).data.TypeChart[toID(defType)]?.damageTaken?.[atkType] ?? 0;
+		if (val === 3) return 0; // immune
+		if (val === 2) multiplier *= 0.5; // NVE
+		if (val === 1) multiplier *= 2; // SE
 	}
 	return multiplier;
 }
@@ -183,6 +145,7 @@ const SOUNDPROOF_MOVES = new Set([
 ]);
 
 function getMoveEffectiveness(
+	gen: number,
 	moveData: any,
 	targetDex: any,
 	targetAbility: string,
@@ -191,7 +154,7 @@ function getMoveEffectiveness(
 	const moveId = moveData.id as string;
 
 	if (targetAbility === 'wonderguard') {
-		const eff = getTypeMultiplier(moveType, targetDex.types);
+		const eff = getTypeMultiplier(gen, moveType, targetDex.types);
 		return eff > 1 ? eff : 0;
 	}
 
@@ -201,7 +164,7 @@ function getMoveEffectiveness(
 	const immuneTypes = ABILITY_IMMUNITIES[targetAbility];
 	if (immuneTypes && immuneTypes.includes(moveType)) return 0;
 
-	return getTypeMultiplier(moveType, targetDex.types);
+	return getTypeMultiplier(gen, moveType, targetDex.types);
 }
 
 function getStatCategoryModifier(moveData: any, pokemon: any): number {
@@ -217,12 +180,12 @@ function getStatCategoryModifier(moveData: any, pokemon: any): number {
 	}
 }
 
-function getDefensiveScore(switchInSpecies: string, oppMoveTypes: string[]): number {
+function getDefensiveScore(gen: number, switchInSpecies: string, oppMoveTypes: string[]): number {
 	const dex = Dex.species.get(switchInSpecies);
 	if (!dex.exists) return 0;
 	let score = 0;
 	for (const atkType of oppMoveTypes) {
-		const eff = getTypeMultiplier(atkType, dex.types);
+		const eff = getTypeMultiplier(gen, atkType, dex.types);
 		if (eff === 0) score += 3;
 		else if (eff < 1) score += 1;
 		else if (eff > 1) score -= 1.5;
@@ -246,6 +209,7 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
  * type effectiveness, recoil, multi-hit, and basic ability immunities.
  */
 function scoreMove(
+	gen: number,
 	move: any,
 	userSpecies: string,
 	targetSpecies: string,
@@ -265,7 +229,7 @@ function scoreMove(
 	const targetDex = Dex.species.get(targetSpecies);
 
 	const effectiveness = targetDex.exists ?
-		getMoveEffectiveness(moveData, targetDex, targetAbility) :
+		getMoveEffectiveness(gen, moveData, targetDex, targetAbility) :
 		1;
 
 	if (effectiveness === 0) return -Infinity;
@@ -479,6 +443,7 @@ function getOpponentSpecies(room: AnyObject | null | undefined, slot: number): s
 }
 
 function shouldSwitch(
+	gen: number,
 	request: any,
 	activeIdx: number,
 	targetSpecies: string,
@@ -506,7 +471,7 @@ function shouldSwitch(
 	for (const m of usableMoves) {
 		const moveData = Dex.moves.get(m.id);
 		if (!moveData.exists || moveData.category === 'Status') continue;
-		const eff = targetDex.exists ? getMoveEffectiveness(moveData, targetDex, targetAbility) : 1;
+		const eff = targetDex.exists ? getMoveEffectiveness(gen, moveData, targetDex, targetAbility) : 1;
 		if (eff > bestMoveScore) bestMoveScore = eff;
 	}
 
@@ -515,7 +480,7 @@ function shouldSwitch(
 	let worstIncomingEff = 1;
 	if (targetDex.exists && userDex.exists) {
 		for (const atkType of targetDex.types) {
-			const eff = getTypeMultiplier(atkType, userDex.types);
+			const eff = getTypeMultiplier(gen, atkType, userDex.types);
 			if (eff > worstIncomingEff) worstIncomingEff = eff;
 		}
 	}
@@ -545,12 +510,12 @@ function shouldSwitch(
 		const benchDex = Dex.species.get(benchSpecies);
 		let score = 0;
 
-		score += getDefensiveScore(benchSpecies, oppMoveTypes) * 1.5;
+		score += getDefensiveScore(gen, benchSpecies, oppMoveTypes) * 1.5;
 
 		// Offensive coverage against the current opponent
 		if (benchDex.exists && targetDex.exists) {
 			for (const atkType of benchDex.types) {
-				const eff = getTypeMultiplier(atkType, targetDex.types);
+				const eff = getTypeMultiplier(gen, atkType, targetDex.types);
 				if (eff > 1) score += eff * 2;
 			}
 		}
@@ -559,7 +524,7 @@ function shouldSwitch(
 
 		if (targetDex.exists && benchDex.exists) {
 			for (const atkType of targetDex.types) {
-				const eff = getTypeMultiplier(atkType, benchDex.types);
+				const eff = getTypeMultiplier(gen, atkType, benchDex.types);
 				if (eff >= 2) score -= 3;
 				if (eff === 0) score += 2;
 			}
@@ -597,7 +562,7 @@ export function clearMoveHistory(roomid: string): void {
 	recentMoveHistory.delete(roomid);
 }
 
-function makeAIChoice(requestJson: string, roomid: string, turn: number): string {
+function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: number, config: any): string {
 	let request: any;
 	try {
 		request = JSON.parse(requestJson.startsWith('|request|') ? requestJson.slice(9) : requestJson);
@@ -671,7 +636,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			const targetSpecies = getOpponentSpecies(room, i);
 			const targetAbility = getOpponentAbility(room, i);
 
-			const switchIdx = shouldSwitch(request, i, targetSpecies, targetAbility, room, chosenSwitchTargets);
+			const switchIdx = shouldSwitch(gen, request, i, targetSpecies, targetAbility, room, chosenSwitchTargets);
 			if (switchIdx > 0) {
 				chosenSwitchTargets.push(switchIdx);
 				choicesList.push(`switch ${switchIdx}`);
@@ -689,7 +654,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			const battleCtx = getBattleContext(room, i, pokemon);
 
 			const scored = usableMoves.map((m: any) => {
-				let score = scoreMove(m, userSpecies, targetSpecies, targetAbility, pokemon, turn, battleCtx);
+				let score = scoreMove(gen, m, userSpecies, targetSpecies, targetAbility, pokemon, turn, battleCtx);
 
 				// Softer repetition penalty; skip entirely if only 1 PP left (forced)
 				const pp = m.pp ?? 99;
@@ -730,9 +695,9 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 			}
 
 			// Only append battle mechanic suffixes to move choices, never to switches
-			if (active.canMegaEvo) {
+			if (active.canMegaEvo && config.mechanicUnlocks?.mega && currentFloor >= config.mechanicUnlocks.mega) {
 				chosen += ' mega';
-			} else if (active.canTerastallize && currentFloor > 25) {
+			} else if (active.canTerastallize && config.mechanicUnlocks?.terastallize && currentFloor >= config.mechanicUnlocks.terastallize) {
 				const targetDex = Dex.species.get(targetSpecies);
 				const userDex = Dex.species.get(userSpecies);
 
@@ -740,7 +705,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 				let teraDefensiveOk = true;
 				if (teraType && targetDex.exists) {
 					for (const atkType of targetDex.types) {
-						const eff = getTypeMultiplier(atkType, [teraType]);
+						const eff = getTypeMultiplier(gen, atkType, [teraType]);
 						if (eff >= 2) { teraDefensiveOk = false; break; }
 					}
 				}
@@ -753,7 +718,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number): string
 				let worstIncoming = 1;
 				if (targetDex.exists && userDex.exists) {
 					for (const atkType of targetDex.types) {
-						const eff = getTypeMultiplier(atkType, userDex.types);
+						const eff = getTypeMultiplier(gen, atkType, userDex.types);
 						if (eff > worstIncoming) worstIncoming = eff;
 					}
 				}
@@ -862,7 +827,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	}
 
 	const botSlot = 'p2' as const;
-	const format = state.floor >= 15 ? '[Gen 9] PokeRogue' : '[Gen 9] PokeRogue Early';
+	const format = config.baseFormat;
 
 	let battleRoom: AnyObject | null = null;
 	try {
@@ -892,11 +857,14 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		if (!room?.battle) return;
 
 		const match = activeMatches.get(roomid as RoomID);
+		let gen = 9;
+		let activeConfig: any = MODE_CONFIGS['classic'];
 		if (match) {
 			const activeState = getState(match.userId);
 			if (activeState) {
 				// Use the dynamic config boss interval here as well
-				const activeConfig = MODE_CONFIGS[activeState.gameMode] || MODE_CONFIGS['classic'];
+				activeConfig = MODE_CONFIGS[activeState.gameMode] || MODE_CONFIGS['classic'];
+				gen = activeConfig.generation || 9;
 				if (activeState.floor % activeConfig.bossInterval !== 0 && !match.isTrainerBattle) {
 					const turn = room.battle.turn || 0;
 
@@ -929,7 +897,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		}
 
 		const turn = room.battle.turn || 0;
-		const choice = makeAIChoice(requestLine, roomid, turn);
+		const choice = makeAIChoice(requestLine, roomid, turn, gen, activeConfig);
 		void room.battle.stream.write(`>${botSlot} ${choice}`);
 	});
 

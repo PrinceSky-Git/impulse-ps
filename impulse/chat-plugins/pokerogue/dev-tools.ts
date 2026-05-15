@@ -3,7 +3,6 @@ import { getLevelUpEvo, getExpType, getLevelUpMoves, expForLevel } from './pokem
 import { type PokeRogueState, type PokemonEntry } from './types';
 import { nameColor } from '../customization/custom-color';
 
-const STARTING_BP = 20;
 const LADDER_RESET_CONFIRM_WINDOW = 2 * 60 * 1000;
 const pendingLadderResetConfirmations = new Map<ID, number>();
 
@@ -72,7 +71,7 @@ export const devCommands: Chat.ChatCommands = {
 			s = {
 				floor: 1,
 				team: [],
-				battlePoints: STARTING_BP,
+				battlePoints: 20,
 				timesRerolled: 0,
 				rotationalShop: [],
 				keyItems: [],

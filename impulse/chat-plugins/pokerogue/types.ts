@@ -1,10 +1,3 @@
-import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from './mods/classic/biomes';
-import { TRAINERS as ClassicTrainers } from './mods/classic/trainers';
-
-// IMPORTANT: Create these files to support the Gen 1 mode, or comment these out temporarily!
-/*import { BIOMES as Gen1Biomes, BIOME_TRANSITIONS as Gen1Transitions } from './pokemon-biomes-gen1';
-import { TRAINERS as Gen1Trainers } from './pokemon-trainers-gen1';*/
-
 export const LEGENDARY_TAGS = new Set<string>([
 	'Sub-Legendary', 'Restricted Legendary', 'Mythical', 'Ultra Beast', 'Paradox',
 ]);
@@ -25,6 +18,35 @@ export interface ModeConfig {
 	townEscapeFloor: number;
 	startingBiome: string;
 	endlessFloorRange?: { start: number, end: number };
+
+	// Core Engine Rules
+	generation: number;
+	baseFormat: string;
+
+	// Economy & Pacing
+	economy: {
+		startingBP: number;
+		bpPerWin: number;
+		bpPerBoss: number;
+		doubleBpFloor?: number;
+	};
+
+	// Story Routing
+	storyRouting?: {
+		fixedTrainerWaves?: number[];
+		gymLeaderInterval?: number;
+		maxGymLeaderTier?: number;
+		firstGymLeaderWaves?: number[];
+	};
+
+	// Feature Unlocks
+	mechanicUnlocks?: {
+		terastallize?: number;
+		mega?: number;
+	};
+
+	// Item Milestones
+	milestoneRewards?: { floor: number, interval: boolean, itemType: string, itemName: string, amount: number }[];
 }
 
 // The Data Registry interface
@@ -35,100 +57,6 @@ export interface ModeData {
 	starters: string[];
 	excludedBiomes?: string[];
 }
-
-// --- Mode-Specific Starter Pools ---
-
-const CLASSIC_STARTERS = [
-	'bulbasaur', 'charmander', 'squirtle', 'pikachu', 'eevee',
-	'chikorita', 'cyndaquil', 'totodile',
-	'treecko', 'torchic', 'mudkip',
-	'turtwig', 'chimchar', 'piplup',
-	'snivy', 'tepig', 'oshawott',
-	'chespin', 'fennekin', 'froakie',
-	'rowlet', 'litten', 'popplio',
-	'grookey', 'scorbunny', 'sobble',
-	'sprigatito', 'fuecoco', 'quaxly',
-];
-
-const GEN1_STARTERS = [
-	'bulbasaur', 'charmander', 'squirtle', 'pikachu', 'eevee',
-];
-
-// Map the modes to their specific rulesets
-export const MODE_CONFIGS: Record<GameMode, ModeConfig> = {
-	classic: {
-		biomeRotationInterval: 10,
-		bossInterval: 10,
-		hasTrainers: true,
-		randomizeMoves: false,
-		randomizeAbilities: false,
-		townEscapeFloor: 10,
-		startingBiome: 'Town',
-		endlessFloorRange: { start: 191, end: 200 },
-	},
-	endless: {
-		biomeRotationInterval: 5,
-		bossInterval: 10,
-		hasTrainers: false,
-		randomizeMoves: false,
-		randomizeAbilities: false,
-		townEscapeFloor: 5,
-		startingBiome: 'Town',
-		// No endlessFloorRange — endless mode has no Endless biome override
-	},
-	random: {
-		biomeRotationInterval: 10,
-		bossInterval: 10,
-		hasTrainers: true,
-		randomizeMoves: true,
-		randomizeAbilities: true,
-		townEscapeFloor: 10,
-		startingBiome: 'Town',
-		endlessFloorRange: { start: 191, end: 200 },
-	},
-	/*gen1: {
-		biomeRotationInterval: 10,
-		bossInterval: 10,
-		hasTrainers: true,
-		randomizeMoves: false,
-		randomizeAbilities: false,
-		townEscapeFloor: 10,
-		startingBiome: 'Town',
-		endlessFloorRange: { start: 191, end: 200 },
-	},*/
-};
-
-// Map the modes to their specific content cartridges
-export const MODE_REGISTRY: Record<GameMode, ModeData> = {
-	classic: {
-		biomes: ClassicBiomes,
-		transitions: ClassicTransitions,
-		trainers: ClassicTrainers,
-		starters: CLASSIC_STARTERS,
-		excludedBiomes: ['Endless'],
-	},
-	endless: {
-		biomes: ClassicBiomes,
-		transitions: ClassicTransitions,
-		trainers: {},
-		starters: CLASSIC_STARTERS,
-		// No excludedBiomes — endless mode uses all biome pools
-	},
-	random: {
-		biomes: ClassicBiomes,
-		transitions: ClassicTransitions,
-		trainers: ClassicTrainers,
-		starters: CLASSIC_STARTERS,
-		excludedBiomes: ['Endless'],
-	},
-	/*gen1: {
-		biomes: Gen1Biomes,
-		transitions: Gen1Transitions,
-		trainers: Gen1Trainers,
-		starters: GEN1_STARTERS,
-		excludedBiomes: ['Endless'],
-	},*/
-};
 
 // --- Core Data Structures ---
 

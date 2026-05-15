@@ -13,16 +13,16 @@ export function saveAllData(): void {
 	saveData();
 }
 
-async function loadData(): Promise<void> {
+function loadData(): void {
 	try {
-		const raw = await FS(DATA_FILE).readIfExists();
+		const raw = FS(DATA_FILE).readIfExistsSync();
 		if (raw) savedData = JSON.parse(raw);
 	} catch {
 		savedData = {};
 	}
 }
 
-void loadData();
+loadData();
 
 export function getState(userid: string): PokeRogueState | null {
 	return savedData[userid] ?? null;

@@ -117,8 +117,7 @@ export function calcKillExp(
 	return Math.max(1, expValue);
 }
 
-export function getLevelUpMoves(speciesId: string, level: number): string[] {
-	let genNumber = 9;
+export function getLevelUpMoves(speciesId: string, level: number, genNumber = 9): string[] {
 	const id = toID(speciesId);
 	while (genNumber > 1) {
 		if (Dex.mod(`gen${genNumber}`).species.get(id).isNonstandard) {
@@ -149,7 +148,7 @@ export function getLevelUpMoves(speciesId: string, level: number): string[] {
 	return viableMoves.slice(-4);
 }
 
-export function getMovesLearnedBetween(speciesId: string, oldLevel: number, newLevel: number, isEvolution = false): string[] {
+export function getMovesLearnedBetween(speciesId: string, oldLevel: number, newLevel: number, isEvolution = false, genNumber = 9): string[] {
 	const id = toID(speciesId);
 	const sp = Dex.species.get(id);
 	const learnsetData = Dex.species.getLearnsetData(id);
@@ -160,9 +159,10 @@ export function getMovesLearnedBetween(speciesId: string, oldLevel: number, newL
 	if (!learnset) return [];
 
 	const learned: string[] = [];
+	const regex = new RegExp(`^${genNumber}L(\\d+)$`);
 	for (const [moveid, sources] of Object.entries(learnset)) {
 		for (const src of sources) {
-			const match = /^9L(\d+)$/.exec(src);
+			const match = regex.exec(src);
 			if (match) {
 				const learnLvl = parseInt(match[1]);
 				if (learnLvl > oldLevel && learnLvl <= newLevel) learned.push(moveid);
@@ -317,7 +317,7 @@ function calculateEffectivePower(move: Move): number {
 
 function pickBestMoves(speciesId: string, chosenLevel: number, genNumber: number, floor: number, config?: ModeConfig): string[] {
 	if (config?.randomizeMoves) {
-		const allMoves = Dex.moves.all().filter(m => !m.isNonstandard && m.category !== 'Status');
+		const allMoves = Dex.moves.all().filter(m => !m.isNonstandard && m.category !== 'Status' && !m.isZ && !m.isMax && m.id !== 'struggle');
 		const randomMoves: string[] = [];
 		for (let i = 0; i < 4; i++) {
 			randomMoves.push(allMoves[Math.floor(Math.random() * allMoves.length)].id);
@@ -693,7 +693,7 @@ export function genPokemon(
 
 		const finalSpecie = Dex.species.get(finalSpeciesId);
 
-		let genNumber = 9;
+		let genNumber = config?.generation || 9;
 		const speciesIdForGen = toID(finalSpecie.name);
 		while (genNumber > 1) {
 			if (Dex.mod(`gen${genNumber}`).species.get(speciesIdForGen).isNonstandard) {

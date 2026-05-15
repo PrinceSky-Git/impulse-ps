@@ -1,7 +1,8 @@
 import { Utils } from '../../../lib';
 import { Table } from '../../utils';
 import { nameColor } from '../customization/custom-color';
-import { MODE_REGISTRY, LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
+import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
+import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS } from './items';
 import { savedData } from './state';
 import { expForLevel, getLevelUpMoves } from './pokemon';
@@ -195,7 +196,7 @@ function renderHpBar(mon: PokemonEntry): string {
 		`</div>`;
 }
 
-function renderTeamTableRow(mon: PokemonEntry, actionButton?: string): string {
+function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber = 9): string {
 	const spData = Dex.species.get(toID(mon.species));
 	const expNeeded = mon.level < 9999 ? expForLevel(mon.level + 1) - mon.exp : 0;
 	const abilities = spData.abilities as Record<string, string>;
@@ -209,7 +210,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string): string {
 	}
 
 	const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-	const moves: string[] = mon.moves?.length ? mon.moves : getLevelUpMoves(toID(mon.species), mon.level);
+	const moves: string[] = mon.moves?.length ? mon.moves : getLevelUpMoves(toID(mon.species), mon.level, genNumber);
 
 	let buf = `<tr class="pr-team-row">`;
 	buf += `<td class="pr-td-icon" style="vertical-align:top;padding-top:10px">${getSpriteWithBall(mon.species, 44, mon.ball)}</td>`;
@@ -329,7 +330,8 @@ function renderPendingChoice(state: PokeRogueState): string {
 		const ability = (abilities as unknown as Record<string, string>)['0'] || 'Unknown';
 		const hash = ((state.floor ?? 1) * 37) + (i * 13) + sp.id.length;
 		const nature = natures[hash % natures.length] ?? 'Hardy';
-		const displayMoves = getLevelUpMoves(sp.id, 5);
+		const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
+		const displayMoves = getLevelUpMoves(sp.id, 5, genNumber);
 
 		let flexHtml = `<div class="pr-ct-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${sp.name}${isLeg ? ` <span class="pr-legendary-badge">Legendary</span>` : ''}</div>`;
 		flexHtml += `<div class="pr-types">${renderTypeBadge(sp.types ?? [])}</div><div class="pr-ct-stats">`;
@@ -575,6 +577,8 @@ function renderMainView(state: PokeRogueState, user: User): string {
 	buf += `<div class="pr-table-container"><table class="pr-table">`;
 	buf += `<thead><tr><th colspan="2">Pokémon</th><th style="text-align:right">Action</th></tr></thead><tbody>`;
 
+	const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
+
 	for (let i = 0; i < state.team.length; i++) {
 		const mon = state.team[i];
 		const hp = mon.currentHp ?? 100;
@@ -610,7 +614,7 @@ function renderMainView(state: PokeRogueState, user: User): string {
 			actionBtn += renderBtn(`/pokerogue releasemon ${i + 1}`, 'Release', 'pr-shop-buy', "display:block;width:100%;box-sizing:border-box;");
 		}
 
-		buf += renderTeamTableRow(mon, actionBtn);
+		buf += renderTeamTableRow(mon, actionBtn, genNumber);
 	}
 
 	buf += `</tbody></table></div>`;
