@@ -18,6 +18,8 @@ export interface ModeConfig {
 	townEscapeFloor: number;
 	startingBiome: string;
 	endlessFloorRange?: { start: number, end: number };
+	
+	starterLevel?: number;
 
 	// Core Engine Rules
 	generation: number;
@@ -64,7 +66,6 @@ export interface ModeData {
 
 export interface PokemonEntry {
 	species: string;
-	ability?: string;
 	level: number;
 	exp: number;
 	expType?: string;
@@ -76,6 +77,7 @@ export interface PokemonEntry {
 	ball?: string;
 	nature?: string;
 	evs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
+	ability?: string;
 }
 
 /* * Dev Note: Trainer Progression State
