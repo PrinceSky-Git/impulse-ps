@@ -537,17 +537,14 @@ export function genAIPokemon(
 	config?: ModeConfig,
 	data?: ModeData
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
-	const scale = levelScaleForFloor(floor);
-
+	const scale = getLevelScaling(floor, config);
 	const bossInterval = config?.bossInterval || 10;
 	const isBossFloor = floor % bossInterval === 0;
 
-	let effectiveScale: [number, number] = scale;
+	// Use our unified scaling helper. If it's a boss floor, getLevelScaling forces cap.
+	let effectiveScale: [number, number] = [scale.min, scale.max];
 	if (isBossFloor) {
-		const waveIndex = Math.ceil(Math.max(1, floor) / 10) * 10;
-		const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
-		const cap = Math.max(2, Math.ceil(baseLevel / 2) * 2 + 2);
-		effectiveScale = [cap, cap];
+		effectiveScale = [scale.cap, scale.cap];
 	}
 
 	let forcedTeam: (string | TrainerMon)[] | undefined = undefined;
@@ -827,23 +824,34 @@ export function genPokemon(
 	return gennedMons;
 }
 
-export function levelScaleForFloor(floor: number): [number, number] {
+// Unified Level Scaling Logic!
+export function getLevelScaling(floor: number, config?: ModeConfig): { cap: number, min: number, max: number } {
+	// 1. Modder Override
+	if (config?.levelScalingFn) {
+		return config.levelScalingFn(floor);
+	}
+
+	// 2. Original PokéRogue Default Fallback
 	const waveIndex = Math.ceil(Math.max(1, floor) / 10) * 10;
 	const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
-	const cap = Math.ceil(baseLevel / 2) * 2 + 2;
-	const clampedCap = Math.max(2, cap);
+	const cap = Math.max(2, Math.ceil(baseLevel / 2) * 2 + 2);
 
 	if (floor % 10 === 0) {
-		return [clampedCap, clampedCap];
+		// Boss floors are always exactly at the cap
+		return { cap, min: cap, max: cap };
 	}
 
 	const currentBase = (1 + floor / 2 + (floor / 25) ** 2) * 1.2;
 	const currentTargetLevel = Math.ceil(currentBase / 2) * 2;
+	const min = Math.max(2, currentTargetLevel - 1);
+	const max = Math.max(min, Math.min(cap - 1, currentTargetLevel + 1));
 
-	const minLevel = Math.max(2, currentTargetLevel - 1);
-	const maxLevel = Math.max(minLevel, Math.min(clampedCap - 1, currentTargetLevel + 1));
+	return { cap, min, max };
+}
 
-	return [minLevel, maxLevel];
+export function levelScaleForFloor(floor: number, config?: ModeConfig): [number, number] {
+	const scaling = getLevelScaling(floor, config);
+	return [scaling.min, scaling.max];
 }
 
 export function pickStarterOptions(availableStarters: string[]): string[] {
@@ -879,15 +887,14 @@ export function getLevelUpEvo(speciesId: string): { evoTo: string, evoLevel: num
 export function applyExpAndLevelUp(
 	mon: PokemonEntry,
 	expGained: number,
-	currentFloor = 100
+	currentFloor = 100,
+	config?: ModeConfig
 ): { evolved: boolean, oldLevel: number } {
 	const oldLevel = mon.level;
 
-	const bracketFloor = Math.ceil(currentFloor / 10) * 10;
-
-	const waveIndex = Math.ceil(Math.max(1, bracketFloor) / 10) * 10;
-	const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
-	const levelCap = Math.min(10000, Math.ceil(baseLevel / 2) * 2 + 2);
+	// Use the central scaling helper to fetch the exact absolute cap for the zone!
+	const scaling = getLevelScaling(currentFloor, config);
+	const levelCap = Math.min(10000, scaling.cap);
 
 	if (mon.level >= levelCap) {
 		return { evolved: false, oldLevel };
@@ -916,8 +923,8 @@ export function applyExpAndLevelUp(
 	return { evolved, oldLevel };
 }
 
-export function botLevel(floor: number): number {
-	const [minLevel] = levelScaleForFloor(floor);
+export function botLevel(floor: number, config?: ModeConfig): number {
+	const [minLevel] = levelScaleForFloor(floor, config);
 	return minLevel;
 }
 

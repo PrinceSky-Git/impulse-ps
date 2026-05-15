@@ -344,7 +344,8 @@ function processBattleExperience(
 
 			detailMsgs.push(`<b>${spName}</b> gained ${expGained} Exp.${sourceTag}`);
 
-			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor);
+			// Pass the dynamically routed config here to enforce level caps!
+			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor, config);
 			detailMsgs.push(...processLevelUp(mon, oldLevel, oldSpecies, evolved, teamIdx, state, config.generation || 9));
 		}
 	}
@@ -1100,7 +1101,10 @@ export const commands: Chat.ChatCommands = {
 
 			const log = room.log?.log || [];
 			let p2Species = '';
-			let p2Level = botLevel(floor);
+			
+			// Passed config to botLevel here so wild encounters catch levels correctly!
+			let p2Level = botLevel(floor, config);
+			
 			let p2Hp = -1;
 			let p2MaxHp = 100;
 			let p2Status = '';
@@ -1246,7 +1250,6 @@ export const commands: Chat.ChatCommands = {
 				let caughtAbility = (Dex.species.get(p2Species).abilities as any)['0'] || '';
 				let caughtItem = '';
 
-				// FIX: Read directly from the generated bot team saved in activeMatches
 				if (catchMatch.botTeam) {
 					const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
 					if (botMon) {
