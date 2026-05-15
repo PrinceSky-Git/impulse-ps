@@ -1551,7 +1551,7 @@ export class Pokemon {
 	}
 
 	updateMaxHp() {
-		const newBaseMaxHp = this.battle.statModify(this.species.baseStats, this.set, 'hp');
+		let newBaseMaxHp = this.battle.statModify(this.species.baseStats, this.set, 'hp');
 		// --- CUSTOM HPX MODIFIER START ---
 		if ((this.set as any).hpMultiplier) {
 			newBaseMaxHp = Math.floor(newBaseMaxHp * (this.set as any).hpMultiplier);
