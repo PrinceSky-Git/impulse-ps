@@ -2,7 +2,7 @@ import { type PokemonEntry } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
 import { BOSSES } from './pokemon-bosses-data';
 import { TRAINERS, type TrainerMon } from './pokemon-trainers-data';
-import { BIOMES, BIOME_POOL } from './pokemon-biomes-data';
+import { BIOMES, BIOME_POOL, getDisplayBiome } from './pokemon-biomes-data';
 
 export { TRAINERS };
 
@@ -591,7 +591,8 @@ export function genPokemon(
 	floor = 1,
 	isBossFloor?: boolean,
 	luck = 0,
-	forcedSpeciesPool?: (string | TrainerMon)[]
+	forcedSpeciesPool?: (string | TrainerMon)[],
+	currentBiome: string = 'Town'
 ): AIPokemonSet[] {
 	let minLevel: number;
 	let maxLevel: number;
@@ -863,7 +864,8 @@ export function genAIPokemon(
 	floor = 1,
 	luck = 0,
 	forcedTrainer?: string,
-	trainerKey?: string
+	trainerKey?: string,
+	currentBiome: string = 'Town'
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
 	const scale = levelScaleForFloor(floor);
 	const isBossFloor = floor % 10 === 0;
