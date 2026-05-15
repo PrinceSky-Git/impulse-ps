@@ -23,6 +23,7 @@ Add the following tags to your Pokémon's nickname in the Teambuilder:
 | `[H:XX]` | Sets starting HP %. Replace `XX` with a number between `0` and `100`. |
 | `[S:xxx]` | Sets starting Status Condition. Replace `xxx` with a valid 3-letter code (see below). |
 | `[BST: a,b,c,d,e]` | Increases Base Stats by a percentage. Formatted as `Atk, Def, SpA, SpD, Spe`. Example: `[BST: 10,0,-10,50,0]` increases Atk by 10%, lowers SpA by 10%, increases SpD by 50%, and leaves others untouched. |
+| `[HPX: XX]` | Multiplies the Pokémon's calculated Max HP by this integer. Example: `[HPX: 10]` gives the Pokémon 10x normal HP. |
 
 ### Status Codes
 
@@ -37,9 +38,9 @@ Add the following tags to your Pokémon's nickname in the Teambuilder:
 
 > **Important:** To use these tags in the public teambuilder, you *must* use the Parentheses format so the client knows it's a nickname:
 > ```
-> Nickname [H:XX] [S:xxx] [BST: a,b,c,d,e] (Species) @ Item
+> Nickname [H:XX] [S:xxx] [BST: a,b,c,d,e] [HPX: XX] (Species) @ Item
 > ```
-> Alternatively, if you are importing a text file directly, you can use the standard export format by adding `HP: XX%`, `Status: xxx`, and `BST: a, b, c, d, e` on their own individual lines within the Pokémon's set.
+> Alternatively, if you are importing a text file directly, you can use the standard export format by adding `HP: XX%`, `Status: xxx`, `BST: a, b, c, d, e` and `HPX: XX` on their own individual lines within the Pokémon's set.
 
 - --
 
@@ -105,7 +106,7 @@ Jolly Nature
 
 - --
 
-### 4. The Boss Monster (Custom Base Stats)
+### 4. The Raid Boss (Custom Base Stats)
 
 Give a standard Snorlax +50% Base Attack and Defense, making it a terrifying physical wall:
 
@@ -122,6 +123,24 @@ Impish Nature
 ```
 
 > In-battle result: Sent out as Raid Boss. Its Base Attack and Base Defense are increased by 50%. These boosts will seamlessly re-apply if the Pokémon transforms, Mega Evolves, or changes forms mid-battle!
+
+- --
+
+### 5. The Raid Boss (HPX)
+
+```text
+Raid Boss [HPX: 10] (Snorlax) @ Figy Berry
+Ability: Gluttony
+EVs: 252 HP / 252 Def / 4 SpD
+Impish Nature
+- Curse
+- Body Slam
+- Earthquake
+- Rest
+
+```
+
+> in-battle result: If Snorlax normally has 500 HP, [HPX: 10] sets its Max HP to 5,000. If you combined it with [H: 50], it would start the battle at 2,500 HP!
 
 - --
 
