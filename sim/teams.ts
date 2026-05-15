@@ -118,6 +118,8 @@ export interface PokemonSet {
 	hp?: number;
 	/** Starting Status condition */
 	status?: string;
+	/** Custom Base Stat % Boosts */
+	bstBoosts?: { atk: number, def: number, spa: number, spd: number, spe: number };
 }
 
 export const Teams = new class Teams {
@@ -205,7 +207,7 @@ export const Teams = new class Teams {
 
 			if (set.pokeball || set.hpType || set.gigantamax ||
 				(set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10) || set.teraType ||
-				(set.hp !== undefined && set.hp !== 100) || set.status) {
+				(set.hp !== undefined && set.hp !== 100) || set.status || set.bstBoosts) {
 				buf += `,${set.hpType || ''}`;
 				buf += `,${this.packName(set.pokeball || '')}`;
 				buf += `,${set.gigantamax ? 'G' : ''}`;
@@ -213,6 +215,13 @@ export const Teams = new class Teams {
 				buf += `,${set.teraType || ''}`;
 				buf += `,${set.hp !== undefined && set.hp !== 100 ? set.hp : ''}`;
 				buf += `,${set.status || ''}`;
+				
+				// --- CUSTOM BST BOOST PACKING ---
+				if (set.bstBoosts) {
+					buf += `,${set.bstBoosts.atk}:${set.bstBoosts.def}:${set.bstBoosts.spa}:${set.bstBoosts.spd}:${set.bstBoosts.spe}`;
+				} else {
+					buf += `,`;
+				}
 			}
 		}
 
@@ -333,9 +342,9 @@ export const Teams = new class Teams {
 			j = buf.indexOf(']', i);
 			let misc;
 			if (j < 0) {
-				if (i < buf.length) misc = buf.substring(i).split(',', 8);
+				if (i < buf.length) misc = buf.substring(i).split(',', 9);
 			} else {
-				if (i !== j) misc = buf.substring(i, j).split(',', 8);
+				if (i !== j) misc = buf.substring(i, j).split(',', 9);
 			}
 			if (misc) {
 				set.happiness = (misc[0] ? Number(misc[0]) : 255);
@@ -346,6 +355,18 @@ export const Teams = new class Teams {
 				set.teraType = misc[5];
 				if (misc[6]) set.hp = Number(misc[6]);
 				if (misc[7]) set.status = misc[7];
+				
+				// --- CUSTOM BST BOOST UNPACKING ---
+				if (misc[8]) {
+					const bstParts = misc[8].split(':');
+					set.bstBoosts = {
+						atk: Number(bstParts[0]),
+						def: Number(bstParts[1]),
+						spa: Number(bstParts[2]),
+						spd: Number(bstParts[3]),
+						spe: Number(bstParts[4]),
+					};
+				}
 			}
 			if (j < 0) break;
 			i = j + 1;
