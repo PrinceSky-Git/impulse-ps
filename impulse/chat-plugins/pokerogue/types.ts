@@ -25,6 +25,7 @@ export interface PokemonEntry {
  */
 export interface PokeRogueState {
 	floor: number;
+	currentBiome?: string;
 	team: PokemonEntry[];
 	battlePoints: number;
 	timesRerolled: number;
