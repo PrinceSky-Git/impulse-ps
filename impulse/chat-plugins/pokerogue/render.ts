@@ -532,7 +532,7 @@ function renderWelcomeView(): string {
 	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">Drunk Professor Oak</div>`;
 
 	buf += `<div style="margin-bottom: 8px;">`;
-	buf += `<img src="https://play.pokemonshowdown.com/sprites/trainers/oak.png" alt="Prince Sky" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
+	buf += `<img src="https://play.pokemonshowdown.com/sprites/trainers/oak.png" alt="Professor Oak" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
 	buf += `</div>`;
 
 	buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 300px; margin: 0 auto 16px auto; border-left: 4px solid #8ab4f8; font-size: 12px; line-height: 1.4; display: block;">`;
