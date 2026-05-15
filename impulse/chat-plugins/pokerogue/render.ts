@@ -530,7 +530,7 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 function renderWelcomeView(): string {
 	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
 
-	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">Prince Sky</div>`;
+	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">Drunk Professor Oak</div>`;
 
 	buf += `<div style="margin-bottom: 8px;">`;
 	buf += `<img src="https://play.pokemonshowdown.com/sprites/trainers/oak.png" alt="Prince Sky" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
@@ -540,12 +540,17 @@ function renderWelcomeView(): string {
 	buf += `"PokèRogue is currently in Beta. Features may change, bugs may occur, and balancing updates will happen frequently. Your feedback helps shape the future of the game!"`;
 	buf += `</div>`;
 
-	buf += `<div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">`;
+	buf += `<div style="text-align:center;margin-bottom:8px">`;
 	buf += renderBtn('/pokerogue newgame classic', 'Classic', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	buf += `&nbsp;&nbsp;`;
 	buf += renderBtn('/pokerogue newgame random', 'Random', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	buf += `&nbsp;&nbsp;`;
 	buf += renderBtn('/pokerogue newgame endless', 'Endless', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	buf += `&nbsp;&nbsp;`;
 	buf += renderBtn('/pokerogue newgame gen1', 'Gen 1', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
-	buf += `</div></div>`;
+	buf += `</div>`;
+
+	buf += `</div>`;
 
 	return buf;
 }
