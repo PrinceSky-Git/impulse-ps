@@ -802,8 +802,8 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	const luck = state.luck ?? 0;
 	const trainerKey = state.pendingTrainerKey;
 
-	const result = genAIPokemon(size, floor, luck, state.pendingTrainer, trainerKey);
-
+	const result = genAIPokemon(size, floor, luck, state.pendingTrainer, trainerKey, state.currentBiome || 'Town');
+	
 	return { packedTeam: packAITeam(result.team), isTrainer: result.isTrainer, trainerName: result.trainerName };
 }
 
