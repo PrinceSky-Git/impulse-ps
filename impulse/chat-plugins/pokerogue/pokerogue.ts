@@ -1250,9 +1250,19 @@ export const commands: Chat.ChatCommands = {
 					const p2Active = room.battle.p2.active[0];
 					if (p2Active) {
 						caughtItem = p2Active.item || '';
-						if (p2Active.moves && p2Active.moves.length > 0) {
-							caughtMoves = p2Active.moves;
+						
+						// FIX: Showdown uses .moveSlots on battle objects, not .moves
+						if (p2Active.moveSlots && p2Active.moveSlots.length > 0) {
+							caughtMoves = p2Active.moveSlots.map((m: any) => m.id);
+						} else if (p2Active.moves && p2Active.moves.length > 0) {
+							// Fallback just in case some weird custom Showdown branch uses .moves directly
+							if (typeof p2Active.moves[0] === 'string') {
+								caughtMoves = p2Active.moves;
+							} else {
+								caughtMoves = p2Active.moves.map((m: any) => m.id);
+							}
 						}
+						
 						if (p2Active.ability || p2Active.baseAbility) {
 							caughtAbility = toID(p2Active.ability || p2Active.baseAbility);
 						}
