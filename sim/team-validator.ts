@@ -614,6 +614,15 @@ export class TeamValidator {
 				};
 				set.name = set.name.replace(bstMatch[0], '').trim();
 			}
+
+			// --- CUSTOM HP MULTIPLIER START ---
+			// Look for [HPX: 10] in the nickname
+			const hpxMatch = set.name.match(/\[HPX:\s*(\d+)\]/i);
+			if (hpxMatch) {
+				(set as any).hpMultiplier = parseInt(hpxMatch[1]);
+				set.name = set.name.replace(hpxMatch[0], '').trim();
+			}
+			// --- CUSTOM HP MULTIPLIER END ---
 		}
 		// --- THE NICKNAME HACK END ---
 
