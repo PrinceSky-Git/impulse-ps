@@ -4,8 +4,6 @@ export const LEGENDARY_TAGS = new Set<string>([
 
 export type StatusCondition = 'brn' | 'psn' | 'tox' | 'par' | 'slp' | 'frz';
 
-// --- Game Mode Architecture ---
-
 export type GameMode = 'classic' | 'endless' | 'random' | 'gen1';
 
 // The universal ruleset interface
@@ -20,9 +18,6 @@ export interface ModeConfig {
 	endlessFloorRange?: { start: number, end: number };
 	
 	starterLevel?: number;
-
-	// Returns the exact level cap, and the min/max range for wild encounters on that floor.
-	levelScalingFn?: (floor: number) => { cap: number, min: number, max: number };
 
 	// Core Engine Rules
 	generation: number;
@@ -54,6 +49,10 @@ export interface ModeConfig {
 
 	// Item Milestones
 	milestoneRewards?: { floor: number, interval: boolean, itemType: string, itemName: string, amount: number }[];
+
+	// Optional custom scaling function. 
+	// Returns the exact level cap, and the min/max range for wild encounters on that floor.
+	levelScalingFn?: (floor: number) => { cap: number, min: number, max: number };
 }
 
 // The Data Registry interface
@@ -63,6 +62,9 @@ export interface ModeData {
 	trainers: Record<string, any>;
 	starters: string[];
 	excludedBiomes?: string[];
+	
+	// Optional custom shop override!
+	shop?: Record<string, any>; 
 }
 
 // --- Core Data Structures ---
