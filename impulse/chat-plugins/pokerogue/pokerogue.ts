@@ -9,7 +9,7 @@ import {
 	applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween,
 	calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam,
+	packTeam, genPokemon,
 } from './pokemon';
 import { renderGamePage, refreshGamePage } from './render';
 import {
@@ -609,7 +609,7 @@ export const commands: Chat.ChatCommands = {
 				refreshGamePage(user);
 			}
 		},
-
+		
 		choose(target, room, user) {
 			const state = getState(user.id);
 			const n = parseInt(target) - 1;
@@ -617,6 +617,8 @@ export const commands: Chat.ChatCommands = {
 			const choice = state.pendingChoice[n];
 
 			const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
 			let addedLevel = 5;
 			if (!isStarterChoice) {
@@ -640,22 +642,39 @@ export const commands: Chat.ChatCommands = {
 				}
 			}
 
-			const finalExpType = getExpType(finalSpecies);
-			const initialMoves = getLevelUpMoves(finalSpecies, addedLevel);
+			let newMon: PokemonEntry;
 
-			const natures = Dex.natures.all().map(n => n.name);
-			const hash = ((state.floor ?? 1) * 37) + (n * 13) + Dex.species.get(finalSpecies).id.length;
-			const displayNature = natures[hash % natures.length] ?? 'Hardy';
+			if (config.randomizeMoves || config.randomizeAbilities) {
+				// Use genPokemon so random mode config is respected
+				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
+				const g = generated[0];
+				newMon = {
+					species: g.species,
+					level: g.level,
+					exp: expForLevel(g.level, g.species),
+					expType: getExpType(g.species),
+					moves: g.moves,
+					ppLeft: g.moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
+					nature: g.nature,
+					ability: g.ability,
+				} as PokemonEntry;
+			} else {
+				const finalExpType = getExpType(finalSpecies);
+				const initialMoves = getLevelUpMoves(finalSpecies, addedLevel);
+				const natures = Dex.natures.all().map(n => n.name);
+				const hash = ((state.floor ?? 1) * 37) + (n * 13) + Dex.species.get(finalSpecies).id.length;
+				const displayNature = natures[hash % natures.length] ?? 'Hardy';
 
-			const newMon = {
-				species: finalSpecies,
-				level: addedLevel,
-				exp: expForLevel(addedLevel, finalExpType),
-				expType: finalExpType,
-				moves: initialMoves,
-				ppLeft: initialMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
-				nature: displayNature,
-			} as PokemonEntry;
+				newMon = {
+					species: finalSpecies,
+					level: addedLevel,
+					exp: expForLevel(addedLevel, finalExpType),
+					expType: finalExpType,
+					moves: initialMoves,
+					ppLeft: initialMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
+					nature: displayNature,
+				} as PokemonEntry;
+			}
 
 			if (isStarterChoice) {
 				state.team = [newMon];
@@ -671,7 +690,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		resolve(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return;
