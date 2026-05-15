@@ -1,6 +1,6 @@
 // --- Data Registry Imports ---
-import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from './pokemon-biomes-data';
-import { TRAINERS as ClassicTrainers } from './pokemon-trainers-data';
+import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from './mods/classic/biomes';
+import { TRAINERS as ClassicTrainers } from './mods/classic/trainers';
 
 // IMPORTANT: Create these files to support the Gen 1 mode, or comment these out temporarily!
 /*import { BIOMES as Gen1Biomes, BIOME_TRANSITIONS as Gen1Transitions } from './pokemon-biomes-gen1';
