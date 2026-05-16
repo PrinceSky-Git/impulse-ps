@@ -1,4 +1,4 @@
-import { type TrainerMon } from './pokemon';
+import { type TrainerMon } from './types';
 
 export interface BossData {
 	pool: TrainerMon[];
@@ -6,7 +6,7 @@ export interface BossData {
 
 export const BOSSES: Record<string, Record<string, BossData>> = {
 	'200': {
-		'Brock': {
+		'Eternatus': {
 			pool: [
 				{ species: 'eternatus' },
 			],
