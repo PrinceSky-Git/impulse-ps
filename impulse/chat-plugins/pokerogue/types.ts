@@ -18,6 +18,10 @@ export interface ModeConfig {
 	starterLevel?: number;
 	generation: number;
 	baseFormat: string;
+	milestoneRewards?: { floor: number, interval: boolean, itemType: string, itemName: string, amount: number }[];
+	// Optional custom scaling function. 
+	// Returns the exact level cap, and the min/max range for wild encounters on that floor.
+	levelScalingFn?: (floor: number) => { cap: number, min: number, max: number };
 	// Economy & Pacing
 	economy: {
 		startingBP: number;
@@ -39,12 +43,13 @@ export interface ModeConfig {
 		terastallize?: number;
 		mega?: number;
 	};
-	
-	milestoneRewards?: { floor: number, interval: boolean, itemType: string, itemName: string, amount: number }[];
-
-	// Optional custom scaling function. 
-	// Returns the exact level cap, and the min/max range for wild encounters on that floor.
-	levelScalingFn?: (floor: number) => { cap: number, min: number, max: number };
+	// maxFloor for victory and custom victory ui (check wwlcome ui for reference)
+	maxFloor?: number;
+	victoryConfig?: {
+		name?: string;
+		spriteUrl?: string;
+		dialog?: string;
+	};
 }
 
 // The Data Registry interface
@@ -79,6 +84,7 @@ export interface PokemonEntry {
  * `pendingTrainerKey` acts as the bridge between prebattle routing and bot team generation.
  */
 export interface PokeRogueState {
+	gameWon?: boolean;
 	floor: number;
 	gameMode: GameMode;
 	currentBiome?: string;
