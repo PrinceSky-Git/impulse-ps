@@ -1,4 +1,4 @@
-import { type TrainerData } from './types';
+import { type TrainerData, type TrainerMon } from './types';
 
 // ==========================================
 // IV / EV SPREAD CONSTANTS
