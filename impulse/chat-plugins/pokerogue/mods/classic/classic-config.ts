@@ -79,6 +79,9 @@ export const classicData: ModeData = {
 	starters: CLASSIC_STARTERS,
 	excludedBiomes: ['End'],
 
+	// =========================================================================
+	// TRAINER ROUTING LOGIC
+	// =========================================================================
 	resolveTrainer: (floor: number, state: PokeRogueState, config: ModeConfig) => {
 		const routing = config.storyRouting;
 		let trainerKey: string | null = null;
@@ -102,8 +105,8 @@ export const classicData: ModeData = {
 				trainerKey = `gym_leader_tier_${Math.min(routing.maxGymLeaderTier || 5, encounterNum)}`;
 			}
 		} 
-		// 3. Check Random Standard Encounters (15% chance, WITH COOLDOWN)
-		else if (Math.random() < 0.15) {
+		// 3. Check Random Standard Encounters (15% chance, Cooldown Enforced, NOT in Starting Biome)
+		else if (state.currentBiome !== config.startingBiome && Math.random() < 0.15) {
 			const lastTrainer = state.lastTrainerFloor || -99;
             
 			// Enforce a strict minimum 3-floor gap between random trainers
@@ -119,7 +122,7 @@ export const classicData: ModeData = {
 			const trainerNames = Object.keys(ClassicTrainers[trainerKey]);
 			const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
 			
-			// NEW: Mark the floor so the cooldown activates (only for randoms)
+			// Mark the floor so the cooldown activates (only for randoms)
 			if (trainerKey.startsWith('random_')) {
 				state.lastTrainerFloor = floor;
 			}
