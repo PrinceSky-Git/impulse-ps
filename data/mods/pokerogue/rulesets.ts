@@ -1,4 +1,4 @@
-export const Rulesets: {[k: string]: FormatData} = {
+export const Rulesets: import('../../../sim/dex-formats').FormatDataTable = {
 	pokerogueclassic: {
 		effectType: 'Rule',
 		name: 'PokeRogue Classic',
@@ -11,12 +11,12 @@ export const Rulesets: {[k: string]: FormatData} = {
 
 				// --- HARDCODE ETERNATUS PHASE 1 ---
 				if (pokemon.species.id === 'eternatus') {
-					pokemon.level = 200; // Force Level 200
+					(pokemon as any).level = 200; // Force Level 200
 					
 					// Force canonical PokéRogue Phase 1 Moveset
 					const phase1Moves = ['dynamaxcannon', 'sludgebomb', 'flamethrower', 'cosmicpower'];
 					pokemon.moveSlots = [];
-					pokemon.baseMoveSlots = [];
+					(pokemon as any).baseMoveSlots = [];
 					for (const moveid of phase1Moves) {
 						const move = this.dex.moves.get(moveid);
 						if (move.exists) {
@@ -89,7 +89,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 		name: 'PokeRogue EXP Tracker',
 		desc: 'Tracks participation natively and outputs exact EXP yields on faint.',
 
-		onStart() {
+		onBegin() {
 			if (!(this as any).p1Participants) {
 				(this as any).p1Participants = new Set<string>();
 			}

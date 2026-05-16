@@ -1,4 +1,4 @@
-export const Conditions: {[k: string]: ConditionData} = {
+export const Conditions: import('../../../sim/dex-conditions').ConditionDataTable = {
 	bossshield: {
 		name: 'Boss Shield',
 		noCopy: true,
@@ -142,7 +142,7 @@ export const Conditions: {[k: string]: ConditionData} = {
 				// Hardcode Phase 2 Moveset (Eternamax)
 				const phase2Moves = ['eternabeam', 'sludgebomb', 'flamethrower', 'recover'];
 				pokemon.moveSlots = [];
-				pokemon.baseMoveSlots = [];
+				(pokemon as any).baseMoveSlots = [];
 				for (const moveid of phase2Moves) {
 					const move = this.dex.moves.get(moveid);
 					if (move.exists) {
