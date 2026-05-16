@@ -1564,7 +1564,7 @@ export const handlers: Chat.Handlers = {
 			}
 
 			// Detached Graph-Based Biome Rotation
-			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.townEscapeFloor) {
+			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.biomeRotationInterval) {
 				// Check lastBiome override first
 				if (config.lastBiome) {
 					const range = parseFloorRange(config.lastBiome.floor);
