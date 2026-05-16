@@ -1,7 +1,7 @@
 import { type GameMode, type ModeConfig, type ModeData } from './types';
 
 // Import the specific configs from their respective core mode folders
-import { classicConfig, classicData } from './mods/classic/config';
+import { classicConfig, classicData } from './mods/classic/classic-config';
 //import { endlessConfig, endlessData } from './mods/endless/config';
 import { randomConfig, randomData } from './mods/random/config';
 
