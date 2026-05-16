@@ -3,7 +3,7 @@ import { type GameMode, type ModeConfig, type ModeData } from './types';
 // Import the specific configs from their respective core mode folders
 import { classicConfig, classicData } from './mods/classic/classic-config';
 //import { endlessConfig, endlessData } from './mods/endless/config';
-import { randomConfig, randomData } from './mods/random/config';
+import { randomConfig, randomData } from './mods/random/random-config';
 
 // Import custom mod configs (like Gen 1!)
 // Make sure the path correctly points to where you created your Gen 1 mod
