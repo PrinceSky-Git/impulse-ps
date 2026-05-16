@@ -522,16 +522,12 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, newState);
 			return this.parse('/pokerogue start');
 		},
-
+		
 		view(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return;
 			const v = target.trim() as any;
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome'].includes(v)) {
-				if (v === 'welcome' && state.gameOver) {
-					delete state.gameOver;
-					delete state.lastRunFloor;
-				}
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
