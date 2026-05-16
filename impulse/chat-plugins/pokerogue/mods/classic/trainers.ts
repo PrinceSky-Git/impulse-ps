@@ -1,21 +1,4 @@
-export interface TrainerMon {
-	species: string;
-	moves?: string[];
-	ivs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
-	evs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
-	ability?: string;
-	teraType?: string;
-	item?: string;
-}
-
-export interface TrainerData {
-	teamSize: number;
-	pool?: (string | TrainerMon)[];
-	random?: boolean;
-	chance?: number;
-	spriteUrl?: string;
-	dialog?: string;
-}
+import { type TrainerData } from './types';
 
 // ==========================================
 // IV / EV SPREAD CONSTANTS
