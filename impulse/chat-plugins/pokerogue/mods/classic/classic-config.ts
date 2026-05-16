@@ -102,17 +102,28 @@ export const classicData: ModeData = {
 				trainerKey = `gym_leader_tier_${Math.min(routing.maxGymLeaderTier || 5, encounterNum)}`;
 			}
 		} 
-		// 3. Check Random Standard Encounters (15% chance on standard floors)
+		// 3. Check Random Standard Encounters (15% chance, WITH COOLDOWN)
 		else if (Math.random() < 0.15) {
-			if (floor <= 30) trainerKey = 'random_early';
-			else if (floor <= 100) trainerKey = 'random_mid';
-			else trainerKey = 'random_late';
+			const lastTrainer = state.lastTrainerFloor || -99;
+            
+			// Enforce a strict minimum 3-floor gap between random trainers
+			if (floor - lastTrainer >= 3) {
+				if (floor <= 30) trainerKey = 'random_early';
+				else if (floor <= 100) trainerKey = 'random_mid';
+				else trainerKey = 'random_late';
+			}
 		}
 
 		// If a key was found, pick a random trainer from that tier
 		if (trainerKey && ClassicTrainers[trainerKey]) {
 			const trainerNames = Object.keys(ClassicTrainers[trainerKey]);
 			const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
+			
+			// NEW: Mark the floor so the cooldown activates (only for randoms)
+			if (trainerKey.startsWith('random_')) {
+				state.lastTrainerFloor = floor;
+			}
+
 			return { key: trainerKey, name: selectedTrainer };
 		}
 
