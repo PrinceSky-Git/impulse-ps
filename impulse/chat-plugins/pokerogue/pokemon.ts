@@ -574,10 +574,9 @@ export function genAIPokemon(
 		}
 	}
 
-	// NEW: Agnostic Boss Routing via ModeData Hook
 	if (!isTrainerBattle && isBossFloor && data?.resolveBoss) {
 		const resolvedBossTeam = data.resolveBoss(floor, currentBiome || config?.startingBiome || 'Town', config!);
-		
+
 		if (resolvedBossTeam && resolvedBossTeam.length > 0) {
 			const shuffledPool = [...resolvedBossTeam].sort(() => 0.5 - Math.random());
 			forcedTeam = [shuffledPool[0]];

@@ -1,76 +1,39 @@
 import { type TrainerData, type TrainerMon } from './types';
 
-// ==========================================
-// IV / EV SPREAD CONSTANTS
-// ==========================================
-
-/** Perfect offensive attacker — max Speed and primary attack stat */
 export const EVS_PHYS_SWEEPER = { hp: 0, atk: 252, def: 0, spa: 0, spd: 0, spe: 252 } as const;
 export const EVS_SPEC_SWEEPER = { hp: 0, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 } as const;
 
-/** Mixed bulk investment — survives hits while still threatening */
 export const EVS_PHYS_WALLBREAKER = { hp: 0, atk: 252, def: 4, spa: 0, spd: 0, spe: 252 } as const;
 export const EVS_SPEC_WALLBREAKER = { hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252 } as const;
 
-/** Bulky attacker — prioritises HP + offensive stat over Speed */
 export const EVS_BULKY_PHYS_ATK = { hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0 } as const;
 export const EVS_BULKY_SPEC_ATK = { hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 0 } as const;
 
-/** Physical wall — maximum physical bulk */
 export const EVS_PHYS_WALL = { hp: 252, atk: 0, def: 252, spa: 0, spd: 4, spe: 0 } as const;
 
-/** Special wall — maximum special bulk */
 export const EVS_SPEC_WALL = { hp: 252, atk: 0, def: 4, spa: 0, spd: 252, spe: 0 } as const;
 
-/** Specially defensive pivot — HP + SpDef with leftover in Def */
 export const EVS_SPDEF_PIVOT = { hp: 248, atk: 0, def: 8, spa: 0, spd: 252, spe: 0 } as const;
 
-/** Mixed wall / cleric — balanced defensive investment */
 export const EVS_MIXED_WALL = { hp: 252, atk: 0, def: 128, spa: 0, spd: 128, spe: 0 } as const;
 
-/** Trick Room sweeper — 0 Speed EVs + 0 Spe IVs to move first under TR */
 export const EVS_TRICK_ROOM_SWEEPER = { hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0 } as const;
 export const EVS_TRICK_ROOM_SPEC    = { hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 0 } as const;
 
-/** Support / hazard setter — HP + Speed */
 export const EVS_SUPPORT_FAST = { hp: 252, atk: 0, def: 4, spa: 0, spd: 0, spe: 252 } as const;
 
-/** Specially offensive tank — bulk + SpAtk */
 export const EVS_SPEC_TANK = { hp: 252, atk: 0, def: 0, spa: 252, spd: 4, spe: 0 } as const;
 
-// ------------------------------------------
-// IV spreads
-// ------------------------------------------
-
-/** Standard perfect IVs for all competitive sets */
 export const IVS_PERFECT = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 } as const;
 
-/** Perfect IVs but 0 Atk — avoids confusion/foul-play damage on special attackers */
 export const IVS_NO_ATK = { hp: 31, atk: 0, def: 31, spa: 31, spd: 31, spe: 31 } as const;
 
-/** Trick Room: 0 Speed IV to be as slow as possible */
 export const IVS_TRICK_ROOM = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 0 } as const;
 
-/** Trick Room special attacker: 0 Atk + 0 Spe */
 export const IVS_TRICK_ROOM_SPEC = { hp: 31, atk: 0, def: 31, spa: 31, spd: 31, spe: 0 } as const;
 
-
-
-// ==========================================
-// TRAINER DATA
-// ==========================================
-
-/* Dev Note: Data Routing Architecture
- * Keys are dynamically targeted by `pokerogue.ts` during the `prebattle` phase.
- * 'fixed_X' keys handle rigid story encounters (Rivals, Evil Teams, Elite 4, Champions).
- * 'gym_leader_tier_X' keys scale gym leader team sizes based on how many the player has fought.
- * 'random_X' keys serve as fallback encounter tables for standard non-boss floors.
- */
 export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 
-	// ==========================================
-	// FIXED WAVES (Story, Rivals, Bosses)
-	// ==========================================
 	'fixed_5': {
 		'Youngster Joey': {
 			teamSize: 2,
@@ -1312,11 +1275,8 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 	},
 
-	// ==========================================
-	// GYM LEADERS (Scaling Tiers)
-	// ==========================================
 	'gym_leader_tier_1': {
-		// Gen 1
+
 		'Gym Leader Brock': { teamSize: 3, pool: ['geodude', 'onix'] },
 		'Gym Leader Misty': { teamSize: 3, pool: ['staryu', 'starmie', 'psyduck'] },
 		'Gym Leader Lt. Surge': { teamSize: 3, pool: ['pikachu', 'raichu', 'voltorb'] },
@@ -1324,7 +1284,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Koga': { teamSize: 3, pool: ['koffing', 'muk', 'weezing'] },
 		'Gym Leader Sabrina': { teamSize: 3, pool: ['abra', 'kadabra', 'mr-mime'] },
 		'Gym Leader Blaine': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blaine.png', dialog: "My fiery Pokémon will burn you to a crisp!", pool: ['growlithe', 'ponyta', 'arcanine'] },
-		// Gen 2
+
 		'Gym Leader Falkner': { teamSize: 3, pool: ['pidgey', 'pidgeotto', 'spearow'] },
 		'Gym Leader Bugsy': { teamSize: 3, pool: ['caterpie', 'metapod', 'scyther'] },
 		'Gym Leader Whitney': { teamSize: 3, pool: ['clefairy', 'miltank'] },
@@ -1332,7 +1292,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Chuck': { teamSize: 3, pool: ['primeape', 'machoke', 'poliwrath'] },
 		'Gym Leader Jasmine': { teamSize: 3, pool: ['magnemite', 'steelix'] },
 		'Gym Leader Pryce': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/pryce.png', dialog: "I have trained for 50 years, preparing for this day!", pool: ['seel', 'dewgong', 'piloswine'] },
-		// Gen 3
+
 		'Gym Leader Roxanne': { teamSize: 3, pool: ['geodude', 'nosepass'] },
 		'Gym Leader Brawly': { teamSize: 3, pool: ['machop', 'makuhita', 'mankey'] },
 		'Gym Leader Wattson': { teamSize: 3, pool: ['magnemite', 'voltorb', 'electrike'] },
@@ -1340,14 +1300,14 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Norman': { teamSize: 3, pool: ['spinda', 'vigoroth', 'slaking'] },
 		'Gym Leader Winona': { teamSize: 3, pool: ['swablu', 'beautifly', 'skarmory'] },
 		'Gym Leader Tate & Liza': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png', dialog: "We don't need to talk to know what the other is thinking!", pool: ['solrock', 'lunatone', 'claydol'] },
-		// Gen 4
+
 		'Gym Leader Roark': { teamSize: 3, pool: ['geodude', 'onix', 'cranidos'] },
 		'Gym Leader Gardenia': { teamSize: 3, pool: ['cherubi', 'turtwig', 'roserade'] },
 		'Gym Leader Fantina': { teamSize: 3, pool: ['misdreavus', 'haunter', 'drifblim'] },
 		'Gym Leader Maylene': { teamSize: 3, pool: ['meditite', 'machoke', 'lucario'] },
 		'Gym Leader Byron': { teamSize: 3, pool: ['bronzor', 'steelix', 'bastiodon'] },
 		'Gym Leader Candice': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/candice.png', dialog: "You want to challenge me? That gets me fired up — or should I say, iced up!", pool: ['snover', 'sneasel', 'piloswine'] },
-		// Gen 5
+
 		'Gym Leader Cilan': { teamSize: 3, pool: ['pansage', 'lillipup', 'pidove'] },
 		'Gym Leader Lenora': { teamSize: 3, pool: ['herdier', 'watchog', 'audino'] },
 		'Gym Leader Burgh': { teamSize: 3, pool: ['whirlipede', 'dwebble', 'sewaddle'] },
@@ -1355,7 +1315,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Clay': { teamSize: 3, pool: ['krokorok', 'palpitoad', 'excadrill'] },
 		'Gym Leader Skyla': { teamSize: 3, pool: ['swoobat', 'unfezant', 'swanna'] },
 		'Gym Leader Brycen': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/brycen.png', dialog: "I have honed my icy skills through years of training. Face me!", pool: ['vanillish', 'beartic', 'cryogonal'] },
-		// Gen 6
+
 		'Gym Leader Viola': { teamSize: 3, pool: ['surskit', 'vivillon', 'masquerain'] },
 		'Gym Leader Grant': { teamSize: 3, pool: ['amaura', 'tyrunt', 'onix'] },
 		'Gym Leader Korrina': { teamSize: 3, pool: ['mienfoo', 'machoke', 'lucario'] },
@@ -1364,7 +1324,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Valerie': { teamSize: 3, pool: ['mawile', 'mr-mime', 'sylveon'] },
 		'Gym Leader Olympia': { teamSize: 3, pool: ['sigilyph', 'slowking', 'meowstic'] },
 		'Gym Leader Wulfric': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/wulfric.png', dialog: "My ice-cold Pokémon will give you a chilly reception!", pool: ['bergmite', 'snover', 'avalugg'] },
-		// Gen 7
+
 		'Trial Captain Ilima': { teamSize: 3, pool: ['yungoos', 'smeargle', 'gumshoos'] },
 		'Kahuna Hala': { teamSize: 3, pool: ['mankey', 'makuhita', 'crabrawler'] },
 		'Trial Captain Lana': { teamSize: 3, pool: ['wishiwashi', 'chinchou', 'araquanid'] },
@@ -1376,7 +1336,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Kahuna Nanu': { teamSize: 3, pool: ['alolan-persian', 'sableye', 'krokorok'] },
 		'Trial Captain Mina': { teamSize: 3, pool: ['ribombee', 'granbull', 'wigglytuff'] },
 		'Kahuna Hapu': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hapu.png', dialog: "I am Hapu, kahuna of Poni Island. I shall show you what real power looks like!", pool: ['mudbray', 'gastrodon', 'flygon'] },
-		// Gen 8
+
 		'Gym Leader Milo': { teamSize: 3, pool: ['gossifleur', 'eldegoss', 'applin'] },
 		'Gym Leader Nessa': { teamSize: 3, pool: ['goldeen', 'arrokuda', 'drednaw'] },
 		'Gym Leader Kabu': { teamSize: 3, pool: ['sizzlipede', 'vulpix', 'ninetales'] },
@@ -1388,7 +1348,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Piers': { teamSize: 3, pool: ['scrafty', 'malamar', 'obstagoon'] },
 		'Gym Leader Marnie': { teamSize: 3, pool: ['morpeko', 'liepard', 'toxicroak'] },
 		'Gym Leader Raihan': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/raihan.png', dialog: "I'm the strongest Gym Leader in Galar — and I'll prove it to you!", pool: ['flygon', 'gigalith', 'sandaconda'] },
-		// Gen 9
+
 		'Gym Leader Katy': { teamSize: 3, pool: ['teddiursa', 'nymble', 'lokix'] },
 		'Gym Leader Brassius': { teamSize: 3, pool: ['petilil', 'smoliv', 'sudowoodo'] },
 		'Gym Leader Iono': { teamSize: 3, pool: ['wattrel', 'bellibolt', 'mismagius'] },
@@ -1399,7 +1359,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	},
 
 	'gym_leader_tier_3': {
-		// Gen 1
+
 		'Gym Leader Brock': { teamSize: 4, pool: ['geodude', 'graveler', 'onix', 'rhyhorn'] },
 		'Gym Leader Misty': { teamSize: 4, pool: ['staryu', 'starmie', 'psyduck', 'golduck'] },
 		'Gym Leader Lt. Surge': { teamSize: 4, pool: ['pikachu', 'raichu', 'voltorb', 'electrode'] },
@@ -1407,7 +1367,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Koga': { teamSize: 4, pool: ['weezing', 'muk', 'venomoth', 'ariados'] },
 		'Gym Leader Sabrina': { teamSize: 4, pool: ['kadabra', 'alakazam', 'mr-mime', 'espeon'] },
 		'Gym Leader Blaine': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blaine.png', dialog: "My fiery Pokémon will burn you to a crisp!", pool: ['arcanine', 'rapidash', 'ninetales', 'magmar'] },
-		// Gen 2
+
 		'Gym Leader Falkner': { teamSize: 4, pool: ['pidgeotto', 'pidgeot', 'hoothoot', 'noctowl'] },
 		'Gym Leader Bugsy': { teamSize: 4, pool: ['scyther', 'beedrill', 'butterfree', 'heracross'] },
 		'Gym Leader Whitney': { teamSize: 4, pool: ['miltank', 'clefable', 'wigglytuff', 'blissey'] },
@@ -1415,7 +1375,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Chuck': { teamSize: 4, pool: ['primeape', 'poliwrath', 'machamp', 'heracross'] },
 		'Gym Leader Jasmine': { teamSize: 4, pool: ['magneton', 'skarmory', 'steelix', 'forretress'] },
 		'Gym Leader Pryce': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/pryce.png', dialog: "I have trained for 50 years, preparing for this day!", pool: ['dewgong', 'piloswine', 'lapras', 'cloyster'] },
-		// Gen 3
+
 		'Gym Leader Roxanne': { teamSize: 4, pool: ['graveler', 'nosepass', 'golem', 'lunatone'] },
 		'Gym Leader Brawly': { teamSize: 4, pool: ['hariyama', 'medicham', 'machamp', 'breloom'] },
 		'Gym Leader Wattson': { teamSize: 4, pool: ['magneton', 'electrode', 'manectric', 'raichu'] },
@@ -1423,7 +1383,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Norman': { teamSize: 4, pool: ['slaking', 'vigoroth', 'spinda', 'zangoose'] },
 		'Gym Leader Winona': { teamSize: 4, pool: ['pelipper', 'skarmory', 'altaria', 'swellow'] },
 		'Gym Leader Tate & Liza': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tateandliza.png', dialog: "We don't need to talk to know what the other is thinking!", pool: ['solrock', 'lunatone', 'claydol', 'xatu'] },
-		// Gen 4
+
 		'Gym Leader Roark': { teamSize: 4, pool: ['rampardos', 'golem', 'onix', 'aerodactyl'] },
 		'Gym Leader Gardenia': { teamSize: 4, pool: ['roserade', 'cherrim', 'torterra', 'leafeon'] },
 		'Gym Leader Fantina': { teamSize: 4, pool: ['drifblim', 'mismagius', 'gengar', 'chandelure'] },
@@ -1432,7 +1392,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Byron': { teamSize: 4, pool: ['steelix', 'bastiodon', 'magnezone', 'probopass'] },
 		'Gym Leader Candice': { teamSize: 4, pool: ['froslass', 'mamoswine', 'glaceon', 'abomasnow'] },
 		'Gym Leader Volkner': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/volkner.png', dialog: "I've been waiting for a Trainer who can make me feel alive again. Let's go!", pool: ['raichu', 'luxray', 'electivire', 'magnezone'] },
-		// Gen 5
+
 		'Gym Leader Cilan': { teamSize: 4, pool: ['simisage', 'lilligant', 'leavanny', 'ferrothorn'] },
 		'Gym Leader Lenora': { teamSize: 4, pool: ['stoutland', 'watchog', 'cinccino', 'audino'] },
 		'Gym Leader Burgh': { teamSize: 4, pool: ['leavanny', 'whirlipede', 'crustle', 'escavalier'] },
@@ -1441,7 +1401,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Skyla': { teamSize: 4, pool: ['swoobat', 'unfezant', 'swanna', 'sigilyph'] },
 		'Gym Leader Brycen': { teamSize: 4, pool: ['cryogonal', 'beartic', 'vanilluxe', 'weavile'] },
 		'Gym Leader Drayden': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/drayden.png', dialog: "My dragons are forged through strict discipline. Can you handle their fury?", pool: ['druddigon', 'flygon', 'haxorus', 'altaria'] },
-		// Gen 6
+
 		'Gym Leader Viola': { teamSize: 4, pool: ['vivillon', 'masquerain', 'scizor', 'yanmega'] },
 		'Gym Leader Grant': { teamSize: 4, pool: ['tyrunt', 'amaura', 'aerodactyl', 'golem'] },
 		'Gym Leader Korrina': { teamSize: 4, pool: ['lucario', 'machamp', 'pangoro', 'hawlucha'] },
@@ -1450,12 +1410,12 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Valerie': { teamSize: 4, pool: ['sylveon', 'togekiss', 'gardevoir', 'mawile'] },
 		'Gym Leader Olympia': { teamSize: 4, pool: ['slowking', 'meowstic', 'gothitelle', 'sigilyph'] },
 		'Gym Leader Wulfric': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/wulfric.png', dialog: "My ice-cold Pokémon will give you a chilly reception!", pool: ['avalugg', 'abomasnow', 'mamoswine', 'froslass'] },
-		// Gen 7
+
 		'Kahuna Hala': { teamSize: 4, pool: ['hariyama', 'crabominable', 'poliwrath', 'bewear'] },
 		'Kahuna Olivia': { teamSize: 4, pool: ['lycanroc', 'probopass', 'carbink', 'golem'] },
 		'Kahuna Nanu': { teamSize: 4, pool: ['alolan-persian', 'krookodile', 'alolan-muk', 'sableye'] },
 		'Kahuna Hapu': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hapu.png', dialog: "I am Hapu, kahuna of Poni Island. I shall show you what real power looks like!", pool: ['mudsdale', 'gastrodon', 'dugtrio', 'flygon'] },
-		// Gen 8
+
 		'Gym Leader Milo': { teamSize: 4, pool: ['eldegoss', 'tsareena', 'ferrothorn', 'appletun'] },
 		'Gym Leader Nessa': { teamSize: 4, pool: ['drednaw', 'pelipper', 'lanturn', 'barraskewda'] },
 		'Gym Leader Kabu': { teamSize: 4, pool: ['ninetales', 'centiskorch', 'arcanine', 'torkoal'] },
@@ -1466,7 +1426,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Melony': { teamSize: 4, pool: ['lapras', 'frosmoth', 'glaceon', 'eiscue'] },
 		'Gym Leader Piers': { teamSize: 4, pool: ['obstagoon', 'scrafty', 'malamar', 'crawdaunt'] },
 		'Gym Leader Raihan': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/raihan.png', dialog: "I'm the strongest Gym Leader in Galar — and I'll prove it to you!", pool: ['flygon', 'gigalith', 'sandaconda', 'duraludon'] },
-		// Gen 9
+
 		'Gym Leader Katy': { teamSize: 4, pool: ['lokix', 'heracross', 'ursaring', 'crustle'] },
 		'Gym Leader Brassius': { teamSize: 4, pool: ['sudowoodo', 'lilligant', 'leafeon', 'breloom'] },
 		'Gym Leader Iono': { teamSize: 4, pool: ['bellibolt', 'mismagius', 'electrode', 'luxray'] },
@@ -1739,9 +1699,6 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 	},
 
-	// ==========================================
-	// RANDOM TRAINER ENCOUNTERS
-	// ==========================================
 	'random_early': {
 		'Bug Catcher Rick': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bugcatcher.png', dialog: "My bug Pokémon are gonna wrap you up tight!", pool: ['caterpie', 'weedle', 'venonat', 'paras', 'spinarak', 'ledyba', 'wurmple', 'silcoon', 'cascoon', 'surskit', 'kricketot', 'burmy', 'sewaddle', 'venipede', 'scatterbug'] },
 		'Hiker David': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hiker.png', dialog: "I've climbed every mountain — now I'll climb over you!", pool: ['geodude', 'machop', 'zubat', 'makuhita', 'aron', 'nosepass', 'roggenrola', 'timburr', 'drilbur', 'bunnelby', 'rockruff', 'rolycoly', 'nacli'] },

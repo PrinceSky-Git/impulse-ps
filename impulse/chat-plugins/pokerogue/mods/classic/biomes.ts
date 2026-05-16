@@ -1409,7 +1409,7 @@ export const BIOMES: Record<string, BiomePool> = {
 		'Ultra Rare': [],
 		'Boss': [],
 		'Boss Rare': [],
-		'Boss Super Rare': [],			
+		'Boss Super Rare': [],
 		'Boss Ultra Rare': [],
 	},
 };

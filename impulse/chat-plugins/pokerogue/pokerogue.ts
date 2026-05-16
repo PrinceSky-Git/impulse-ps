@@ -437,15 +437,12 @@ function handleBattleLoss(state: PokeRogueState, floor: number): void {
 	}
 }
 
-/* * Dev Note: Weighted Biome Transition
- * Picks the next biome using weighted random selection from BiomeTransition[].
- * Falls back to uniform random if all weights are equal (weight: 1).
- */
 function pickNextBiome(
 	currentBiome: string,
 	data: { transitions: Record<string, { biome: string, weight: number }[]>, excludedBiomes?: string[], biomes: Record<string, any> },
 	startingBiome: string
 ): string {
+	// Weighted transitions preserve each mode's intended route while avoiding excluded or terminal biome pools.
 	const excluded = new Set(data.excludedBiomes ?? []);
 	const options = (data.transitions[currentBiome] ?? []).filter(t => !excluded.has(t.biome));
 
@@ -459,7 +456,6 @@ function pickNextBiome(
 		return options[options.length - 1].biome;
 	}
 
-	// Fallback: pick from any non-excluded biome that isn't the starting biome
 	const fallbackOptions = Object.keys(data.biomes).filter(b => b !== startingBiome && !excluded.has(b));
 	return fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || startingBiome;
 }
@@ -604,8 +600,8 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("You are already in a battle.");
 			}
 
-			// If a trainer encounter was already rolled and is waiting for the user to click "Start Battle"
 			if (state.pendingTrainer && state.pendingTrainerKey) {
+				// Pending trainers are persisted so a page refresh cannot reroll the encounter before the player starts battle.
 				(state as any).view = 'trainer';
 				setState(user.id, state);
 				refreshGamePage(user);
@@ -617,17 +613,15 @@ export const commands: Chat.ChatCommands = {
 
 			const floor = state.floor;
 
-			// NEW: Agnostic Trainer Routing via ModeData Hook
 			if (config.hasTrainers && data.resolveTrainer) {
 				const resolvedTrainer = data.resolveTrainer(floor, state, config);
-				
+
 				if (resolvedTrainer) {
 					state.pendingTrainer = resolvedTrainer.name;
 					state.pendingTrainerKey = resolvedTrainer.key;
 
 					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
-					
-					// Transition to the VS screen if they have a sprite or dialog
+
 					if (trainerData?.spriteUrl || trainerData?.dialog) {
 						(state as any).view = 'trainer';
 						setState(user.id, state);
@@ -637,7 +631,6 @@ export const commands: Chat.ChatCommands = {
 				}
 			}
 
-			// If no trainer intercepts, or the trainer has no intro, proceed directly to the battle
 			setState(user.id, state);
 			return this.parse('/pokerogue battle');
 		},
@@ -1534,8 +1527,8 @@ export const handlers: Chat.Handlers = {
 			const prevFloor = state.floor;
 			state.floor++;
 
-			// Win condition check
 			if (config.maxFloor && prevFloor >= config.maxFloor) {
+				// Victory is finalized before floor advancement so max-floor modes cannot roll post-win choices or biomes.
 				state.gameWon = true;
 				state.lastRunFloor = prevFloor;
 				if (prevFloor > (state.highestFloor ?? 0)) {
@@ -1543,17 +1536,14 @@ export const handlers: Chat.Handlers = {
 					state.recordTeam = state.team.map(m => ({ ...m }));
 				}
 
-				// TODO: REWARDS LOGIC — award end-of-run rewards here before setting gameWon
-
 				setState(match.userId, state);
 				const hUser = Users.get(match.userId);
 				if (hUser) refreshGamePage(hUser);
 				return;
 			}
 
-			// Biome rotation using weighted transitions and optional resolveBiome hook
 			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.biomeRotationInterval) {
-				// Check lastBiome override first (only used if ModeData.resolveBiome is not provided)
+				// Mode hooks take precedence over generic weighted biome rotation for story-specific final areas.
 				if (config.lastBiome && !data.resolveBiome) {
 					const range = parseFloorRange(config.lastBiome.floor);
 					if (range && state.floor >= range.start && state.floor <= range.end) {
@@ -1564,7 +1554,6 @@ export const handlers: Chat.Handlers = {
 						battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
 					}
 				} else if (data.resolveBiome) {
-					// Let the mod fully control biome resolution
 					state.currentBiome = data.resolveBiome(state.floor, state.currentBiome || config.startingBiome, config);
 					battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
 				} else {

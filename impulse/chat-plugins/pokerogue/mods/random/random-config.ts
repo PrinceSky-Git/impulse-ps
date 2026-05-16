@@ -1,6 +1,5 @@
 import { type ModeConfig, type ModeData, type PokeRogueState, type TrainerMon } from '../../types';
 
-// Random mode also pulls data assets from the classic folder
 import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from '../classic/biomes';
 import { TRAINERS as ClassicTrainers } from '../classic/trainers';
 import { CLASSIC_STARTERS } from '../classic/classic-config';
@@ -10,8 +9,8 @@ export const randomConfig: ModeConfig = {
 	biomeRotationInterval: 10,
 	bossInterval: 10,
 	hasTrainers: true,
-	randomizeMoves: true, // Specific to Random Mode
-	randomizeAbilities: true, // Specific to Random Mode
+	randomizeMoves: true,
+	randomizeAbilities: true,
 	startingBiome: 'Town',
 	starterLevel: 5,
 	generation: 9,
@@ -57,31 +56,29 @@ export const randomData: ModeData = {
 	resolveTrainer: (floor: number, state: PokeRogueState, config: ModeConfig) => {
 		const routing = config.storyRouting;
 		let trainerKey: string | null = null;
-		
-		// 1. Check fixed story waves
+
 		if (routing?.fixedTrainerWaves?.includes(floor)) {
 			trainerKey = `fixed_${floor}`;
-		} 
-		// 2. Check Gym Leaders (Boss Floors)
+		}
+
 		else if (floor % config.bossInterval === 0 && routing?.gymLeaderInterval) {
 			const firstWaves = routing.firstGymLeaderWaves || [];
-			
+
 			if (!state.firstGymLeaderWave && firstWaves.includes(floor)) {
 				if (Math.random() < 0.5 || floor === firstWaves[firstWaves.length - 1]) {
 					state.firstGymLeaderWave = floor;
 				}
 			}
-			
+
 			if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % routing.gymLeaderInterval === 0) {
 				const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / routing.gymLeaderInterval);
 				trainerKey = `gym_leader_tier_${Math.min(routing.maxGymLeaderTier || 5, encounterNum)}`;
 			}
-		} 
-		// 3. Check Random Standard Encounters (15% chance, Cooldown Enforced, NOT in Starting Biome)
+		}
+
 		else if (state.currentBiome !== config.startingBiome && Math.random() < 0.15) {
 			const lastTrainer = state.lastTrainerFloor || -99;
-            
-			// Enforce a strict minimum 3-floor gap between random trainers
+
 			if (floor - lastTrainer >= 3) {
 				if (floor <= 30) trainerKey = 'random_early';
 				else if (floor <= 100) trainerKey = 'random_mid';
@@ -89,12 +86,10 @@ export const randomData: ModeData = {
 			}
 		}
 
-		// If a key was found, pick a random trainer from that tier
 		if (trainerKey && ClassicTrainers[trainerKey]) {
 			const trainerNames = Object.keys(ClassicTrainers[trainerKey]);
 			const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
-			
-			// Mark the floor so the cooldown activates (only for randoms)
+
 			if (trainerKey.startsWith('random_')) {
 				state.lastTrainerFloor = floor;
 			}
@@ -104,16 +99,16 @@ export const randomData: ModeData = {
 
 		return null;
 	},
-	
+
 	resolveBoss: (floor: number, currentBiome: string, config: ModeConfig): TrainerMon[] | null => {
 		const floorKey = floor.toString();
-		
+
 		if (CLASSIC_BOSSES[floorKey]) {
 			const bossNames = Object.keys(CLASSIC_BOSSES[floorKey]);
 			const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];
 			return CLASSIC_BOSSES[floorKey][selectedBoss].pool;
 		}
 
-		return null; 
+		return null;
 	}
 };
