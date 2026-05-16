@@ -122,6 +122,9 @@ export interface ModeData {
 	// Optional biome resolver — replaces the default lastBiome + currentBiome logic.
 	// Return the biome name that should be used for pool lookups on this floor.
 	resolveBiome?: (floor: number, currentBiome: string, config: ModeConfig) => string;
+
+	// The engine will call this to ask the Mode if a trainer appears on this floor
+	resolveTrainer?: (floor: number, state: PokeRogueState, config: ModeConfig) => { key: string, name: string } | null;
 }
 
 export interface PokemonEntry {
