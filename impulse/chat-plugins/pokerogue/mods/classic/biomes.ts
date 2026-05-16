@@ -1377,4 +1377,30 @@ export const BIOMES = {
 		'Boss Super Rare': ['zygarde'],
 		'Boss Ultra Rare': ['mewtwo'],
 	},
+	'End': {
+		'Common': [],
+		'Uncommon': [],
+		'Rare': [],
+		'Super Rare': [],
+		'Ultra Rare': [],
+		'Boss': [
+			'great_tusk', 'scream_tail', 
+			'brute_bonnet', 'flutter_mane', 
+			'slither_wing', 'sandy_shocks', 
+			'iron_treads', 'iron_bundle', 
+			'iron_hands', 'iron_jugulis', 
+			'iron_moth', 'iron_thorns',
+		],
+		'Boss Rare': [
+			'roaring_moon', 'iron_valiant',
+		],
+		'Boss Super Rare': [
+			'walking_wake', 'iron_leaves',
+			'gouging_fire', 'iron_boulder',
+			'raging_bolt', 'iron_crown',
+		],
+		'Boss Ultra Rare': [
+			'eternatus',
+		],
+	},
 };
