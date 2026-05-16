@@ -196,7 +196,7 @@ function pickBestAbility(species: Species, floor: number, config?: ModeConfig): 
 		return allAbilities[Math.floor(Math.random() * allAbilities.length)].id;
 	}
 
-	const abilities = species.abilities as Record<string, string>;
+	const abilities = species.abilities as unknown as Record<string, string>;
 	const candidates: { id: string, priority: number }[] = [];
 
 	for (const slot of ['S', 'H', '1', '0'] as const) {
@@ -502,7 +502,7 @@ function rollRarity(floor: number, isBoss: boolean, isStarter: boolean, luck = 0
 		return 'Boss';
 	}
 
-	const maxRoll = 512;
+	const maxRoll = Math.max(1, 512 - (luck * 2));
 	const roll = Math.floor(Math.random() * maxRoll) + 1;
 
 	if (roll <= 1) return 'Ultra Rare';
@@ -649,7 +649,7 @@ export function genPokemon(
 			}
 		} else {
 			const rarity = rollRarity(floor, !!isBossFloor, !!starter, luck);
-			let pool: { species: string, weight: number }[] = [];
+			let pool: string[] = [];
 
 			const activeBiome = currentBiome || config?.startingBiome || 'Town';
 			const biomeName = getDisplayBiome(floor, activeBiome);
@@ -695,7 +695,7 @@ export function genPokemon(
 			// Exclude all single-stage Pokémon from appearing below floor 100
 			if (floor < 100) {
 				pool = pool.filter(mon => {
-					let sp = Dex.species.get(mon.species);
+					let sp = Dex.species.get(mon);
 
 					while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
 						sp = sp.prevo ? Dex.species.get(sp.prevo) : Dex.species.get(sp.baseSpecies);
@@ -707,22 +707,10 @@ export function genPokemon(
 
 			// Absolute last-resort fallback if filtering removes everything
 			if (!pool || pool.length === 0) {
-				pool = [{ species: 'eevee', weight: 100 }, { species: 'porygon', weight: 100 }];
+				pool = ['eevee', 'porygon'];
 			}
 
-			const totalWeight = pool.reduce((sum, mon) => sum + mon.weight, 0);
-			let randWeight = Math.floor(Math.random() * totalWeight);
-			let selectedSpeciesId = pool[0].species;
-
-			for (const mon of pool) {
-				randWeight -= mon.weight;
-				if (randWeight < 0) {
-					selectedSpeciesId = mon.species;
-					break;
-				}
-			}
-
-			finalSpeciesId = selectedSpeciesId;
+			finalSpeciesId = pool[Math.floor(Math.random() * pool.length)];
 
 			if (starter || !isBossFloor) {
 				let sp = Dex.species.get(finalSpeciesId);

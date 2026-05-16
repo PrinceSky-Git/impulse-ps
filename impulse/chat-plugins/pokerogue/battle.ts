@@ -255,7 +255,7 @@ function scoreMove(
 	}
 
 	if (moveData.recoil || moveData.mindBlownRecoil) score *= 0.85;
-	if (moveData.struggle) score *= 0.5;
+	if (moveData.id === 'struggle') score *= 0.5;
 
 	if (moveData.multihit) score *= 1.25;
 

@@ -70,6 +70,7 @@ export const devCommands: Chat.ChatCommands = {
 			const recordTeam = s?.recordTeam || [];
 			s = {
 				floor: 1,
+				gameMode: 'classic',
 				team: [],
 				battlePoints: 20,
 				timesRerolled: 0,
@@ -90,7 +91,7 @@ export const devCommands: Chat.ChatCommands = {
 		const species = Dex.species.get(toID(mon));
 		if (!species.exists) return this.errorReply("Invalid Pokémon.");
 		const level = parseInt(lvl) || 1;
-		let finalSpecies = species.id;
+		let finalSpecies: string = species.id;
 		while (true) {
 			const evo = getLevelUpEvo(finalSpecies);
 			if (!evo || level < evo.evoLevel) break;
