@@ -532,6 +532,13 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 // ─── Welcome View ─────────────────────────────────────────────────────────────
 
 function renderWelcomeView(): string {
+	const MODE_LABELS: Record<string, string> = {
+		classic: 'Classic',
+		random: 'Random',
+		endless: 'Endless',
+		gen1: 'Gen 1',
+	};
+
 	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
 
 	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">Drunk Professor Oak</div>`;
@@ -545,13 +552,11 @@ function renderWelcomeView(): string {
 	buf += `</div>`;
 
 	buf += `<div style="text-align:center;margin-bottom:8px">`;
-	buf += renderBtn('/pokerogue newgame classic', 'Classic', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
-	buf += `&nbsp;&nbsp;`;
-	buf += renderBtn('/pokerogue newgame random', 'Random', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
-	buf += `&nbsp;&nbsp;`;
-	buf += renderBtn('/pokerogue newgame endless', 'Endless', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
-	buf += `&nbsp;&nbsp;`;
-	buf += renderBtn('/pokerogue newgame gen1', 'Gen 1', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	for (const mode of Object.keys(MODE_CONFIGS)) {
+		const label = MODE_LABELS[mode] || mode.charAt(0).toUpperCase() + mode.slice(1);
+		buf += renderBtn(`/pokerogue newgame ${mode}`, label, 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+		buf += `&nbsp;&nbsp;`;
+	}
 	buf += `</div>`;
 
 	buf += `</div>`;
