@@ -1,7 +1,6 @@
-import { type PokemonEntry, type ModeConfig, type ModeData } from './types';
+import { type PokemonEntry, type ModeConfig, type ModeData, type BiomeEntry } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
 import { BOSSES } from './pokemon-bosses-data';
-import { getDisplayBiome } from './mods/classic/biomes';
 
 export interface TrainerMon {
 	species: string;
@@ -512,6 +511,31 @@ function rollRarity(floor: number, isBoss: boolean, isStarter: boolean, luck = 0
 	return 'Common';
 }
 
+/* * Dev Note: Default Biome Resolver
+ * Used when ModeData.resolveBiome is not provided.
+ * Handles the lastBiome floor range override from ModeConfig,
+ * falling back to the current biome otherwise.
+ */
+function defaultResolveBiome(floor: number, currentBiome: string, config: ModeConfig): string {
+	if (config.lastBiome) {
+		const match = /^(\d+)-(\d+)$/.exec(config.lastBiome.floor.trim());
+		if (match && floor >= parseInt(match[1]) && floor <= parseInt(match[2])) {
+			return config.lastBiome.biome;
+		}
+	}
+	return currentBiome;
+}
+
+function weightedPick(pool: BiomeEntry[]): string {
+	const totalWeight = pool.reduce((sum, entry) => sum + entry.weight, 0);
+	let roll = Math.random() * totalWeight;
+	for (const entry of pool) {
+		roll -= entry.weight;
+		if (roll < 0) return entry.species;
+	}
+	return pool[pool.length - 1].species;
+}
+
 export interface AIPokemonSet {
 	species: string;
 	name: string;
@@ -541,7 +565,6 @@ export function genAIPokemon(
 	const bossInterval = config?.bossInterval || 10;
 	const isBossFloor = floor % bossInterval === 0;
 
-	// Use our unified scaling helper. If it's a boss floor, getLevelScaling forces cap.
 	let effectiveScale: [number, number] = [scale.min, scale.max];
 	if (isBossFloor) {
 		effectiveScale = [scale.cap, scale.cap];
@@ -611,6 +634,9 @@ export function genPokemon(
 
 	const activeBiomes = data?.biomes || {};
 
+	// Resolve biome using mod hook or default implementation
+	const resolveBiome = data?.resolveBiome ?? defaultResolveBiome;
+
 	while (gennedMons.length < quantity) {
 		let chosenLevel: number;
 		if (depth > 500) {
@@ -649,58 +675,57 @@ export function genPokemon(
 			}
 		} else {
 			const rarity = rollRarity(floor, !!isBossFloor, !!starter, luck);
-			let pool: { species: string, weight: number }[] = [];
+			let pool: BiomeEntry[] = [];
 
 			const activeBiome = currentBiome || config?.startingBiome || 'Town';
-			const biomeName = getDisplayBiome(floor, activeBiome);
+			const biomeName = resolveBiome(floor, activeBiome, config ?? {} as ModeConfig);
 
 			if (starter) {
 				for (const b of Object.values(activeBiomes)) {
-					if (b[rarity as keyof typeof b]) {
-						pool.push(...b[rarity as keyof typeof b]);
-					}
+					const tierPool = (b as any)[rarity];
+					if (tierPool && tierPool.length > 0) pool.push(...tierPool);
 				}
 			} else {
-				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes[activeBiome]?.[rarity];
+				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes[activeBiome]?.[rarity] || [];
 			}
 
-			// Unified Empty Pool Fallback (Boss & Wild)
+			// Empty pool fallback — use mod hook if provided, otherwise default cross-biome search
 			if (!pool || pool.length === 0) {
-				pool = [];
+				if (config?.emptyPoolFallbackFn) {
+					pool = config.emptyPoolFallbackFn(floor, rarity, !!isBossFloor, activeBiomes);
+				} else {
+					pool = [];
+					const excludedBiomes = new Set(data?.excludedBiomes ?? []);
 
-				const excludedBiomes = new Set(data?.excludedBiomes ?? []);
-
-				for (const [bName, biomeData] of Object.entries(activeBiomes)) {
-					if (excludedBiomes.has(bName)) continue;
-
-					const tierPool = (biomeData as any)[rarity];
-					if (tierPool && tierPool.length > 0) {
-						pool.push(...tierPool);
+					for (const [bName, biomeData] of Object.entries(activeBiomes)) {
+						if (excludedBiomes.has(bName)) continue;
+						const tierPool = (biomeData as any)[rarity];
+						if (tierPool && tierPool.length > 0) pool.push(...tierPool);
 					}
-				}
 
-				// Absolute safety net in case no biome has this rarity
-				if (pool.length === 0) {
-					const fallbackTier = isBossFloor ? 'Boss' : 'Common';
-					for (const biomeData of Object.values(activeBiomes)) {
-						const tierPool = (biomeData as any)[fallbackTier];
-						if (tierPool && tierPool.length > 0) {
-							pool = tierPool;
-							break;
+					// Absolute safety net in case no biome has this rarity
+					if (pool.length === 0) {
+						const fallbackTier = isBossFloor ? 'Boss' : 'Common';
+						for (const biomeData of Object.values(activeBiomes)) {
+							const tierPool = (biomeData as any)[fallbackTier];
+							if (tierPool && tierPool.length > 0) {
+								pool = tierPool;
+								break;
+							}
 						}
 					}
 				}
 			}
 
-			// Exclude all single-stage Pokémon from appearing below floor 100
-			if (floor < 100) {
+			// Pool filter — use mod hook if provided, otherwise apply default single-stage filter
+			if (config?.poolFilterFn) {
+				pool = config.poolFilterFn(pool, floor, !!isBossFloor);
+			} else if (floor < 100) {
 				pool = pool.filter(mon => {
 					let sp = Dex.species.get(mon.species);
-
 					while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
 						sp = sp.prevo ? Dex.species.get(sp.prevo) : Dex.species.get(sp.baseSpecies);
 					}
-
 					return sp.evos && sp.evos.length > 0;
 				});
 			}
@@ -710,19 +735,7 @@ export function genPokemon(
 				pool = [{ species: 'eevee', weight: 100 }, { species: 'porygon', weight: 100 }];
 			}
 
-			const totalWeight = pool.reduce((sum, mon) => sum + mon.weight, 0);
-			let randWeight = Math.floor(Math.random() * totalWeight);
-			let selectedSpeciesId = pool[0].species;
-
-			for (const mon of pool) {
-				randWeight -= mon.weight;
-				if (randWeight < 0) {
-					selectedSpeciesId = mon.species;
-					break;
-				}
-			}
-
-			finalSpeciesId = selectedSpeciesId;
+			finalSpeciesId = weightedPick(pool);
 
 			if (starter || !isBossFloor) {
 				let sp = Dex.species.get(finalSpeciesId);
@@ -781,10 +794,9 @@ export function genPokemon(
 
 		const evs = forcedEvs ? { ...forcedEvs } : calcEVSpread(finalSpecie, floor);
 		const nature = pickNatureForSpecies(finalSpecie, floor);
-		
-		// Randomize ability if config allows, bypassing the boss's forced ability
-		const ability = config?.randomizeAbilities 
-			? pickBestAbility(finalSpecie, floor, config) 
+
+		const ability = config?.randomizeAbilities
+			? pickBestAbility(finalSpecie, floor, config)
 			: (forcedAbility ?? pickBestAbility(finalSpecie, floor, config));
 
 		const shiny = Math.floor(Math.random() * 1024) === 69;
@@ -794,7 +806,6 @@ export function genPokemon(
 			finalSpecie.types[Math.floor(Math.random() * finalSpecie.types.length)]);
 
 		let moves: string[] = [];
-		// Randomize moves if config allows, bypassing the boss's forced moves
 		if (config?.randomizeMoves) {
 			moves = pickBestMoves(finalSpecie.name, chosenLevel, genNumber, floor, config);
 		} else if (forcedMoves) {
@@ -824,7 +835,7 @@ export function genPokemon(
 	return gennedMons;
 }
 
-// Unified Level Scaling Logic!
+// Unified Level Scaling Logic
 export function getLevelScaling(floor: number, config?: ModeConfig): { cap: number, min: number, max: number } {
 	// 1. Modder Override
 	if (config?.levelScalingFn) {
@@ -837,7 +848,6 @@ export function getLevelScaling(floor: number, config?: ModeConfig): { cap: numb
 	const cap = Math.max(2, Math.ceil(baseLevel / 2) * 2 + 2);
 
 	if (floor % 10 === 0) {
-		// Boss floors are always exactly at the cap
 		return { cap, min: cap, max: cap };
 	}
 
@@ -860,7 +870,6 @@ export function pickStarterOptions(availableStarters: string[]): string[] {
 		const j = Math.floor(Math.random() * (i + 1));
 		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
 	}
-
 	return shuffled.slice(0, 5);
 }
 
@@ -892,7 +901,6 @@ export function applyExpAndLevelUp(
 ): { evolved: boolean, oldLevel: number } {
 	const oldLevel = mon.level;
 
-	// Use the central scaling helper to fetch the exact absolute cap for the zone!
 	const scaling = getLevelScaling(currentFloor, config);
 	const levelCap = Math.min(10000, scaling.cap);
 

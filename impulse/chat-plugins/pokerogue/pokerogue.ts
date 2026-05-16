@@ -42,9 +42,9 @@ function fullHealPP(mon: PokemonEntry): void {
 }
 
 function parseFloorRange(range: string): { start: number, end: number } | null {
-    const match = /^(\d+)-(\d+)$/.exec(range.trim());
-    if (!match) return null;
-    return { start: parseInt(match[1]), end: parseInt(match[2]) };
+	const match = /^(\d+)-(\d+)$/.exec(range.trim());
+	if (!match) return null;
+	return { start: parseInt(match[1]), end: parseInt(match[2]) };
 }
 
 function processLevelUp(
@@ -350,7 +350,6 @@ function processBattleExperience(
 
 			detailMsgs.push(`<b>${spName}</b> gained ${expGained} Exp.${sourceTag}`);
 
-			// Pass the dynamically routed config here to enforce level caps!
 			const { evolved, oldLevel } = applyExpAndLevelUp(mon, expGained, floor, config);
 			detailMsgs.push(...processLevelUp(mon, oldLevel, oldSpecies, evolved, teamIdx, state, config.generation || 9));
 		}
@@ -438,6 +437,33 @@ function handleBattleLoss(state: PokeRogueState, floor: number): void {
 	}
 }
 
+/* * Dev Note: Weighted Biome Transition
+ * Picks the next biome using weighted random selection from BiomeTransition[].
+ * Falls back to uniform random if all weights are equal (weight: 1).
+ */
+function pickNextBiome(
+	currentBiome: string,
+	data: { transitions: Record<string, { biome: string, weight: number }[]>, excludedBiomes?: string[], biomes: Record<string, any> },
+	startingBiome: string
+): string {
+	const excluded = new Set(data.excludedBiomes ?? []);
+	const options = (data.transitions[currentBiome] ?? []).filter(t => !excluded.has(t.biome));
+
+	if (options.length > 0) {
+		const totalWeight = options.reduce((sum, t) => sum + t.weight, 0);
+		let roll = Math.random() * totalWeight;
+		for (const t of options) {
+			roll -= t.weight;
+			if (roll <= 0) return t.biome;
+		}
+		return options[options.length - 1].biome;
+	}
+
+	// Fallback: pick from any non-excluded biome that isn't the starting biome
+	const fallbackOptions = Object.keys(data.biomes).filter(b => b !== startingBiome && !excluded.has(b));
+	return fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || startingBiome;
+}
+
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
 
@@ -463,6 +489,7 @@ export const commands: Chat.ChatCommands = {
 					team: [],
 					battlePoints: defaultConfig.economy.startingBP,
 					timesRerolled: 0,
+					rotationalShop: [],
 					keyItems: [...(defaultConfig.economy.startingKeyItems || [])],
 					inventory: { ...(defaultConfig.economy.startingInventory || {}) },
 					highestFloor,
@@ -483,7 +510,7 @@ export const commands: Chat.ChatCommands = {
 
 		newgame(target, room, user) {
 			const existing = getState(user.id);
-    
+
 			if (existing?.gameOver) {
 				delete existing.gameOver;
 				delete existing.lastRunFloor;
@@ -520,6 +547,7 @@ export const commands: Chat.ChatCommands = {
 				team: [],
 				battlePoints: config.economy.startingBP,
 				timesRerolled: 0,
+				rotationalShop: [],
 				keyItems: [...(config.economy.startingKeyItems || [])],
 				inventory: { ...(config.economy.startingInventory || {}) },
 				pendingChoice: pickStarterOptions(modeStarters),
@@ -528,13 +556,13 @@ export const commands: Chat.ChatCommands = {
 				displayName,
 				recordTeam,
 			};
-			
+
 			(newState as any).view = 'main';
 
 			setState(user.id, newState);
 			return this.parse('/pokerogue start');
 		},
-		
+
 		view(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return;
@@ -557,7 +585,7 @@ export const commands: Chat.ChatCommands = {
 				refreshGamePage(user);
 			}
 		},
-		
+
 		prebattle(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			const state = getState(user.id);
@@ -873,7 +901,6 @@ export const commands: Chat.ChatCommands = {
 						if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
 						if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
 						state.battlePoints -= item.cost;
-						
 						const healAmt = item.healAmount || 20;
 						mon.currentHp = item.isMax ? 100 : Math.min(100, hp + healAmt);
 						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
@@ -881,14 +908,12 @@ export const commands: Chat.ChatCommands = {
 						if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
 						if (!mon.status) return this.errorReply("That Pokémon has no status condition.");
 						state.battlePoints -= item.cost;
-						
 						const oldStatus = mon.status;
 						delete mon.status;
 						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
 					} else if (item.type === 'revive') {
 						if (hp > 0) return this.errorReply("That Pokémon hasn't fainted.");
 						state.battlePoints -= item.cost;
-						
 						const revAmt = item.reviveAmount || 50;
 						mon.currentHp = (item.isMax || mon.species === 'shedinja') ? 100 : revAmt;
 						delete mon.status;
@@ -1050,11 +1075,9 @@ export const commands: Chat.ChatCommands = {
 
 			if (item.type === 'pokeball') {
 				state.battlePoints -= item.cost;
-
 				state.inventory = state.inventory || {};
 				state.inventory[key] = (state.inventory[key] || 0) + 1;
 				state.notification = `Bought 1x <b>${item.name}</b>!`;
-
 				setState(user.id, state);
 				refreshGamePage(user);
 				return;
@@ -1128,10 +1151,7 @@ export const commands: Chat.ChatCommands = {
 
 			const log = room.log?.log || [];
 			let p2Species = '';
-			
-			// Use the mode's config to determine the wild pokemon's level
 			let p2Level = botLevel(floor, config);
-			
 			let p2Hp = -1;
 			let p2MaxHp = 100;
 			let p2Status = '';
@@ -1206,7 +1226,6 @@ export const commands: Chat.ChatCommands = {
 				`</div>`;
 
 			user.sendTo(room, `|uhtmlchange|catchpanel-${turn}|${catchHTML}`);
-
 			room.add(`|c|~|You threw a ${ballType}!`).update();
 
 			const baseCatchRate = CATCH_RATES[p2Species] || 45;
@@ -1221,7 +1240,6 @@ export const commands: Chat.ChatCommands = {
 
 			const hpPercent = p2Hp / p2MaxHp;
 			const modifiedCatchRate = (1 - (2 / 3) * hpPercent) * baseCatchRate * ballBonus * statusBonus;
-
 			const shakeProb = Math.min(65536, Math.floor(65536 * (modifiedCatchRate / 255) ** 0.1875));
 
 			let shakes = 0;
@@ -1280,15 +1298,9 @@ export const commands: Chat.ChatCommands = {
 				if (catchMatch.botTeam) {
 					const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
 					if (botMon) {
-						if (botMon.moves && botMon.moves.length > 0) {
-							caughtMoves = botMon.moves;
-						}
-						if (botMon.ability) {
-							caughtAbility = botMon.ability;
-						}
-						if (botMon.item) {
-							caughtItem = botMon.item;
-						}
+						if (botMon.moves && botMon.moves.length > 0) caughtMoves = botMon.moves;
+						if (botMon.ability) caughtAbility = botMon.ability;
+						if (botMon.item) caughtItem = botMon.item;
 					}
 				}
 
@@ -1302,16 +1314,17 @@ export const commands: Chat.ChatCommands = {
 					ppLeft: caughtMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					currentHp: hpPct,
 					evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-					ivs: { hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32), def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32), spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32) },
+					ivs: {
+						hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+						def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+						spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+					},
 					ability: caughtAbility,
 					ball: ballType,
 				};
 
 				if (caughtItem) caught.heldItem = caughtItem;
-
-				if (p2Status && p2Status !== 'none') {
-					caught.status = p2Status;
-				}
+				if (p2Status && p2Status !== 'none') caught.status = p2Status;
 
 				state.caughtPokemon = caught;
 				setState(user.id, state);
@@ -1329,9 +1342,7 @@ export const commands: Chat.ChatCommands = {
 				let escapeMsg = `|c|~|Oh no! The Pokémon broke free!`;
 				if (shakes === 1) escapeMsg = `|c|~|Aww! It appeared to be caught!`;
 				if (shakes === 2) escapeMsg = `|c|~|Aargh! Almost had it!`;
-
 				room.add(escapeMsg).update();
-
 				void room.battle.stream.write(`>p1 pass`);
 			}
 		},
@@ -1347,14 +1358,11 @@ export const commands: Chat.ChatCommands = {
 			const mon = state.team[slot];
 			const hp = mon.currentHp ?? 100;
 			const bp = state.battlePoints ?? 0;
-			
-			// Dynamically fetch the current game mode's shop
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 
 			if (type === 'heal') {
 				if (hp <= 0 || hp >= 100) return this.errorReply("Pokémon cannot be Q Healed.");
 
-				// Get all healing items sorted by cost (cheapest first)
 				const healItems = Object.values(activeShop)
 					.filter((i: any) => i.type === 'healHP')
 					.sort((a: any, b: any) => a.cost - b.cost);
@@ -1365,8 +1373,6 @@ export const commands: Chat.ChatCommands = {
 				let bestAffordable = null;
 				const missingHp = 100 - hp;
 
-				// Find the cheapest item that fully heals the missing HP.
-				// If none exist or they are unaffordable, pick the best one they CAN afford.
 				for (const i of healItems as any[]) {
 					if (bp >= i.cost) {
 						bestAffordable = i;
@@ -1384,11 +1390,10 @@ export const commands: Chat.ChatCommands = {
 				const healAmt = usedItem.healAmount || 20;
 				mon.currentHp = usedItem.isMax ? 100 : Math.min(100, hp + healAmt);
 				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was Q-Healed using a ${usedItem.name}! (${hp}% → ${mon.currentHp}%)`;
-				
+
 			} else if (type === 'cure') {
 				if (hp <= 0 || !mon.status) return this.errorReply("Pokémon cannot be Q Cured.");
 
-				// Dynamically grab ANY cure item
 				const cureItem = Object.values(activeShop).find((i: any) => i.type === 'cureStatus') as any;
 				if (!cureItem) return this.errorReply("No cure item found in shop.");
 				if (bp < cureItem.cost) return this.errorReply("Not enough BP for Q Cure.");
@@ -1514,14 +1519,14 @@ export const handlers: Chat.Handlers = {
 	onBattleEnd(battle, winner, players) {
 		const match = activeMatches.get(battle.roomid);
 		if (!match) return;
-		
+
 		activeMatches.delete(battle.roomid);
 		const botUser = Users.get(match.botUserId);
 		if (botUser) destroyBotUser(botUser);
 
 		const state = getState(match.userId);
 		if (!state) return;
-		
+
 		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 		const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
@@ -1555,7 +1560,6 @@ export const handlers: Chat.Handlers = {
 				}
 
 				// TODO: REWARDS LOGIC — award end-of-run rewards here before setting gameWon
-				// e.g. bonus BP, trophies, unlockables, or mode-specific completion rewards
 
 				setState(match.userId, state);
 				const hUser = Users.get(match.userId);
@@ -1563,39 +1567,24 @@ export const handlers: Chat.Handlers = {
 				return;
 			}
 
-			// Detached Graph-Based Biome Rotation
+			// Biome rotation using weighted transitions and optional resolveBiome hook
 			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.biomeRotationInterval) {
-				// Check lastBiome override first
-				if (config.lastBiome) {
+				// Check lastBiome override first (only used if ModeData.resolveBiome is not provided)
+				if (config.lastBiome && !data.resolveBiome) {
 					const range = parseFloorRange(config.lastBiome.floor);
 					if (range && state.floor >= range.start && state.floor <= range.end) {
 						state.currentBiome = config.lastBiome.biome;
 						battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
 					} else {
-						const options = (data.transitions[state.currentBiome || config.startingBiome] ?? [])
-							.filter(b => !(data.excludedBiomes ?? []).includes(b));
-
-						if (options.length > 0) {
-							state.currentBiome = options[Math.floor(Math.random() * options.length)];
-						} else {
-							const fallbackOptions = Object.keys(data.biomes)
-								.filter(b => b !== config.startingBiome && !(data.excludedBiomes ?? []).includes(b));
-							state.currentBiome = fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || config.startingBiome;
-						}
+						state.currentBiome = pickNextBiome(state.currentBiome || config.startingBiome, data, config.startingBiome);
 						battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
 					}
+				} else if (data.resolveBiome) {
+					// Let the mod fully control biome resolution
+					state.currentBiome = data.resolveBiome(state.floor, state.currentBiome || config.startingBiome, config);
+					battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
 				} else {
-					const options = (data.transitions[state.currentBiome || config.startingBiome] ?? [])
-						.filter(b => !(data.excludedBiomes ?? []).includes(b));
-
-					if (options.length > 0) {
-						state.currentBiome = options[Math.floor(Math.random() * options.length)];
-					} else {
-						const fallbackOptions = Object.keys(data.biomes)
-							.filter(b => b !== config.startingBiome && !(data.excludedBiomes ?? []).includes(b));
-						state.currentBiome = fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || config.startingBiome;
-					}
-
+					state.currentBiome = pickNextBiome(state.currentBiome || config.startingBiome, data, config.startingBiome);
 					battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
 				}
 			} else if (!state.currentBiome) {
