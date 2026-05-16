@@ -529,7 +529,7 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 	return buf;
 }
 
-// ─── Welcome View ─────────────────────────────────────────────────────────────
+// ─── Welcome & Victory View ─────────────────────────────────────────────────────────────
 
 function renderWelcomeView(): string {
 	const MODE_LABELS: Record<string, string> = {
@@ -562,6 +562,35 @@ function renderWelcomeView(): string {
 	buf += `</div>`;
 
 	return buf;
+}
+
+function renderVictoryView(state: PokeRogueState): string {
+    const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+    const vc = config.victoryConfig ?? {};
+
+    const name = vc.name ?? 'Professor Oak';
+    const spriteUrl = vc.spriteUrl ?? 'https://play.pokemonshowdown.com/sprites/trainers/oak.png';
+    const dialog = vc.dialog ?? `Congratulations! You've completed the run and cleared Floor ${state.lastRunFloor ?? config.maxFloor}! Your journey was truly remarkable. The Pokémon world thanks you!`;
+
+    let buf = `<div style="text-align:center; padding: 40px 10px;">`;
+
+    buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">${Utils.escapeHTML(name)}</div>`;
+
+    buf += `<div style="margin-bottom: 8px;">`;
+    buf += `<img src="${Utils.escapeHTML(spriteUrl)}" alt="${Utils.escapeHTML(name)}" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
+    buf += `</div>`;
+
+    buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 300px; margin: 0 auto 16px auto; border-left: 4px solid #fac000; font-size: 12px; line-height: 1.4; display: block;">`;
+    buf += `"${Utils.escapeHTML(dialog)}"`;
+    buf += `</div>`;
+
+    buf += `<div style="text-align:center;margin-bottom:8px">`;
+    buf += renderBtn('/pokerogue view welcome', 'Continue', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+    buf += `</div>`;
+
+    buf += `</div>`;
+
+    return buf;
 }
 
 // ─── Full Page Views ──────────────────────────────────────────────────────────
