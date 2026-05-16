@@ -184,6 +184,7 @@ export interface PokeRogueState {
 	gameOver?: boolean;
 	lastRunFloor?: number;
 	lastRunStreaks?: number;
+	lastTrainerFloor?: number;
 	notification?: string;
 	pendingChoiceFloor?: number;
 	pendingMoveSlot?: number;
