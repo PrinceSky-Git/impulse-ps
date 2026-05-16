@@ -1,4 +1,4 @@
-import { type TrainerMon } from './pokemon-trainers-data';
+import { type TrainerMon } from './pokemon';
 
 export interface BossData {
 	pool: TrainerMon[];
