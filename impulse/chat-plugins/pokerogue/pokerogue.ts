@@ -477,6 +477,13 @@ export const commands: Chat.ChatCommands = {
 
 		newgame(target, room, user) {
 			const existing = getState(user.id);
+    
+			if (existing?.gameOver) {
+				delete existing.gameOver;
+				delete existing.lastRunFloor;
+				setState(user.id, existing);
+			}
+
 			const hasProgress = existing && (existing.team?.length > 0 || (existing.floor ?? 1) > 1);
 
 			const targetParts = target.trim().toLowerCase().split(' ');
@@ -485,8 +492,7 @@ export const commands: Chat.ChatCommands = {
 			if (isConfirm && targetParts.length > 1) {
 				modeStr = targetParts.find(p => p !== 'confirm') || 'classic';
 			}
-
-			if (hasProgress && !existing.gameOver && !isConfirm) {
+			if (hasProgress && !isConfirm) {
 				return this.sendReplyBox(`<b>Warning: Run in progress!</b><br><button name="send" value="/pokerogue newgame ${modeStr || 'classic'} confirm" class="button">Yes, start fresh</button>`);
 			}
 
@@ -516,7 +522,7 @@ export const commands: Chat.ChatCommands = {
 				displayName,
 				recordTeam,
 			};
-
+			
 			(newState as any).view = 'main';
 
 			setState(user.id, newState);
@@ -528,12 +534,18 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return;
 			const v = target.trim() as any;
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome'].includes(v)) {
+				if (v === 'welcome' && state.gameOver) {
+					delete state.gameOver;
+					delete state.lastRunFloor;
+					state.team = [];
+					state.floor = 1;
+				}
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
 		},
-
+		
 		prebattle(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			const state = getState(user.id);
