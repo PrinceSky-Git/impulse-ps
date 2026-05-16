@@ -17,8 +17,6 @@ export function refreshGamePage(user: User): void {
 
 const PAGE_REFRESH_SECONDS = 20;
 
-// ─── Sprite / Icon Helpers ────────────────────────────────────────────────────
-
 function itemURLFormat(item: string): string {
 	return item.replaceAll(/[^a-zA-Z0-9\s-]+/g, '').toLowerCase().replaceAll(' ', '-');
 }
@@ -73,8 +71,6 @@ export function getSpriteWithBall(species: string, size = 80, ball?: string): st
 		`</div>`;
 }
 
-// ─── Type / Color Helpers ─────────────────────────────────────────────────────
-
 function typeColor(type: string): string {
 	const colors: Record<string, string> = {
 		Normal: '9fa19f', Fire: 'e62829', Water: '2980ef', Grass: '3fa129', Electric: 'fac000',
@@ -101,8 +97,6 @@ export function renderTypeBadge(types: string[], large = false): string {
 	}).join(' ');
 }
 
-// ─── Primitive UI Helpers ─────────────────────────────────────────────────────
-
 function renderBtn(cmd: string | null, label: string, className = 'pr-btn', style = '', disabled = false): string {
 	let buf = `<button`;
 	if (cmd) buf += ` name="send" value="${cmd}"`;
@@ -120,8 +114,6 @@ function renderChoiceRow(spriteHtml: string, flexHtml: string, actionBtnHtml: st
 function renderGuidePanel(content: string): string {
 	return `<div style="background:rgba(0,0,0,0.15);padding:11px 13px;border-radius:8px;margin-bottom:8px;font-size:12px;line-height:1.55">${content}</div>`;
 }
-
-// ─── Shared UI Components ─────────────────────────────────────────────────────
 
 function renderNotification(state: PokeRogueState): string {
 	if (!state.notification) return '';
@@ -151,16 +143,11 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome' && !hasGameOver) {
-		/* * Dev Note: UI Lock
-		 * We exclude the 'Back' button from the 'trainer' view to ensure players
-		 * commit to the rolled encounter and cannot navigate back to the main menu.
-		 */
+		// Trainer and welcome screens intentionally omit Back to prevent rerolling committed encounter state.
 		buf += renderBtn('/pokerogue view main', '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	}
 	return buf + `</div>`;
 }
-
-// ─── Pokémon Card Subcomponents ───────────────────────────────────────────────
 
 function renderMoveList(moves: string[]): string {
 	if (!moves.length) return '';
@@ -199,7 +186,7 @@ function renderHpBar(mon: PokemonEntry): string {
 function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber = 9): string {
 	const spData = Dex.species.get(toID(mon.species));
 	const expNeeded = mon.level < 9999 ? expForLevel(mon.level + 1) - mon.exp : 0;
-	
+
 	const abilities = spData.abilities as Record<string, string>;
 	const abilityId = mon.ability || abilities['0'] || '';
 	const ability = abilityId ? (Dex.abilities.get(abilityId).name || abilityId) : '';
@@ -255,8 +242,6 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 	buf += `</tr>`;
 	return buf;
 }
-
-// ─── Shop Helpers ─────────────────────────────────────────────────────────────
 
 function renderShopTable(
 	items: [string, any][],
@@ -316,8 +301,6 @@ function renderShopTable(
 	buf += `</tbody></table></div>`;
 	return buf;
 }
-
-// ─── Choice / Pending Views ───────────────────────────────────────────────────
 
 function renderPendingChoice(state: PokeRogueState): string {
 	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2><div class="pr-choice-grid">`;
@@ -411,7 +394,7 @@ function renderGiveItem(state: PokeRogueState): string {
 }
 
 function renderConsumable(state: PokeRogueState): string {
-	// Fetch dynamic shop!
+
 	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 	const consumableItem = activeShop[state.purchasedItem!];
 	const consumableType = state.pendingConsumableType!;
@@ -492,16 +475,11 @@ function renderReleaseMon(state: PokeRogueState): string {
 	return buf;
 }
 
-// ─── Trainer Intro View ───────────────────────────────────────────────────────
-
-/* * Dev Note: Trainer Intro UI
- * Uses the dynamically routed pendingTrainerKey to fetch the correct sprite and dialogue
- * from the database before handing off to the actual battle phase.
- */
 function renderTrainerIntroView(state: PokeRogueState): string {
 	const trainerName = state.pendingTrainer!;
 	const lookupKey = state.pendingTrainerKey || state.floor.toString();
 	const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+	// The intro view reads persisted trainer keys rather than rolling again, keeping battle generation deterministic.
 	const trainerData = modeData.trainers?.[lookupKey]?.[trainerName];
 
 	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
@@ -528,8 +506,6 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 
 	return buf;
 }
-
-// ─── Welcome & Victory View ─────────────────────────────────────────────────────────────
 
 function renderWelcomeView(): string {
 	const MODE_LABELS: Record<string, string> = {
@@ -593,8 +569,6 @@ function renderVictoryView(state: PokeRogueState): string {
     return buf;
 }
 
-// ─── Full Page Views ──────────────────────────────────────────────────────────
-
 function renderMainView(state: PokeRogueState, user: User): string {
 	if (state.battleRoomId) {
 		return `<div style="text-align:center;padding:18px 0;color:#fac000;font-weight:500">Battle in progress!</div>`;
@@ -621,14 +595,12 @@ function renderMainView(state: PokeRogueState, user: User): string {
 		const hp = mon.currentHp ?? 100;
 		const bp = state.battlePoints ?? 0;
 
-		// Fetch dynamic shop!
 		const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 
-		// Dynamically check the shop for affordable heals/cures
 		const healItems = Object.values(activeShop)
 			.filter((item: any) => item.type === 'healHP')
 			.sort((a: any, b: any) => a.cost - b.cost);
-			
+
 		const cureItem = Object.values(activeShop).find((item: any) => item.type === 'cureStatus');
 		const cureCost = cureItem ? (cureItem as any).cost : Infinity;
 
@@ -637,7 +609,7 @@ function renderMainView(state: PokeRogueState, user: User): string {
 		else if (hp >= 100) qHealLabel = "Full HP";
 		else if (!healItems.length) qHealLabel = "No Items";
 		else {
-			// If they can afford at least the cheapest healing item
+			// Quick actions use the cheapest affordable mode-specific shop item so custom modes inherit correct economy rules.
 			const affordableHeal = healItems.find((item: any) => bp >= item.cost);
 			if (affordableHeal) qHealDisabled = false;
 			else qHealLabel = "Need BP";
@@ -670,13 +642,12 @@ function renderShopView(state: PokeRogueState): string {
 	const bp = state.battlePoints ?? 0;
 	const currentFloor = state.floor ?? 1;
 
-	// Fetch dynamic shop!
 	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 
 	let buf = renderStatBar(state, true);
 
 	buf += `<div class="pr-section-title">Shop</div>`;
-	// Draw the items from the active shop instead of the default one
+
 	const permItems = Object.entries(activeShop).filter(([, item]: [string, any]) => item.minFloor <= currentFloor);
 	buf += renderShopTable(permItems as any, bp, state.keyItems ?? [], 'pokerogue buy');
 
@@ -790,20 +761,17 @@ function renderGuideView(): string {
 	return buf;
 }
 
-// ─── Page Entry Point ─────────────────────────────────────────────────────────
-
 export function renderGamePage(state: PokeRogueState, user: User): string {
 	const view = (state as any).view || 'main';
 
 	let buf = (state.battleRoomId || state.notification) ? `<meta http-equiv="refresh" content="${PAGE_REFRESH_SECONDS}">` : '';
-	// buf += `<div class="pr">`;
+
 	buf += `<div class="pr" style="min-height:100vh;padding-bottom:20px">`;
 
 	if (state.gameOver) return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderGameOverView(state)}</div></div>`;
 	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderResetConfirmView(state)}</div></div>`;
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderTopView()}</div></div>`;
 
-	// --- Welcome View Intercept ---
 	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderWelcomeView()}</div></div>`;
 
 	buf += renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;

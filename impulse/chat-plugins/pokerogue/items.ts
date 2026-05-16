@@ -20,11 +20,10 @@ export interface ShopItem {
 	desc: string;
 	cost: number;
 	minFloor: number;
-	// Dynamic Action Properties
-	// These allow game modes to create entirely custom items!
-	healAmount?: number;     // e.g., 20, 60
-	reviveAmount?: number;   // e.g., 50, 100
-	isMax?: boolean;         // true for Max Potions / Max Revives
+
+	healAmount?: number;
+	reviveAmount?: number;
+	isMax?: boolean;
 }
 
 export const SHOP_ITEMS: Record<string, ShopItem> =
@@ -54,7 +53,6 @@ export function genItem(quantity: number, extraArg?: PokemonSet[] | string): str
 		return false;
 	});
 
-	// Fisher-Yates Shuffle
 	for (let i = all.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
 		[all[i], all[j]] = [all[j], all[i]];

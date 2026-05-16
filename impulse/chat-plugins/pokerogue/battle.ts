@@ -28,11 +28,7 @@ export function destroyBotUser(botUser: User): void {
 	}
 }
 
-/* * Dev Note: Bot User Initialization
- * Creates a ghost User object hooked directly into the Showdown connection layer.
- * Added an |error| interceptor: If the bot accidentally makes an illegal move (e.g., switching while trapped),
- * it will catch the error and forcefully use 'move 1' to prevent the room from permanently hanging.
- */
+// The bot is a synthetic Showdown user; intercepting requests here keeps the battle stream moving even when an AI choice is rejected.
 function createBotUser(playerId: string): User {
 	const uid = ++botCounter;
 	const connId = `pokerogue-bot-${uid}`;
@@ -102,9 +98,9 @@ function getTypeMultiplier(gen: number, atkType: string, defTypes: string[]): nu
 	let multiplier = 1;
 	for (const defType of defTypes) {
 		const val = Dex.mod(`gen${gen}`).data.TypeChart[toID(defType)]?.damageTaken?.[atkType] ?? 0;
-		if (val === 3) return 0; // immune
-		if (val === 2) multiplier *= 0.5; // NVE
-		if (val === 1) multiplier *= 2; // SE
+		if (val === 3) return 0;
+		if (val === 2) multiplier *= 0.5;
+		if (val === 1) multiplier *= 2;
 	}
 	return multiplier;
 }
@@ -204,10 +200,6 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
 	}
 }
 
-/* * Dev Note: Move Scoring Heuristic
- * Calculates an effective priority score for each move. Factors in STAB,
- * type effectiveness, recoil, multi-hit, and basic ability immunities.
- */
 function scoreMove(
 	gen: number,
 	move: any,
@@ -218,6 +210,7 @@ function scoreMove(
 	turn: number,
 	battleContext: BattleContext,
 ): number {
+	// This intentionally stays heuristic-only: battle requests do not expose enough hidden state for full simulation.
 	const moveData = Dex.moves.get(move.id);
 	if (!moveData.exists) return 0;
 
@@ -242,7 +235,6 @@ function scoreMove(
 
 	let score = basePower * effectiveness;
 
-	// STAB bonus
 	if (userDex.exists && userDex.types.includes(moveData.type)) {
 		score *= 1.5;
 	}
@@ -259,21 +251,19 @@ function scoreMove(
 
 	if (moveData.multihit) score *= 1.25;
 
-	// Priority moves: good finishers at low HP, minor bonus otherwise
 	if ((moveData.priority ?? 0) > 0) {
 		const hpRatio = parseHpRatio(userPokemon?.condition);
 		const targetHpRatio = parseHpRatio(battleContext.targetCondition);
-		// Most useful when we can finish off a weakened opponent
+
 		if (targetHpRatio < 0.25) score *= 1.4;
 		else if (hpRatio < 0.35) score *= 1.2;
-		else score *= 0.95; // slight penalty when not needed — prefer full-power moves
+		else score *= 0.95;
 	}
 
 	if (moveData.flags?.charge && !moveData.flags?.recharge) score *= 0.75;
 
 	if (moveData.flags?.recharge) score *= 0.8;
 
-	// Drain moves get a bonus when HP is low since they recover health
 	if (moveData.drain && parseHpRatio(userPokemon?.condition) < 0.5) score *= 1.15;
 
 	return score;
@@ -298,7 +288,6 @@ function getBattleContext(room: AnyObject | null | undefined, slot: number, poke
 		targetCondition = oppActive?.condition ?? '';
 	} catch {}
 
-	// Track which hazards/screens are already active on the opponent's side
 	const hazardsSet = new Set<string>();
 	const screensSet = new Set<string>();
 	try {
@@ -321,7 +310,6 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: Battle
 	const hpRatio = parseHpRatio(pokemon?.condition);
 	const boosts = ctx.boosts;
 
-	// Don't re-apply a status that's already on the opponent
 	const alreadyStatused = !!ctx.oppStatus;
 
 	if (['thunderwave', 'glare', 'stunspore'].includes(moveId)) {
@@ -340,12 +328,11 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: Battle
 		return alreadyStatused ? -Infinity : 45;
 	}
 
-	// Entry hazards: skip if already set
 	if (moveId === 'stealthrock') {
 		return ctx.hazardsSet.has('stealthrock') ? -Infinity : 40;
 	}
 	if (moveId === 'spikes') {
-		const count = (ctx.hazardsSet.has('spikes') ? 1 : 0); // simplified; avoid stacking beyond 3
+		const count = (ctx.hazardsSet.has('spikes') ? 1 : 0);
 		return count >= 3 ? -Infinity : 38;
 	}
 	if (moveId === 'toxicspikes') {
@@ -355,12 +342,10 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: Battle
 		return ctx.hazardsSet.has('stickyweb') ? -Infinity : 36;
 	}
 
-	// Screens: skip if already active on our side
 	if (moveId === 'reflect') return ctx.screensSet.has('reflect') ? -Infinity : 35;
 	if (moveId === 'lightscreen') return ctx.screensSet.has('lightscreen') ? -Infinity : 35;
 	if (moveId === 'auroraveil') return ctx.screensSet.has('auroraveil') ? -Infinity : 38;
 
-	// Setup moves: diminishing returns if already boosted, worthless if very boosted
 	const setupMoves: Record<string, number> = {
 		swordsdance: 75, nastyplot: 75, calmmind: 70, dragondance: 80,
 		quiverdance: 80, shellsmash: 85, growth: 60, bulkup: 65,
@@ -368,25 +353,22 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: Battle
 		agility: 55, rockpolish: 55,
 	};
 	if (setupMoves[moveId] !== undefined) {
-		// Primary offensive stat boost for this move
+
 		const relevantBoost = ['calmmind', 'nastyplot', 'quiverdance', 'growth'].includes(moveId)
 			? (boosts['spa'] ?? 0)
 			: (boosts['atk'] ?? 0);
 
-		// Hard cap: don't set up past +3 (it's already very strong, use the turns to attack)
 		if (relevantBoost >= 3) return -Infinity;
 
-		// Reduce value the more we've already boosted
 		const boostPenalty = relevantBoost * 15;
 		const baseScore = turn <= 3 ? setupMoves[moveId] : setupMoves[moveId] * 0.5;
 		return Math.max(0, baseScore - boostPenalty);
 	}
 
-	// Recovery: scale with how badly we need it; don't heal at nearly full HP
 	if (['recover', 'roost', 'moonlight', 'morningsun', 'synthesis', 'slackoff',
 		'milkdrink', 'softboiled', 'shoreup', 'lifedew', 'healorder'].includes(moveId)) {
-		if (hpRatio > 0.75) return -5; // actively discourage wasting a turn at high HP
-		if (hpRatio < 0.35) return 80;  // urgent
+		if (hpRatio > 0.75) return -5;
+		if (hpRatio < 0.35) return 80;
 		if (hpRatio < 0.55) return 60;
 		return 30;
 	}
@@ -396,7 +378,6 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: Battle
 	return 15;
 }
 
-// Fix: eruption/waterspout scale with current HP; other variable-power moves unchanged
 function estimateVariablePower(moveId: string, pokemon?: any): number {
 	if ((moveId === 'eruption' || moveId === 'waterspout') && pokemon) {
 		const hp = parseHpRatio(pokemon.condition);
@@ -451,12 +432,13 @@ function shouldSwitch(
 	room: AnyObject | null | undefined,
 	alreadyChosen: number[],
 ): number {
+	// Switch scoring must be conservative because a bad switch can strand the bot in forced-switch loops.
 	const pokemon = request.side?.pokemon ?? [];
 	const currentPokemon = pokemon[activeIdx];
 	if (!currentPokemon) return 0;
 
 	const active = (request.active as any[])[activeIdx];
-	// Respect all forms of trapping
+
 	if (active?.trapped || active?.maybeTrapped || active?.partiallyTrapped) return 0;
 
 	const hpRatio = parseHpRatio(currentPokemon.condition);
@@ -512,7 +494,6 @@ function shouldSwitch(
 
 		score += getDefensiveScore(gen, benchSpecies, oppMoveTypes) * 1.5;
 
-		// Offensive coverage against the current opponent
 		if (benchDex.exists && targetDex.exists) {
 			for (const atkType of benchDex.types) {
 				const eff = getTypeMultiplier(gen, atkType, targetDex.types);
@@ -530,7 +511,6 @@ function shouldSwitch(
 			}
 		}
 
-		// Penalise switching into a bench mon that is already low HP — not a real improvement
 		const benchHp = parseHpRatio(p.condition);
 		if (benchHp < 0.3) score -= 4;
 
@@ -656,7 +636,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 			const scored = usableMoves.map((m: any) => {
 				let score = scoreMove(gen, m, userSpecies, targetSpecies, targetAbility, pokemon, turn, battleCtx);
 
-				// Softer repetition penalty; skip entirely if only 1 PP left (forced)
 				const pp = m.pp ?? 99;
 				if (pp > 1) {
 					const lastUsed = getLastUsedTurn(roomid, i, m.id);
@@ -671,7 +650,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 
 			scored.sort((a: any, b: any) => b.score - a.score);
 
-			// Small chance to pick the 2nd-best move if scores are close (avoids being predictable)
 			let pickIdx = 0;
 			if (scored.length > 1 && scored[0].score > 0) {
 				const ratio = scored[1].score / scored[0].score;
@@ -694,10 +672,10 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 				recordMoveUsed(roomid, i, pick.m.id, turn);
 			}
 
-			// Only append battle mechanic suffixes to move choices, never to switches
 			if (active.canMegaEvo && config.mechanicUnlocks?.mega && currentFloor >= config.mechanicUnlocks.mega) {
 				chosen += ' mega';
 			} else if (active.canTerastallize && config.mechanicUnlocks?.terastallize && currentFloor >= config.mechanicUnlocks.terastallize) {
+				// Terastallization is reserved for turns where it improves defense or provides a meaningful STAB swing.
 				const targetDex = Dex.species.get(targetSpecies);
 				const userDex = Dex.species.get(userSpecies);
 
@@ -710,7 +688,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 					}
 				}
 
-				// Also check if Tera gives an offensive STAB boost on the chosen move
 				const chosenMoveId = pick.m?.id ?? '';
 				const chosenMoveData = Dex.moves.get(chosenMoveId);
 				const teraOffensiveBoost = teraType && chosenMoveData.exists && chosenMoveData.type === teraType;
@@ -724,7 +701,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 				}
 				const hpRatio = parseHpRatio(pokemon.condition);
 
-				// Terastallize if defensively safe AND (bad matchup, late game, or offensive STAB boost)
 				if (
 					teraDefensiveOk &&
 					(worstIncoming >= 2 || currentFloor > 40 || teraOffensiveBoost) &&
@@ -756,13 +732,12 @@ interface ActiveRougeMatch {
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
 function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string, team: AIPokemonSet[] } {
-	// 1. Fetch the rules and data for the player's specific mode
+
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 	const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
 	const floor = state.floor;
-	
-	// 2. Use the dynamic boss interval from the config
+
 	const isBossFloor = floor % config.bossInterval === 0;
 
 	let size = 1;
@@ -774,21 +749,20 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	const luck = state.luck ?? 0;
 	const trainerKey = state.pendingTrainerKey;
 
-	// 3. Inject the config and data into the AI generator!
 	const result = genAIPokemon(
-		size, 
-		floor, 
-		luck, 
-		state.pendingTrainer, 
-		trainerKey, 
-		state.currentBiome || config.startingBiome, 
-		config, 
+		size,
+		floor,
+		luck,
+		state.pendingTrainer,
+		trainerKey,
+		state.currentBiome || config.startingBiome,
+		config,
 		data
 	);
 
-	return { 
-		packedTeam: packAITeam(result.team), 
-		isTrainer: result.isTrainer, 
+	return {
+		packedTeam: packAITeam(result.team),
+		isTrainer: result.isTrainer,
 		trainerName: result.trainerName,
 		team: result.team
 	};
@@ -816,7 +790,6 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		delete state.pendingTrainerKey;
 	}
 
-	// Make boss checking dynamic based on the mode config!
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 	const isBoss = state.floor % config.bossInterval === 0;
 	const botUser = createBotUser(user.id);
@@ -864,7 +837,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		if (match) {
 			const activeState = getState(match.userId);
 			if (activeState) {
-				// Use the dynamic config boss interval here as well
+
 				activeConfig = MODE_CONFIGS[activeState.gameMode] || MODE_CONFIGS['classic'];
 				gen = activeConfig.generation || 9;
 				if (activeState.floor % activeConfig.bossInterval !== 0 && !match.isTrainerBattle) {
