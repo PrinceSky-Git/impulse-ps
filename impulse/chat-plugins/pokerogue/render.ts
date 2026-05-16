@@ -139,7 +139,7 @@ function renderStatBar(state: PokeRogueState, cols2 = false): string {
 }
 
 function renderHeader(view: string, hasGameOver: boolean): string {
-	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', guide: 'PokèRogue Guide', trainer: 'Encounter!', welcome: 'Welcome' };
+	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', guide: 'PokèRogue Guide', trainer: 'Encounter!', welcome: 'Welcome', victory: 'Victory', };
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
 
 	if (view === 'main' && !hasGameOver) {
