@@ -1,16 +1,5 @@
-import { type PokemonEntry, type ModeConfig, type ModeData, type BiomeEntry } from './types';
+import { type PokemonEntry, type ModeConfig, type ModeData, type BiomeEntry, type TrainerMon } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
-import { BOSSES } from './pokemon-bosses-data';
-
-export interface TrainerMon {
-	species: string;
-	moves?: string[];
-	ivs?: any;
-	evs?: any;
-	ability?: string;
-	teraType?: string;
-	item?: string;
-}
 
 export function getExpYield(speciesId: string): number {
 	const id = toID(speciesId);
@@ -511,11 +500,6 @@ function rollRarity(floor: number, isBoss: boolean, isStarter: boolean, luck = 0
 	return 'Common';
 }
 
-/* * Dev Note: Default Biome Resolver
- * Used when ModeData.resolveBiome is not provided.
- * Handles the lastBiome floor range override from ModeConfig,
- * falling back to the current biome otherwise.
- */
 function defaultResolveBiome(floor: number, currentBiome: string, config: ModeConfig): string {
 	if (config.lastBiome) {
 		const match = /^(\d+)-(\d+)$/.exec(config.lastBiome.floor.trim());
@@ -590,14 +574,15 @@ export function genAIPokemon(
 		}
 	}
 
-	if (!isTrainerBattle && isBossFloor && BOSSES[floor.toString()]) {
-		const bossNames = Object.keys(BOSSES[floor.toString()]);
-		const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];
-		const bossData = BOSSES[floor.toString()][selectedBoss];
-
-		const shuffledPool = [...bossData.pool].sort(() => 0.5 - Math.random());
-		forcedTeam = [shuffledPool[0]];
-		actualQuantity = 1;
+	// NEW: Agnostic Boss Routing via ModeData Hook
+	if (!isTrainerBattle && isBossFloor && data?.resolveBoss) {
+		const resolvedBossTeam = data.resolveBoss(floor, currentBiome || config?.startingBiome || 'Town', config!);
+		
+		if (resolvedBossTeam && resolvedBossTeam.length > 0) {
+			const shuffledPool = [...resolvedBossTeam].sort(() => 0.5 - Math.random());
+			forcedTeam = [shuffledPool[0]];
+			actualQuantity = 1;
+		}
 	}
 
 	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data);
@@ -633,8 +618,6 @@ export function genPokemon(
 	let depth = 0;
 
 	const activeBiomes = data?.biomes || {};
-
-	// Resolve biome using mod hook or default implementation
 	const resolveBiome = data?.resolveBiome ?? defaultResolveBiome;
 
 	while (gennedMons.length < quantity) {
@@ -689,7 +672,6 @@ export function genPokemon(
 				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes[activeBiome]?.[rarity] || [];
 			}
 
-			// Empty pool fallback — use mod hook if provided, otherwise default cross-biome search
 			if (!pool || pool.length === 0) {
 				if (config?.emptyPoolFallbackFn) {
 					pool = config.emptyPoolFallbackFn(floor, rarity, !!isBossFloor, activeBiomes);
@@ -703,7 +685,6 @@ export function genPokemon(
 						if (tierPool && tierPool.length > 0) pool.push(...tierPool);
 					}
 
-					// Absolute safety net in case no biome has this rarity
 					if (pool.length === 0) {
 						const fallbackTier = isBossFloor ? 'Boss' : 'Common';
 						for (const biomeData of Object.values(activeBiomes)) {
@@ -717,7 +698,6 @@ export function genPokemon(
 				}
 			}
 
-			// Pool filter — use mod hook if provided, otherwise apply default single-stage filter
 			if (config?.poolFilterFn) {
 				pool = config.poolFilterFn(pool, floor, !!isBossFloor);
 			} else if (floor < 100) {
@@ -730,7 +710,6 @@ export function genPokemon(
 				});
 			}
 
-			// Absolute last-resort fallback if filtering removes everything
 			if (!pool || pool.length === 0) {
 				pool = [{ species: 'eevee', weight: 100 }, { species: 'porygon', weight: 100 }];
 			}
@@ -835,14 +814,11 @@ export function genPokemon(
 	return gennedMons;
 }
 
-// Unified Level Scaling Logic
 export function getLevelScaling(floor: number, config?: ModeConfig): { cap: number, min: number, max: number } {
-	// 1. Modder Override
 	if (config?.levelScalingFn) {
 		return config.levelScalingFn(floor);
 	}
 
-	// 2. Original PokéRogue Default Fallback
 	const waveIndex = Math.ceil(Math.max(1, floor) / 10) * 10;
 	const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
 	const cap = Math.max(2, Math.ceil(baseLevel / 2) * 2 + 2);
