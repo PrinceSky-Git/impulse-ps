@@ -1,6 +1,7 @@
-import { type ModeConfig, type ModeData, type PokeRogueState } from './types'; // Adjust relative path as needed
+import { type ModeConfig, type ModeData, type PokeRogueState, type TrainerMon } from '../../types';
 import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from './biomes';
 import { TRAINERS as ClassicTrainers } from './trainers';
+import { CLASSIC_BOSSES } from './classic-bosses';
 
 export const CLASSIC_STARTERS = [
 	'bulbasaur', 'charmander', 'squirtle', 'pikachu', 'eevee',
@@ -77,7 +78,7 @@ export const classicData: ModeData = {
 	trainers: ClassicTrainers,
 	starters: CLASSIC_STARTERS,
 	excludedBiomes: ['End'],
-	
+
 	resolveTrainer: (floor: number, state: PokeRogueState, config: ModeConfig) => {
 		const routing = config.storyRouting;
 		let trainerKey: string | null = null;
@@ -90,22 +91,19 @@ export const classicData: ModeData = {
 		else if (floor % config.bossInterval === 0 && routing?.gymLeaderInterval) {
 			const firstWaves = routing.firstGymLeaderWaves || [];
 			
-			// Initialize tracking if this is one of the first gym leader waves
 			if (!state.firstGymLeaderWave && firstWaves.includes(floor)) {
-				// 50% chance to set on the first wave, 100% on the final fallback wave
 				if (Math.random() < 0.5 || floor === firstWaves[firstWaves.length - 1]) {
 					state.firstGymLeaderWave = floor;
 				}
 			}
 			
-			// Calculate the tier based on the interval distance from the first wave encountered
 			if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % routing.gymLeaderInterval === 0) {
 				const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / routing.gymLeaderInterval);
 				trainerKey = `gym_leader_tier_${Math.min(routing.maxGymLeaderTier || 5, encounterNum)}`;
 			}
 		} 
-		// 3. Check Random Standard Encounters (10% chance on standard floors)
-		else if (Math.random() < 0.10) {
+		// 3. Check Random Standard Encounters (15% chance on standard floors)
+		else if (Math.random() < 0.15) {
 			if (floor <= 30) trainerKey = 'random_early';
 			else if (floor <= 100) trainerKey = 'random_mid';
 			else trainerKey = 'random_late';
@@ -118,6 +116,19 @@ export const classicData: ModeData = {
 			return { key: trainerKey, name: selectedTrainer };
 		}
 
-		return null; // No trainer intercept on this floor
+		return null;
+	},
+	
+	resolveBoss: (floor: number, currentBiome: string, config: ModeConfig): TrainerMon[] | null => {
+		const floorKey = floor.toString();
+		
+		// If ClassicBosses has a hardcoded boss for this floor (e.g., '200')
+		if (CLASSIC_BOSSES[floorKey]) {
+			const bossNames = Object.keys(CLASSIC_BOSSES[floorKey]);
+			const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];
+			return CLASSIC_BOSSES[floorKey][selectedBoss].pool;
+		}
+
+		return null; // No forced wild boss; let the engine roll normally from the biome
 	}
 };
