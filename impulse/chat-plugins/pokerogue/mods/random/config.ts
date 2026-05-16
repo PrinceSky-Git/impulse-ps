@@ -38,7 +38,7 @@ export const randomConfig: ModeConfig = {
 		{ floor: 10, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 	],
 	lastBiome: {
-		biome: 'Endless',
+		biome: 'End',
 		floor: '191-200',
 	},
 };
