@@ -83,8 +83,15 @@ export const BIOMES: Record<string, BiomePool> = {
 			{ species: 'ditto', weight: 10 }, { species: 'munchlax', weight: 10 },
 			{ species: 'zorua', weight: 10 },
 		],
-		'Boss': [],
-		'Boss Rare': [],
+		'Boss': [
+			{ species: 'eevee', weight: 10 }, { species: 'pichu', weight: 10 },
+			{ species: 'togepi', weight: 10 }, { species: 'ralts', weight: 10 },
+			{ species: 'nincada', weight: 10 }, { species: 'riolu', weight: 10 },
+		],
+		'Boss Rare': [
+			{ species: 'ditto', weight: 10 }, { species: 'munchlax', weight: 10 },
+			{ species: 'zorua', weight: 10 },
+		],
 		'Boss Super Rare': [],
 		'Boss Ultra Rare': [],
 	},
