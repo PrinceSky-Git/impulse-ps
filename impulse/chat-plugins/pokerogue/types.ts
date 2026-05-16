@@ -13,7 +13,6 @@ export interface ModeConfig {
 	hasTrainers: boolean;
 	randomizeMoves: boolean;
 	randomizeAbilities: boolean;
-	townEscapeFloor: number;
 	startingBiome: string;
 	starterLevel?: number;
 	generation: number;
