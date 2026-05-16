@@ -1502,14 +1502,14 @@ export const handlers: Chat.Handlers = {
 	onBattleEnd(battle, winner, players) {
 		const match = activeMatches.get(battle.roomid);
 		if (!match) return;
-
+		
 		activeMatches.delete(battle.roomid);
 		const botUser = Users.get(match.botUserId);
 		if (botUser) destroyBotUser(botUser);
 
 		const state = getState(match.userId);
 		if (!state) return;
-
+		
 		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 		const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
@@ -1529,20 +1529,22 @@ export const handlers: Chat.Handlers = {
 
 		if (toID(winner) === match.userId) {
 			const isTrainerBattle = match.isTrainerBattle ?? false;
-
 			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle, config);
-
 			const prevFloor = state.floor;
 			state.floor++;
 
 			// Detached Graph-Based Biome Rotation
 			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.townEscapeFloor) {
 				const options = data.transitions[state.currentBiome || config.startingBiome];
-				state.currentBiome = (options && options.length > 0) ? options[Math.floor(Math.random() * options.length)] : Object.keys(data.biomes)[0];
 
-				let displayBiome = state.currentBiome;				
-				
-				battleLogMsgs.push(`<b>You have entered the ${displayBiome} biome!</b>`);
+				if (options && options.length > 0) {
+					state.currentBiome = options[Math.floor(Math.random() * options.length)];
+				} else {
+					const fallbackOptions = Object.keys(data.biomes).filter(b => b !== config.startingBiome);
+					state.currentBiome = fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || config.startingBiome;
+				}
+
+				battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
 			} else if (!state.currentBiome) {
 				state.currentBiome = config.startingBiome;
 			}
