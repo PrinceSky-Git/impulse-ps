@@ -1,6 +1,5 @@
 import { type PokemonEntry, type ModeConfig, type ModeData } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
-import { getDisplayBiome } from './mods/classic/config';
 import { BOSSES } from './pokemon-bosses-data';
 
 export interface TrainerMon {
@@ -11,6 +10,16 @@ export interface TrainerMon {
 	ability?: string;
 	teraType?: string;
 	item?: string;
+}
+
+function getDisplayBiome(floor: number, currentBiome: string, config?: ModeConfig): string {
+    if (config?.lastBiome) {
+        const match = /^(\d+)-(\d+)$/.exec(config.lastBiome.floor.trim());
+        if (match && floor >= parseInt(match[1]) && floor <= parseInt(match[2])) {
+            return config.lastBiome.biome;
+        }
+    }
+    return currentBiome;
 }
 
 export function getExpYield(speciesId: string): number {
@@ -652,8 +661,8 @@ export function genPokemon(
 			let pool: string[] = [];
 
 			const activeBiome = currentBiome || config?.startingBiome || 'Town';
-			const biomeName = getDisplayBiome(floor, activeBiome);
-
+			const biomeName = getDisplayBiome(floor, activeBiome, config);
+			
 			if (starter) {
 				for (const b of Object.values(activeBiomes)) {
 					if (b[rarity as keyof typeof b]) {
