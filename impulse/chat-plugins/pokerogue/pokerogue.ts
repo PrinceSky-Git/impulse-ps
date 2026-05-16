@@ -1540,15 +1540,8 @@ export const handlers: Chat.Handlers = {
 				const options = data.transitions[state.currentBiome || config.startingBiome];
 				state.currentBiome = (options && options.length > 0) ? options[Math.floor(Math.random() * options.length)] : Object.keys(data.biomes)[0];
 
-				let displayBiome = state.currentBiome;
-				if (
-					config.endlessFloorRange &&
-					state.floor >= config.endlessFloorRange.start &&
-					state.floor <= config.endlessFloorRange.end
-				) {
-					displayBiome = 'Endless';
-				}
-
+				let displayBiome = state.currentBiome;				
+				
 				battleLogMsgs.push(`<b>You have entered the ${displayBiome} biome!</b>`);
 			} else if (!state.currentBiome) {
 				state.currentBiome = config.startingBiome;
