@@ -3,7 +3,7 @@ import { type ModeConfig, type ModeData, type PokeRogueState, type TrainerMon } 
 // Random mode also pulls data assets from the classic folder
 import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from '../classic/biomes';
 import { TRAINERS as ClassicTrainers } from '../classic/trainers';
-import { CLASSIC_STARTERS } from '../classic/config';
+import { CLASSIC_STARTERS } from '../classic/classic-config';
 import { CLASSIC_BOSSES } from '../classic/classic-bosses';
 
 export const randomConfig: ModeConfig = {
