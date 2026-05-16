@@ -13,7 +13,6 @@ export const randomConfig: ModeConfig = {
 	randomizeAbilities: true, // Specific to Random Mode
 	townEscapeFloor: 10,
 	startingBiome: 'Town',
-	endlessFloorRange: { start: 191, end: 200 },
 	starterLevel: 5,
 	generation: 9,
 	baseFormat: '[Gen 9] PokeRogue',
