@@ -600,6 +600,10 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
 			}
 
+			if (state.battleRoomId) {
+				return this.errorReply("You are already in a battle.");
+			}
+
 			// If a trainer encounter was already rolled and is waiting for the user to click "Start Battle"
 			if (state.pendingTrainer && state.pendingTrainerKey) {
 				(state as any).view = 'trainer';
