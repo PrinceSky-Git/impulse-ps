@@ -50,6 +50,7 @@ export const classicConfig: ModeConfig = {
 		biome: 'End',
 		floor: '191-200',
 	},
+	maxFloor: 200,
 };
 
 export const classicData: ModeData = {
