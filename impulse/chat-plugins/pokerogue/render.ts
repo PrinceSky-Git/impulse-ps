@@ -820,6 +820,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'trainer' && state.pendingTrainer) return buf + renderTrainerIntroView(state) + `</div></div>`;
 	if (state.pendingMoveSlot !== undefined) return buf + renderMoveMon(state) + `</div></div>`;
 	if (state.pendingReleaseSlot !== undefined) return buf + renderReleaseMon(state) + `</div></div>`;
+	if (state.gameWon) return buf + renderHeader('victory', false) + `<div style="padding:0 14px 14px">${renderVictoryView(state)}</div></div>`;
 
 	return buf + renderMainView(state, user) + `</div></div>`;
 }
