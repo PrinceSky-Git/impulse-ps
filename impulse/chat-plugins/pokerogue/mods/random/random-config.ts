@@ -78,7 +78,7 @@ export const randomData: ModeData = {
 			}
 		} 
 		// 3. Check Random Standard Encounters (15% chance on standard floors)
-		else if (Math.random() < 0.15) {
+		else if (Math.random() < 0.10) {
 			if (floor <= 30) trainerKey = 'random_early';
 			else if (floor <= 100) trainerKey = 'random_mid';
 			else trainerKey = 'random_late';
