@@ -50,6 +50,11 @@ export interface ModeConfig {
 		spriteUrl?: string;
 		dialog?: string;
 	};
+	
+	lastBiome?: {
+		biome: string;
+		floor: string; // format: 'start-end' e.g '191-200'
+	};
 }
 
 // The Data Registry interface
