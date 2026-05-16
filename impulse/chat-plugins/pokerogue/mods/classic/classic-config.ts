@@ -1,4 +1,4 @@
-import { type ModeConfig, type ModeData } from '../../types';
+import { type ModeConfig, type ModeData, type PokeRogueState } from './types'; // Adjust relative path as needed
 import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from './biomes';
 import { TRAINERS as ClassicTrainers } from './trainers';
 
@@ -77,4 +77,47 @@ export const classicData: ModeData = {
 	trainers: ClassicTrainers,
 	starters: CLASSIC_STARTERS,
 	excludedBiomes: ['End'],
+	
+	resolveTrainer: (floor: number, state: PokeRogueState, config: ModeConfig) => {
+		const routing = config.storyRouting;
+		let trainerKey: string | null = null;
+		
+		// 1. Check fixed story waves
+		if (routing?.fixedTrainerWaves?.includes(floor)) {
+			trainerKey = `fixed_${floor}`;
+		} 
+		// 2. Check Gym Leaders (Boss Floors)
+		else if (floor % config.bossInterval === 0 && routing?.gymLeaderInterval) {
+			const firstWaves = routing.firstGymLeaderWaves || [];
+			
+			// Initialize tracking if this is one of the first gym leader waves
+			if (!state.firstGymLeaderWave && firstWaves.includes(floor)) {
+				// 50% chance to set on the first wave, 100% on the final fallback wave
+				if (Math.random() < 0.5 || floor === firstWaves[firstWaves.length - 1]) {
+					state.firstGymLeaderWave = floor;
+				}
+			}
+			
+			// Calculate the tier based on the interval distance from the first wave encountered
+			if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % routing.gymLeaderInterval === 0) {
+				const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / routing.gymLeaderInterval);
+				trainerKey = `gym_leader_tier_${Math.min(routing.maxGymLeaderTier || 5, encounterNum)}`;
+			}
+		} 
+		// 3. Check Random Standard Encounters (10% chance on standard floors)
+		else if (Math.random() < 0.10) {
+			if (floor <= 30) trainerKey = 'random_early';
+			else if (floor <= 100) trainerKey = 'random_mid';
+			else trainerKey = 'random_late';
+		}
+
+		// If a key was found, pick a random trainer from that tier
+		if (trainerKey && ClassicTrainers[trainerKey]) {
+			const trainerNames = Object.keys(ClassicTrainers[trainerKey]);
+			const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
+			return { key: trainerKey, name: selectedTrainer };
+		}
+
+		return null; // No trainer intercept on this floor
+	}
 };
