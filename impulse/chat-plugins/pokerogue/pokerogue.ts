@@ -41,6 +41,12 @@ function fullHealPP(mon: PokemonEntry): void {
 	});
 }
 
+function parseFloorRange(range: string): { start: number, end: number } | null {
+    const match = /^(\d+)-(\d+)$/.exec(range.trim());
+    if (!match) return null;
+    return { start: parseInt(match[1]), end: parseInt(match[2]) };
+}
+
 function processLevelUp(
 	mon: PokemonEntry,
 	oldLevel: number,
@@ -1559,16 +1565,39 @@ export const handlers: Chat.Handlers = {
 
 			// Detached Graph-Based Biome Rotation
 			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.townEscapeFloor) {
-				const options = data.transitions[state.currentBiome || config.startingBiome];
+				// Check lastBiome override first
+				if (config.lastBiome) {
+					const range = parseFloorRange(config.lastBiome.floor);
+					if (range && state.floor >= range.start && state.floor <= range.end) {
+						state.currentBiome = config.lastBiome.biome;
+						battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
+					} else {
+						const options = (data.transitions[state.currentBiome || config.startingBiome] ?? [])
+							.filter(b => !(data.excludedBiomes ?? []).includes(b));
 
-				if (options && options.length > 0) {
-					state.currentBiome = options[Math.floor(Math.random() * options.length)];
+						if (options.length > 0) {
+							state.currentBiome = options[Math.floor(Math.random() * options.length)];
+						} else {
+							const fallbackOptions = Object.keys(data.biomes)
+								.filter(b => b !== config.startingBiome && !(data.excludedBiomes ?? []).includes(b));
+							state.currentBiome = fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || config.startingBiome;
+						}
+						battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
+					}
 				} else {
-					const fallbackOptions = Object.keys(data.biomes).filter(b => b !== config.startingBiome);
-					state.currentBiome = fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || config.startingBiome;
-				}
+					const options = (data.transitions[state.currentBiome || config.startingBiome] ?? [])
+						.filter(b => !(data.excludedBiomes ?? []).includes(b));
 
-				battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
+					if (options.length > 0) {
+						state.currentBiome = options[Math.floor(Math.random() * options.length)];
+					} else {
+						const fallbackOptions = Object.keys(data.biomes)
+							.filter(b => b !== config.startingBiome && !(data.excludedBiomes ?? []).includes(b));
+						state.currentBiome = fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || config.startingBiome;
+					}
+
+					battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
+				}
 			} else if (!state.currentBiome) {
 				state.currentBiome = config.startingBiome;
 			}
