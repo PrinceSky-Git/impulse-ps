@@ -4,7 +4,18 @@ export const LEGENDARY_TAGS = new Set<string>([
 
 export type StatusCondition = 'brn' | 'psn' | 'tox' | 'par' | 'slp' | 'frz';
 
-export type GameMode = 'classic' | 'endless' | 'random' | 'gen1';
+export type GameMode = 'classic' | 'random';
+
+export type RarityTier =
+	| 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Ultra Rare'
+	| 'Boss' | 'Boss Rare' | 'Boss Super Rare' | 'Boss Ultra Rare';
+
+export interface BiomeEntry {
+	species: string;
+	weight: number;
+}
+
+export type BiomePool = Partial<Record<RarityTier, BiomeEntry[]>>;
 
 // The universal ruleset interface
 export interface ModeConfig {
@@ -18,9 +29,19 @@ export interface ModeConfig {
 	generation: number;
 	baseFormat: string;
 	milestoneRewards?: { floor: number, interval: boolean, itemType: string, itemName: string, amount: number }[];
-	// Optional custom scaling function. 
+
+	// Optional custom level scaling function.
 	// Returns the exact level cap, and the min/max range for wild encounters on that floor.
 	levelScalingFn?: (floor: number) => { cap: number, min: number, max: number };
+
+	// Optional pool filter — replaces the default single-stage filter logic.
+	// Return a filtered version of the pool; isBoss indicates if it's a boss floor.
+	poolFilterFn?: (pool: BiomeEntry[], floor: number, isBoss: boolean) => BiomeEntry[];
+
+	// Optional empty pool fallback — replaces the default cross-biome fallback logic.
+	// Called when the resolved pool is empty after filtering.
+	emptyPoolFallbackFn?: (floor: number, rarity: string, isBoss: boolean, biomes: Record<string, BiomePool>) => BiomeEntry[];
+
 	// Economy & Pacing
 	economy: {
 		startingBP: number;
@@ -30,6 +51,7 @@ export interface ModeConfig {
 		startingKeyItems?: string[];
 		startingInventory?: Record<string, number>;
 	};
+
 	// Story Routing
 	storyRouting?: {
 		fixedTrainerWaves?: number[];
@@ -37,34 +59,50 @@ export interface ModeConfig {
 		maxGymLeaderTier?: number;
 		firstGymLeaderWaves?: number[];
 	};
-	// Feature Unlocks For Ai
+
+	// Feature Unlocks for AI
 	mechanicUnlocks?: {
 		terastallize?: number;
 		mega?: number;
 	};
-	// maxFloor for victory and custom victory ui (check wwlcome ui for reference)
+
+	// maxFloor for victory condition
 	maxFloor?: number;
+
+	// Victory screen config, used when maxFloor is reached
 	victoryConfig?: {
 		name?: string;
 		spriteUrl?: string;
 		dialog?: string;
 	};
-	
+
+	// Forces a specific biome for a floor range, e.g. 'End' for floors 191-200.
+	// Ignored if ModeData.resolveBiome is provided.
 	lastBiome?: {
 		biome: string;
 		floor: string; // format: 'start-end' e.g '191-200'
 	};
 }
 
+export interface BiomeTransition {
+	biome: string;
+	weight: number;
+}
+
 // The Data Registry interface
 export interface ModeData {
-	biomes: Record<string, any>;
-	transitions: Record<string, string[]>;
+	biomes: Record<string, BiomePool>;
+	transitions: Record<string, BiomeTransition[]>;
 	trainers: Record<string, any>;
 	starters: string[];
-	excludedBiomes?: string[];	
+	excludedBiomes?: string[];
+
 	// Optional custom shop override
-	shop?: Record<string, any>; 
+	shop?: Record<string, any>;
+
+	// Optional biome resolver — replaces the default lastBiome + currentBiome logic.
+	// Return the biome name that should be used for pool lookups on this floor.
+	resolveBiome?: (floor: number, currentBiome: string, config: ModeConfig) => string;
 }
 
 export interface PokemonEntry {
