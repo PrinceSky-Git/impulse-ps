@@ -1380,12 +1380,7 @@ export const BIOMES: Record<string, BiomePool> = {
 		'Boss Ultra Rare': [{ species: 'mewtwo', weight: 10 }],
 	},
 	'End': {
-		'Common': [],
-		'Uncommon': [],
-		'Rare': [],
-		'Super Rare': [],
-		'Ultra Rare': [],
-		'Boss': [
+		'Common': [
 			{ species: 'great_tusk', weight: 10 }, { species: 'scream_tail', weight: 10 },
 			{ species: 'brute_bonnet', weight: 10 }, { species: 'flutter_mane', weight: 10 },
 			{ species: 'slither_wing', weight: 10 }, { species: 'sandy_shocks', weight: 10 },
@@ -1393,16 +1388,21 @@ export const BIOMES: Record<string, BiomePool> = {
 			{ species: 'iron_hands', weight: 10 }, { species: 'iron_jugulis', weight: 10 },
 			{ species: 'iron_moth', weight: 10 }, { species: 'iron_thorns', weight: 10 },
 		],
-		'Boss Rare': [
+		'Uncommon': [
 			{ species: 'roaring_moon', weight: 10 }, { species: 'iron_valiant', weight: 10 },
 		],
-		'Boss Super Rare': [
+		'Rare': [
 			{ species: 'walking_wake', weight: 10 }, { species: 'iron_leaves', weight: 10 },
 			{ species: 'gouging_fire', weight: 10 }, { species: 'iron_boulder', weight: 10 },
 			{ species: 'raging_bolt', weight: 10 }, { species: 'iron_crown', weight: 10 },
 		],
-		'Boss Ultra Rare': [
+		'Super Rare': [
 			{ species: 'eternatus', weight: 10 },
 		],
+		'Ultra Rare': [],
+		'Boss': [],
+		'Boss Rare': [],
+		'Boss Super Rare': [],			
+		'Boss Ultra Rare': [],
 	},
 };
