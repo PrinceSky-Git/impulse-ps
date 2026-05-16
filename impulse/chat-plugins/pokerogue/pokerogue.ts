@@ -1539,6 +1539,24 @@ export const handlers: Chat.Handlers = {
 			const prevFloor = state.floor;
 			state.floor++;
 
+			// Win condition check
+			if (config.maxFloor && prevFloor >= config.maxFloor) {
+				state.gameWon = true;
+				state.lastRunFloor = prevFloor;
+				if (prevFloor > (state.highestFloor ?? 0)) {
+					state.highestFloor = prevFloor;
+					state.recordTeam = state.team.map(m => ({ ...m }));
+				}
+
+				// TODO: REWARDS LOGIC — award end-of-run rewards here before setting gameWon
+				// e.g. bonus BP, trophies, unlockables, or mode-specific completion rewards
+
+				setState(match.userId, state);
+				const hUser = Users.get(match.userId);
+				if (hUser) refreshGamePage(hUser);
+				return;
+			}
+
 			// Detached Graph-Based Biome Rotation
 			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.townEscapeFloor) {
 				const options = data.transitions[state.currentBiome || config.startingBiome];
