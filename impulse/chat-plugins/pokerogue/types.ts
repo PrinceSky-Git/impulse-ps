@@ -15,6 +15,25 @@ export interface BiomeEntry {
 	weight: number;
 }
 
+export interface TrainerMon {
+	species: string;
+	moves?: string[];
+	ivs?: any;
+	evs?: any;
+	ability?: string;
+	teraType?: string;
+	item?: string;
+}
+
+export interface TrainerData {
+	teamSize: number;
+	pool?: (string | TrainerMon)[];
+	random?: boolean;
+	chance?: number;
+	spriteUrl?: string;
+	dialog?: string;
+}
+
 export type BiomePool = Partial<Record<RarityTier, BiomeEntry[]>>;
 
 // The universal ruleset interface
