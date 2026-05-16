@@ -600,6 +600,7 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
 			}
 
+			// If a trainer encounter was already rolled and is waiting for the user to click "Start Battle"
 			if (state.pendingTrainer && state.pendingTrainerKey) {
 				(state as any).view = 'trainer';
 				setState(user.id, state);
@@ -611,41 +612,19 @@ export const commands: Chat.ChatCommands = {
 			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
 			const floor = state.floor;
-			const isBossFloor = floor % config.bossInterval === 0;
-			let trainerKey: string | null = null;
-			let selectedTrainer: string | null = null;
 
-			if (config.hasTrainers && config.storyRouting) {
-				const fixedWaves = config.storyRouting.fixedTrainerWaves ? new Set(config.storyRouting.fixedTrainerWaves) : new Set();
+			// NEW: Agnostic Trainer Routing via ModeData Hook
+			if (config.hasTrainers && data.resolveTrainer) {
+				const resolvedTrainer = data.resolveTrainer(floor, state, config);
+				
+				if (resolvedTrainer) {
+					state.pendingTrainer = resolvedTrainer.name;
+					state.pendingTrainerKey = resolvedTrainer.key;
 
-				if (fixedWaves.has(floor)) {
-					trainerKey = `fixed_${floor}`;
-				} else if (isBossFloor && config.storyRouting.gymLeaderInterval) {
-					const firstWaves = config.storyRouting.firstGymLeaderWaves || [];
-					if (!state.firstGymLeaderWave && firstWaves.includes(floor)) {
-						if (Math.random() < 0.5 || floor === firstWaves[firstWaves.length - 1]) state.firstGymLeaderWave = floor;
-					}
-					if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % config.storyRouting.gymLeaderInterval === 0) {
-						const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / config.storyRouting.gymLeaderInterval);
-						trainerKey = `gym_leader_tier_${Math.min(config.storyRouting.maxGymLeaderTier || 5, encounterNum)}`;
-					}
-				} else {
-					if (Math.random() < 0.15) {
-						if (floor <= 30) trainerKey = 'random_early';
-						else if (floor <= 100) trainerKey = 'random_mid';
-						else trainerKey = 'random_late';
-					}
-				}
-
-				if (trainerKey && data.trainers && data.trainers[trainerKey]) {
-					const trainerNames = Object.keys(data.trainers[trainerKey]);
-					selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
-
-					const trainerData = data.trainers[trainerKey][selectedTrainer];
-					state.pendingTrainer = selectedTrainer;
-					state.pendingTrainerKey = trainerKey;
-
-					if (trainerData.spriteUrl || trainerData.dialog) {
+					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
+					
+					// Transition to the VS screen if they have a sprite or dialog
+					if (trainerData?.spriteUrl || trainerData?.dialog) {
 						(state as any).view = 'trainer';
 						setState(user.id, state);
 						refreshGamePage(user);
@@ -654,6 +633,7 @@ export const commands: Chat.ChatCommands = {
 				}
 			}
 
+			// If no trainer intercepts, or the trainer has no intro, proceed directly to the battle
 			setState(user.id, state);
 			return this.parse('/pokerogue battle');
 		},
