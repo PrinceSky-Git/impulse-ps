@@ -15,14 +15,9 @@ export interface ModeConfig {
 	randomizeAbilities: boolean;
 	townEscapeFloor: number;
 	startingBiome: string;
-	endlessFloorRange?: { start: number, end: number };
-	
 	starterLevel?: number;
-
-	// Core Engine Rules
 	generation: number;
 	baseFormat: string;
-
 	// Economy & Pacing
 	economy: {
 		startingBP: number;
@@ -32,7 +27,6 @@ export interface ModeConfig {
 		startingKeyItems?: string[];
 		startingInventory?: Record<string, number>;
 	};
-
 	// Story Routing
 	storyRouting?: {
 		fixedTrainerWaves?: number[];
@@ -40,14 +34,12 @@ export interface ModeConfig {
 		maxGymLeaderTier?: number;
 		firstGymLeaderWaves?: number[];
 	};
-
-	// Feature Unlocks
+	// Feature Unlocks For Ai
 	mechanicUnlocks?: {
 		terastallize?: number;
 		mega?: number;
 	};
-
-	// Item Milestones
+	
 	milestoneRewards?: { floor: number, interval: boolean, itemType: string, itemName: string, amount: number }[];
 
 	// Optional custom scaling function. 
@@ -61,13 +53,10 @@ export interface ModeData {
 	transitions: Record<string, string[]>;
 	trainers: Record<string, any>;
 	starters: string[];
-	excludedBiomes?: string[];
-	
-	// Optional custom shop override!
+	excludedBiomes?: string[];	
+	// Optional custom shop override
 	shop?: Record<string, any>; 
 }
-
-// --- Core Data Structures ---
 
 export interface PokemonEntry {
 	species: string;
