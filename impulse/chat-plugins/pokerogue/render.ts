@@ -201,8 +201,8 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 	const expNeeded = mon.level < 9999 ? expForLevel(mon.level + 1) - mon.exp : 0;
 	
 	const abilities = spData.abilities as Record<string, string>;
-	const ability = mon.ability || abilities['0'] || '';
-
+	const abilityId = mon.ability || abilities['0'] || '';
+	const ability = abilityId ? (Dex.abilities.get(abilityId).name || abilityId) : '';
 	let nature = mon.nature;
 	if (!nature) {
 		const natures = Dex.natures.all().map(n => n.name);
