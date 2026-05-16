@@ -1,9 +1,10 @@
-import { type ModeConfig, type ModeData, type PokeRogueState } from '../../types';
+import { type ModeConfig, type ModeData, type PokeRogueState, type TrainerMon } from '../../types';
 
 // Random mode also pulls data assets from the classic folder
 import { BIOMES as ClassicBiomes, BIOME_TRANSITIONS as ClassicTransitions } from '../classic/biomes';
 import { TRAINERS as ClassicTrainers } from '../classic/trainers';
-import { CLASSIC_STARTERS } from '../classic/classic-config';
+import { CLASSIC_STARTERS } from '../classic/config';
+import { CLASSIC_BOSSES } from '../classic/classic-bosses';
 
 export const randomConfig: ModeConfig = {
 	biomeRotationInterval: 10,
@@ -40,7 +41,6 @@ export const randomConfig: ModeConfig = {
 		biome: 'End',
 		floor: '191-200',
 	},
-	// Assuming you want the same victory screen as Classic
 	victoryConfig: {
 		name: 'Champion',
 		dialog: 'You have conquered all 200 floors of the Random run! A true master of chaos!',
@@ -58,11 +58,9 @@ export const randomData: ModeData = {
 		const routing = config.storyRouting;
 		let trainerKey: string | null = null;
 		
-		// 1. Check fixed story waves
 		if (routing?.fixedTrainerWaves?.includes(floor)) {
 			trainerKey = `fixed_${floor}`;
 		} 
-		// 2. Check Gym Leaders (Boss Floors)
 		else if (floor % config.bossInterval === 0 && routing?.gymLeaderInterval) {
 			const firstWaves = routing.firstGymLeaderWaves || [];
 			
@@ -77,14 +75,12 @@ export const randomData: ModeData = {
 				trainerKey = `gym_leader_tier_${Math.min(routing.maxGymLeaderTier || 5, encounterNum)}`;
 			}
 		} 
-		// 3. Check Random Standard Encounters (15% chance on standard floors)
-		else if (Math.random() < 0.10) {
+		else if (Math.random() < 0.15) {
 			if (floor <= 30) trainerKey = 'random_early';
 			else if (floor <= 100) trainerKey = 'random_mid';
 			else trainerKey = 'random_late';
 		}
 
-		// If a key was found, pick a random trainer from that tier
 		if (trainerKey && ClassicTrainers[trainerKey]) {
 			const trainerNames = Object.keys(ClassicTrainers[trainerKey]);
 			const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
@@ -92,5 +88,17 @@ export const randomData: ModeData = {
 		}
 
 		return null;
+	},
+	
+	resolveBoss: (floor: number, currentBiome: string, config: ModeConfig): TrainerMon[] | null => {
+		const floorKey = floor.toString();
+		
+		if (CLASSIC_BOSSES[floorKey]) {
+			const bossNames = Object.keys(CLASSIC_BOSSES[floorKey]);
+			const selectedBoss = bossNames[Math.floor(Math.random() * bossNames.length)];
+			return CLASSIC_BOSSES[floorKey][selectedBoss].pool;
+		}
+
+		return null; 
 	}
 };
