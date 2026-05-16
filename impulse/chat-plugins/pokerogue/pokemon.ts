@@ -1,6 +1,7 @@
 import { type PokemonEntry, type ModeConfig, type ModeData } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
 import { BOSSES } from './pokemon-bosses-data';
+import { getDisplayBiome } from './mods/classic/biomes';
 
 export interface TrainerMon {
 	species: string;
@@ -10,16 +11,6 @@ export interface TrainerMon {
 	ability?: string;
 	teraType?: string;
 	item?: string;
-}
-
-function getDisplayBiome(floor: number, currentBiome: string, config?: ModeConfig): string {
-    if (config?.lastBiome) {
-        const match = /^(\d+)-(\d+)$/.exec(config.lastBiome.floor.trim());
-        if (match && floor >= parseInt(match[1]) && floor <= parseInt(match[2])) {
-            return config.lastBiome.biome;
-        }
-    }
-    return currentBiome;
 }
 
 export function getExpYield(speciesId: string): number {
@@ -205,7 +196,7 @@ function pickBestAbility(species: Species, floor: number, config?: ModeConfig): 
 		return allAbilities[Math.floor(Math.random() * allAbilities.length)].id;
 	}
 
-	const abilities = species.abilities as unknown as Record<string, string>;
+	const abilities = species.abilities as Record<string, string>;
 	const candidates: { id: string, priority: number }[] = [];
 
 	for (const slot of ['S', 'H', '1', '0'] as const) {
@@ -511,7 +502,7 @@ function rollRarity(floor: number, isBoss: boolean, isStarter: boolean, luck = 0
 		return 'Boss';
 	}
 
-	const maxRoll = Math.max(1, 512 - (luck * 2));
+	const maxRoll = 512;
 	const roll = Math.floor(Math.random() * maxRoll) + 1;
 
 	if (roll <= 1) return 'Ultra Rare';
@@ -658,11 +649,11 @@ export function genPokemon(
 			}
 		} else {
 			const rarity = rollRarity(floor, !!isBossFloor, !!starter, luck);
-			let pool: string[] = [];
+			let pool: { species: string, weight: number }[] = [];
 
 			const activeBiome = currentBiome || config?.startingBiome || 'Town';
-			const biomeName = getDisplayBiome(floor, activeBiome, config);
-			
+			const biomeName = getDisplayBiome(floor, activeBiome);
+
 			if (starter) {
 				for (const b of Object.values(activeBiomes)) {
 					if (b[rarity as keyof typeof b]) {
@@ -704,7 +695,7 @@ export function genPokemon(
 			// Exclude all single-stage Pokémon from appearing below floor 100
 			if (floor < 100) {
 				pool = pool.filter(mon => {
-					let sp = Dex.species.get(mon);
+					let sp = Dex.species.get(mon.species);
 
 					while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
 						sp = sp.prevo ? Dex.species.get(sp.prevo) : Dex.species.get(sp.baseSpecies);
@@ -716,10 +707,22 @@ export function genPokemon(
 
 			// Absolute last-resort fallback if filtering removes everything
 			if (!pool || pool.length === 0) {
-				pool = ['eevee', 'porygon'];
+				pool = [{ species: 'eevee', weight: 100 }, { species: 'porygon', weight: 100 }];
 			}
 
-			finalSpeciesId = pool[Math.floor(Math.random() * pool.length)];
+			const totalWeight = pool.reduce((sum, mon) => sum + mon.weight, 0);
+			let randWeight = Math.floor(Math.random() * totalWeight);
+			let selectedSpeciesId = pool[0].species;
+
+			for (const mon of pool) {
+				randWeight -= mon.weight;
+				if (randWeight < 0) {
+					selectedSpeciesId = mon.species;
+					break;
+				}
+			}
+
+			finalSpeciesId = selectedSpeciesId;
 
 			if (starter || !isBossFloor) {
 				let sp = Dex.species.get(finalSpeciesId);

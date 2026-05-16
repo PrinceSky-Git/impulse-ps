@@ -1,4 +1,5 @@
 import { Utils } from '../../../lib';
+import { Table } from '../../utils';
 import { nameColor } from '../customization/custom-color';
 import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
@@ -19,7 +20,7 @@ const PAGE_REFRESH_SECONDS = 20;
 // ─── Sprite / Icon Helpers ────────────────────────────────────────────────────
 
 function itemURLFormat(item: string): string {
-	return item.replace(/[^a-zA-Z0-9\s-]+/g, '').toLowerCase().replace(/ /g, '-');
+	return item.replaceAll(/[^a-zA-Z0-9\s-]+/g, '').toLowerCase().replaceAll(' ', '-');
 }
 
 const SPRITE_ID_OVERRIDES: { [id: string]: string } = {
@@ -199,7 +200,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 	const spData = Dex.species.get(toID(mon.species));
 	const expNeeded = mon.level < 9999 ? expForLevel(mon.level + 1) - mon.exp : 0;
 	
-	const abilities = spData.abilities as unknown as Record<string, string>;
+	const abilities = spData.abilities as Record<string, string>;
 	const abilityId = mon.ability || abilities['0'] || '';
 	const ability = abilityId ? (Dex.abilities.get(abilityId).name || abilityId) : '';
 	let nature = mon.nature;

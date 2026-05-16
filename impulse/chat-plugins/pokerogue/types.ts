@@ -4,7 +4,7 @@ export const LEGENDARY_TAGS = new Set<string>([
 
 export type StatusCondition = 'brn' | 'psn' | 'tox' | 'par' | 'slp' | 'frz';
 
-export type GameMode = 'classic' | 'random';
+export type GameMode = 'classic' | 'endless' | 'random' | 'gen1';
 
 // The universal ruleset interface
 export interface ModeConfig {
