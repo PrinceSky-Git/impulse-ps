@@ -540,6 +540,12 @@ export const commands: Chat.ChatCommands = {
 					state.team = [];
 					state.floor = 1;
 				}
+				if (v === 'welcome' && state.gameWon) {
+					delete state.gameWon;
+					delete state.lastRunFloor;
+					state.team = [];
+					state.floor = 1;
+				}
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
