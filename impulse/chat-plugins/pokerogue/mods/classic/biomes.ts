@@ -34,22 +34,6 @@ export const BIOME_TRANSITIONS: Record<string, string[]> = {
 	'Snowy Forest': ['Ice Cave', 'Lake'],
 };
 
-export function getNextBiome(currentBiome: string): string {
-	const options = BIOME_TRANSITIONS[currentBiome];
-	// Absolute fallback: if something breaks, force them to Plains to escape Town
-	if (!options || options.length === 0) return 'Plains'; 
-	return options[Math.floor(Math.random() * options.length)];
-}
-
-export function getDisplayBiome(floor: number, underlyingBiome: string): string {
-	// Forces Town for the first 10 floors
-	if (floor <= 10) return 'Town';
-	// Forces Endless override for 191-200
-	if (floor >= 191 && floor <= 200) return 'Endless';
-	
-	return underlyingBiome;
-}
-
 export const BIOMES = {
 	'Town': {
 		'Common': [

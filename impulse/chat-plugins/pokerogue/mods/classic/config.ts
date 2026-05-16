@@ -46,6 +46,10 @@ export const classicConfig: ModeConfig = {
 		{ floor: 50, interval: true, itemType: 'inventory', itemName: 'masterball', amount: 1 },
 		{ floor: 10, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 	],
+	lastBiome: {
+		biome: 'Endless',
+		floor: '191-200',
+	},
 };
 
 export const classicData: ModeData = {
