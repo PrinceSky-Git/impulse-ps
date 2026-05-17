@@ -16,7 +16,7 @@ export const BIOME_TRANSITIONS: Record<string, { biome: string; weight: number }
 	'Tall Grass': [{ biome: 'Forest', weight: 1 }, { biome: 'Cave', weight: 1 }],
 	'Forest': [{ biome: 'Jungle', weight: 1 }, { biome: 'Meadow', weight: 1 }],
 	'Jungle': [{ biome: 'Temple', weight: 1 }],
-	'Meadow': [{ biome: 'Fairy Cave', weight: 1 }, { biome: 'Plains', weight: 1 }],
+	'Meadow': [{ biome: 'Fairy Cave', weight: 1 }],
 	'Fairy Cave': [{ biome: 'Ice Cave', weight: 1 }, { biome: 'Space', weight: 1 }],
 	'Lake': [{ biome: 'Beach', weight: 1 }, { biome: 'Sea', weight: 1 }],
 	'Beach': [{ biome: 'Island', weight: 1 }, { biome: 'Sea', weight: 1 }],
@@ -84,9 +84,10 @@ export const BIOMES: Record<string, BiomePool> = {
 			{ species: 'zorua', weight: 10 },
 		],
 		'Boss': [
-			{ species: 'eevee', weight: 10 }, { species: 'pichu', weight: 10 },
-			{ species: 'togepi', weight: 10 }, { species: 'ralts', weight: 10 },
-			{ species: 'nincada', weight: 10 }, { species: 'riolu', weight: 10 },
+			{ species: 'abra', weight: 10 }, { species: 'cleffa', weight: 10 },
+			{ species: 'igglybuff', weight: 10 }, { species: 'surskit', weight: 10 },
+			{ species: 'happiny', weight: 10 }, { species: 'rookidee', weight: 10 },
+			{ species: 'tandemaus', weight: 10 },
 		],
 		'Boss Rare': [
 			{ species: 'ditto', weight: 10 }, { species: 'munchlax', weight: 10 },
