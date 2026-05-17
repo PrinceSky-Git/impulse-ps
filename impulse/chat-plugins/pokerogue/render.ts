@@ -1,5 +1,5 @@
 import { Utils } from '../../../lib';
-import { Table } from '../../utils';
+//import { Table } from '../../utils';
 import { nameColor } from '../customization/custom-color';
 import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
@@ -573,318 +573,268 @@ function renderVictoryView(state: PokeRogueState): string {
 }
 
 function renderStatsView(state: PokeRogueState): string {
-    const slot = (state as any).pendingStatsSlot;
-    if (slot === undefined || slot < 0 || slot >= state.team.length) {
-        return `<div class="pr-warning-box">Error loading stats.</div>`;
-    }
+	const slot = (state as any).pendingStatsSlot;
+	const activeTab: number = (state as any).statsTab ?? 0;
+	if (slot === undefined || slot < 0 || slot >= state.team.length) {
+		return `<div class="pr-warning-box">Error loading stats.</div>`;
+	}
 
-    const mon = state.team[slot];
-    const spData = Dex.species.get(toID(mon.species));
+	const mon = state.team[slot];
+	const spData = Dex.species.get(toID(mon.species));
 
-    // ── Nature (robust lookup) ─────────────────────────────────────────────
-    const natureName = mon.nature || 'Hardy';
-    const nature = Dex.natures.get(natureName) ?? Dex.natures.get('Hardy');
-    const naturePlus  = nature?.plus  ?? null;
-    const natureMinus = nature?.minus ?? null;
+	// ── Nature ────────────────────────────────────────────────────────────
+	const natureName = mon.nature || 'Hardy';
+	const nature = Dex.natures.get(natureName) ?? Dex.natures.get('Hardy')!;
+	const naturePlus  = nature?.plus  ?? null;
+	const natureMinus = nature?.minus ?? null;
 
-    // ── Ability (robust lookup) ────────────────────────────────────────────
-    const rawAbility   = mon.ability || (spData.abilities as Record<string, string>)['0'] || '';
-    const abilityDex   = rawAbility ? Dex.abilities.get(rawAbility) : null;
-    const abilityName  = abilityDex?.name || rawAbility || 'Unknown';
-    const abilityDesc  = abilityDex?.desc || abilityDex?.shortDesc || '';
+	// ── Ability ───────────────────────────────────────────────────────────
+	const abilities = spData.abilities as Record<string, string>;
+	const rawAbility  = mon.ability || abilities['0'] || '';
+	const abilityDex  = rawAbility ? Dex.abilities.get(rawAbility) : null;
+	const abilityName = abilityDex?.name || rawAbility || 'Unknown';
+	const abilityDesc = abilityDex?.shortDesc || abilityDex?.desc || '';
 
-    // ── Sprite ─────────────────────────────────────────────────────────────
-    const spriteType = mon.shiny ? 'gen5-shiny' : 'gen5';
-    const rawSpriteId = spData.spriteid || spData.id;
-    const spriteId    = SPRITE_ID_OVERRIDES[spData.id] || SPRITE_ID_OVERRIDES[rawSpriteId] || rawSpriteId;
-    const spriteUrl   = `https://play.pokemonshowdown.com/sprites/${spriteType}/${spriteId}.png`;
+	// ── Sprite ────────────────────────────────────────────────────────────
+	const spriteType  = mon.shiny ? 'gen5-shiny' : 'gen5';
+	const rawSpriteId = spData.spriteid || spData.id;
+	const spriteId    = SPRITE_ID_OVERRIDES[spData.id] || SPRITE_ID_OVERRIDES[rawSpriteId] || rawSpriteId;
+	const spriteUrl   = `https://play.pokemonshowdown.com/sprites/${spriteType}/${spriteId}.png`;
 
-    // ── Stats calculation ──────────────────────────────────────────────────
-    const bs  = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-    const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
-    const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+	// ── Stat calculation ──────────────────────────────────────────────────
+	const bs  = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+	const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+	const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+	const statKeys: (keyof typeof bs)[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+	const statLabels: Record<string, string> = {
+		hp: 'HP', atk: 'Atk', def: 'Def', spa: 'Sp.Atk', spd: 'Sp.Def', spe: 'Speed',
+	};
+	const statColors: Record<string, string> = {
+		hp: '#FF5959', atk: '#F5AC78', def: '#FAE078',
+		spa: '#9DB7F5', spd: '#A7DB8D', spe: '#FA92B2',
+	};
+	const typeColors: Record<string, string> = {
+		Normal: '#9FA19F', Fire: '#E62829', Water: '#2980EF', Grass: '#3FA129',
+		Electric: '#FAC000', Ice: '#3DCEF3', Fighting: '#FF8000', Poison: '#9141CB',
+		Ground: '#915121', Flying: '#81B9EF', Psychic: '#EF4179', Bug: '#91A119',
+		Rock: '#AFA981', Ghost: '#704170', Dragon: '#5060E1', Dark: '#624D4E',
+		Steel: '#60A1B8', Fairy: '#EF70EF',
+	};
 
-    const statKeys  = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
-    const statLabels: Record<string, string> = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'Sp.Atk', spd: 'Sp.Def', spe: 'Speed' };
-    const statColors: Record<string, string> = {
-        hp: '#FF5959', atk: '#F5AC78', def: '#FAE078',
-        spa: '#9DB7F5', spd: '#A7DB8D', spe: '#FA92B2',
-    };
+	const stats: Record<string, number> = {};
+	for (const stat of statKeys) {
+		if (stat === 'hp') {
+			stats.hp = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
+		} else {
+			let val = Math.floor((2 * bs[stat] + ivs[stat] + Math.floor(evs[stat] / 4)) * mon.level / 100) + 5;
+			if (naturePlus  === stat) val = Math.floor(val * 1.1);
+			if (natureMinus === stat) val = Math.floor(val * 0.9);
+			stats[stat] = val;
+		}
+	}
+	if (spData.id === 'shedinja') stats.hp = 1;
+	const bst = statKeys.reduce((s, k) => s + (bs[k] ?? 0), 0);
 
-    const stats: Record<string, number> = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-    for (const stat of statKeys) {
-        if (stat === 'hp') {
-            stats.hp = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
-        } else {
-            let val = Math.floor((2 * bs[stat] + ivs[stat] + Math.floor(evs[stat] / 4)) * mon.level / 100) + 5;
-            if (naturePlus  === stat) val = Math.floor(val * 1.1);
-            if (natureMinus === stat) val = Math.floor(val * 0.9);
-            stats[stat] = val;
-        }
-    }
-    if (spData.id === 'shedinja') stats.hp = 1;
+	// ── Misc ──────────────────────────────────────────────────────────────
+	const hpPct    = mon.currentHp ?? 100;
+	const hpColor  = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
+	const dateStr  = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
+	const heldItem = mon.heldItem ? Dex.items.get(mon.heldItem) : null;
+	const gender   = mon.gender === 'M'
+		? `<span style="color:#4f8ef7">♂</span>`
+		: mon.gender === 'F' ? `<span style="color:#f74f8e">♀</span>` : '';
+	const statusColors: Record<string, string> = {
+		brn: '#e8603c', psn: '#b563ce', tox: '#b563ce',
+		par: '#d4b800', slp: '#7a7a7a', frz: '#6aaed6',
+	};
 
-    // ── Misc ───────────────────────────────────────────────────────────────
-    const dateStr   = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
-    const heldItem  = mon.heldItem ? Dex.items.get(mon.heldItem) : null;
-    const hpPct     = mon.currentHp ?? 100;
-    const hpColor   = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
-    const genderHtml = mon.gender === 'M'
-        ? `<span style="color:#4f8ef7;font-size:15px;font-weight:700;">♂</span>`
-        : mon.gender === 'F'
-            ? `<span style="color:#f74f8e;font-size:15px;font-weight:700;">♀</span>`
-            : '';
+	// ── Shared header (sprite + name + HP, always visible) ────────────────
+	let buf = `<div class="pr-sv-wrap">`;
 
-    // ── Max base stat for bar scaling ──────────────────────────────────────
-    const maxStat = 255; // absolute max base stat for scaling
+	buf += `<div class="pr-sv-header">`;
+	buf += `<div class="pr-sv-sprite-col">`;
+	buf += `<img src="${spriteUrl}" class="pr-sv-sprite" onerror="this.src='https://play.pokemonshowdown.com/sprites/gen5/substitute.png'" />`;
+	buf += `</div>`;
+	buf += `<div class="pr-sv-info-col">`;
+	buf += `<div class="pr-sv-name">${Utils.escapeHTML(spData.name)} ${gender}${mon.shiny ? ' <span class="pr-sv-shiny">★</span>' : ''}</div>`;
+	buf += `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px;">`;
+	buf += renderTypeBadge(spData.types ?? []);
+	buf += `<span class="pr-level-badge">Lv.${mon.level}</span>`;
+	buf += `</div>`;
+	buf += `<div class="pr-sv-hp-row">`;
+	buf += `<span class="pr-sv-hp-label">HP</span>`;
+	buf += `<div class="pr-bar-track" style="flex:1"><div class="pr-bar-fill" style="width:${hpPct}%;background:${hpColor}"></div></div>`;
+	buf += `<span class="pr-sv-hp-pct" style="color:${hpColor}">${hpPct}%</span>`;
+	if (mon.status) {
+		const sc = statusColors[mon.status] || '#888';
+		buf += `<span style="font-size:9px;font-weight:700;background:${sc};color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px">${mon.status.toUpperCase()}</span>`;
+	}
+	buf += `</div>`; // hp-row
+	buf += `</div>`; // info-col
+	buf += `</div>`; // header
 
-    // ── Build HTML ─────────────────────────────────────────────────────────
-    let buf = '';
+	// ── Tab nav bar ───────────────────────────────────────────────────────
+	const tabNames = ['Info', 'Stats', 'Moves'];
+	const prevTab = (activeTab - 1 + tabNames.length) % tabNames.length;
+	const nextTab = (activeTab + 1) % tabNames.length;
 
-    // ── SECTION 1 · Identity card ──────────────────────────────────────────
-    buf += `<div class="pr-stats-identity pr-card" style="display:flex;gap:12px;align-items:center;padding:12px 14px;">`;
+	buf += `<div class="pr-sv-nav">`;
+	buf += renderBtn(`/pokerogue statstab prev`, '&#9664;', 'pr-sv-arrow');
+	for (let i = 0; i < tabNames.length; i++) {
+		buf += renderBtn(
+			i === activeTab ? null : `/pokerogue statstab ${i}`,
+			tabNames[i],
+			`pr-sv-dot${i === activeTab ? ' active' : ''}`,
+		);
+	}
+	buf += renderBtn(`/pokerogue statstab next`, '&#9654;', 'pr-sv-arrow');
+	buf += `</div>`;
 
-    // Sprite box
-    buf += `<div class="pr-stats-sprite-box">`;
-    buf += `<img src="${spriteUrl}" style="image-rendering:pixelated;width:72px;height:72px;" `
-        + `onerror="this.src='https://play.pokemonshowdown.com/sprites/gen5/substitute.png'" />`;
-    if (mon.shiny) buf += `<div class="pr-stats-shiny-badge">✨ Shiny</div>`;
-    buf += `</div>`;
+	// ── Tab panel ─────────────────────────────────────────────────────────
+	buf += `<div class="pr-sv-tab">`;
 
-    // Right of sprite
-    buf += `<div style="flex:1;min-width:0;">`;
+	// ── TAB 0: Info ───────────────────────────────────────────────────────
+	if (activeTab === 0) {
+		// Ability
+		buf += `<div class="pr-sv-row">`;
+		buf += `<span class="pr-sv-row-label">Ability</span>`;
+		buf += `<div class="pr-sv-row-val"><b>${Utils.escapeHTML(abilityName)}</b>`;
+		if (abilityDesc) buf += `<div class="pr-sv-subdesc">${Utils.escapeHTML(abilityDesc)}</div>`;
+		buf += `</div></div>`;
 
-    // Name row
-    buf += `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">`;
-    buf += `<span style="font-size:16px;font-weight:700;color:#1c1c28;" class="dark-invert">`
-        + `${Utils.escapeHTML(spData.name)}</span>`;
-    buf += genderHtml;
-    buf += `<span class="pr-level-badge">Lv.${mon.level}</span>`;
-    if (mon.ball) {
-        const ballInfo = getPokeballInfo(mon.species, mon.ball);
-        buf += `<img src="${ballInfo.src}" title="${Utils.escapeHTML(ballInfo.alt)}" `
-            + `width="16" height="16" style="image-rendering:pixelated;vertical-align:middle;" />`;
-    }
-    buf += `</div>`;
+		// Nature
+		let natureSuffix = `<span class="pr-sv-subdesc"> Neutral — no stat change</span>`;
+		if (naturePlus && natureMinus) {
+			natureSuffix = ` <span style="color:#16a34a;font-size:10px;font-weight:600">▲${statLabels[naturePlus]}</span>`
+				+ ` <span style="color:#dc2626;font-size:10px;font-weight:600">▼${statLabels[natureMinus]}</span>`;
+		}
+		buf += `<div class="pr-sv-row">`;
+		buf += `<span class="pr-sv-row-label">Nature</span>`;
+		buf += `<div class="pr-sv-row-val"><b>${Utils.escapeHTML(natureName)}</b>${natureSuffix}</div>`;
+		buf += `</div>`;
 
-    // Types
-    buf += `<div class="pr-types" style="margin-bottom:6px;">${renderTypeBadge(spData.types ?? [])}</div>`;
+		// Held item
+		buf += `<div class="pr-sv-row">`;
+		buf += `<span class="pr-sv-row-label">Item</span>`;
+		buf += `<div class="pr-sv-row-val">`;
+		if (heldItem) {
+			buf += `${getShopItemIcon(heldItem.name, 14)} <b>${Utils.escapeHTML(heldItem.name)}</b>`;
+			if (heldItem.shortDesc) buf += `<div class="pr-sv-subdesc">${Utils.escapeHTML(heldItem.shortDesc)}</div>`;
+		} else {
+			buf += `<span style="color:#aaa">None</span>`;
+		}
+		buf += `</div></div>`;
 
-    // HP bar (in-battle state)
-    buf += `<div style="margin-bottom:6px;">`;
-    buf += `<div style="display:flex;justify-content:space-between;font-size:9px;color:#5a5068;margin-bottom:2px;">`
-        + `<span>HP</span><span>${hpPct}%</span></div>`;
-    buf += `<div class="pr-bar-track"><div class="pr-bar-fill" style="width:${hpPct}%;background:${hpColor};"></div></div>`;
-    buf += `</div>`;
+		// Tera type
+		if (mon.teraType) {
+			buf += `<div class="pr-sv-row">`;
+			buf += `<span class="pr-sv-row-label">Tera</span>`;
+			buf += `<div class="pr-sv-row-val">${renderTypeBadge([mon.teraType])}</div>`;
+			buf += `</div>`;
+		}
 
-    // Status + Tera
-    buf += `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">`;
-    if (mon.status) {
-        const statusColors: Record<string, string> = {
-            brn: '#e8603c', psn: '#b563ce', tox: '#b563ce',
-            par: '#d4b800', slp: '#7a7a7a', frz: '#6aaed6',
-        };
-        const sc = statusColors[mon.status] || '#888';
-        buf += `<span style="font-size:9px;font-weight:700;background:${sc};color:#fff;`
-            + `padding:1px 5px;border-radius:3px;letter-spacing:0.05em;">${mon.status.toUpperCase()}</span>`;
-    }
-    if (mon.teraType) {
-        buf += `<span style="font-size:9px;color:#5a5068;">Tera: ${renderTypeBadge([mon.teraType])}</span>`;
-    }
-    buf += `</div>`;
+		// Divider
+		buf += `<div class="pr-sv-divider"></div>`;
 
-    buf += `</div>`; // end right-of-sprite
-    buf += `</div>`; // end identity card
+		// Trainer memo
+		const memo: [string, string][] = [
+			['OT', Utils.escapeHTML(mon.originalTrainer || 'Unknown')],
+			['ID No.', mon.otId || '??????'],
+			['Met at', Utils.escapeHTML(mon.metLocation || 'Unknown')],
+			['Met Lv.', String(mon.metLevel ?? '?')],
+			['Date', dateStr],
+			['Ball', Utils.escapeHTML(
+				mon.ball
+					? mon.ball.replace('ball', ' Ball').replace(/^./, c => c.toUpperCase())
+					: 'Poké Ball'
+			)],
+		];
+		for (const [label, val] of memo) {
+			buf += `<div class="pr-sv-row">`;
+			buf += `<span class="pr-sv-row-label">${label}</span>`;
+			buf += `<div class="pr-sv-row-val">${val}</div>`;
+			buf += `</div>`;
+		}
+	}
 
-    // ── SECTION 2 · Ability + Item row ────────────────────────────────────
-    buf += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">`;
+	// ── TAB 1: Stats ──────────────────────────────────────────────────────
+	if (activeTab === 1) {
+		for (const stat of statKeys) {
+			const base   = bs[stat] ?? 0;
+			const iv     = ivs[stat] ?? 31;
+			const actual = stats[stat] ?? 0;
+			const barPct = Math.min(100, Math.round((base / 255) * 100));
+			const isPlus  = naturePlus  === stat;
+			const isMinus = natureMinus === stat;
+			const valStyle = isPlus
+				? 'color:#16a34a;font-weight:700'
+				: isMinus ? 'color:#dc2626;font-weight:700' : '';
 
-    // Ability box
-    buf += `<div class="pr-card" style="margin:0;padding:10px 12px;">`;
-    buf += `<div class="pr-section-title" style="margin-bottom:4px;">Ability</div>`;
-    buf += `<div style="font-size:13px;font-weight:600;color:#1c1c28;margin-bottom:3px;" class="dark-invert">`
-        + `${Utils.escapeHTML(abilityName)}</div>`;
-    if (abilityDesc) {
-        buf += `<div style="font-size:10px;color:#5a5068;line-height:1.4;">${Utils.escapeHTML(abilityDesc)}</div>`;
-    }
-    buf += `</div>`;
+			buf += `<div class="pr-sv-stat-row">`;
+			buf += `<span class="pr-sv-stat-label">${statLabels[stat]}</span>`;
+			buf += `<span class="pr-sv-stat-base">${base}</span>`;
+			buf += `<div class="pr-sv-bar-wrap">`;
+			buf += `<div class="pr-sv-bar" style="width:${barPct}%;background:${statColors[stat]}"></div>`;
+			buf += `</div>`;
+			buf += `<span class="pr-sv-stat-val"${valStyle ? ` style="${valStyle}"` : ''}>${actual}</span>`;
+			buf += `<span class="pr-sv-stat-iv" title="IV: ${iv}/31">${iv}</span>`;
+			buf += `</div>`;
+		}
+		buf += `<div class="pr-sv-bst">Total <b>${bst}</b></div>`;
+	}
 
-    // Held item box
-    buf += `<div class="pr-card" style="margin:0;padding:10px 12px;">`;
-    buf += `<div class="pr-section-title" style="margin-bottom:4px;">Held Item</div>`;
-    if (heldItem) {
-        buf += `<div style="display:flex;align-items:center;gap:6px;">`;
-        buf += getShopItemIcon(heldItem.name, 20);
-        buf += `<span style="font-size:13px;font-weight:600;color:#1d4ed8;">${Utils.escapeHTML(heldItem.name)}</span>`;
-        buf += `</div>`;
-        if (heldItem.desc || heldItem.shortDesc) {
-            buf += `<div style="font-size:10px;color:#5a5068;line-height:1.4;margin-top:3px;">`
-                + `${Utils.escapeHTML(heldItem.shortDesc || heldItem.desc || '')}</div>`;
-        }
-    } else {
-        buf += `<div style="font-size:13px;font-weight:500;color:#aaa;">None</div>`;
-    }
-    buf += `</div>`;
+	// ── TAB 2: Moves ─────────────────────────────────────────────────────
+	if (activeTab === 2) {
+		const moves = mon.moves || [];
+		for (let i = 0; i < 4; i++) {
+			if (i < moves.length) {
+				const move    = Dex.moves.get(moves[i]);
+				const maxPp   = Math.floor((move.pp || 5) * (8 / 5));
+				const curPp   = mon.ppLeft?.[i] ?? maxPp;
+				const ppPct   = Math.round((curPp / maxPp) * 100);
+				const ppColor = ppPct > 50 ? '#4caf50' : ppPct > 25 ? '#ff9800' : '#f44336';
+				const mColor  = typeColors[move.type] || '#9FA19F';
+				const catIcon = move.category === 'Physical' ? '⚔' : move.category === 'Special' ? '◆' : '●';
 
-    buf += `</div>`; // end ability+item grid
+				buf += `<div class="pr-sv-move" style="border-left:3px solid ${mColor}">`;
+				buf += `<div class="pr-sv-move-top">`;
+				buf += `<b class="pr-sv-move-name">${Utils.escapeHTML(move.name)}</b>`;
+				buf += `<span class="pr-type" style="background:${mColor};color:#fff;font-size:9px">${move.type}</span>`;
+				buf += `</div>`;
+				buf += `<div class="pr-sv-move-meta">${catIcon} ${move.category} &nbsp;·&nbsp; Pwr: <b>${move.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${move.accuracy === true ? '—' : (move.accuracy || '—')}</b></div>`;
+				buf += `<div class="pr-sv-move-pp-row">`;
+				buf += `<div class="pr-bar-track" style="flex:1"><div class="pr-bar-fill" style="width:${ppPct}%;background:${ppColor}"></div></div>`;
+				buf += `<span style="font-size:9px;color:#5a5068;white-space:nowrap">PP ${curPp}/${maxPp}</span>`;
+				buf += `</div>`;
+				buf += `</div>`;
+			} else {
+				buf += `<div class="pr-sv-move pr-sv-move-empty">— empty —</div>`;
+			}
+		}
+	}
 
-    // ── SECTION 3 · Nature ────────────────────────────────────────────────
-    buf += `<div class="pr-card" style="margin-bottom:10px;padding:10px 12px;">`;
-    buf += `<div class="pr-section-title" style="margin-bottom:6px;">Nature</div>`;
-    buf += `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">`;
-    buf += `<span style="font-size:14px;font-weight:700;color:#1c1c28;" class="dark-invert">${Utils.escapeHTML(natureName)}</span>`;
-    buf += `<div style="display:flex;gap:8px;font-size:10px;">`;
-    if (naturePlus && natureMinus) {
-        buf += `<span style="color:#16a34a;font-weight:600;">▲ ${statLabels[naturePlus] ?? naturePlus}</span>`;
-        buf += `<span style="color:#dc2626;font-weight:600;">▼ ${statLabels[natureMinus] ?? natureMinus}</span>`;
-    } else {
-        buf += `<span style="color:#5a5068;">No stat change (neutral)</span>`;
-    }
-    buf += `</div></div></div>`;
+	buf += `</div>`; // pr-sv-tab panel
 
-    // ── SECTION 4 · Stat bars (Pokémon-game style) ────────────────────────
-    buf += `<div class="pr-card" style="margin-bottom:10px;padding:10px 12px;">`;
-    buf += `<div class="pr-section-title" style="margin-bottom:8px;">Base Stats</div>`;
+	// ── Team slot dots ────────────────────────────────────────────────────
+	if (state.team.length > 1) {
+		buf += `<div class="pr-sv-team-nav">`;
+		for (let i = 0; i < state.team.length; i++) {
+			const m   = state.team[i];
+			const spN = Dex.species.get(toID(m.species));
+			const isMe = i === slot;
+			if (isMe) {
+				buf += `<span class="pr-sv-team-pip active" title="${Utils.escapeHTML(spN.name)}"></span>`;
+			} else {
+				buf += `<button name="send" value="/pokerogue view stats ${i}" class="pr-sv-team-btn" title="${Utils.escapeHTML(spN.name)}">`;
+				buf += `<span class="pr-sv-team-pip"></span>`;
+				buf += `</button>`;
+			}
+		}
+		buf += `</div>`;
+	}
 
-    for (const stat of statKeys) {
-        const base    = bs[stat] ?? 0;
-        const iv      = ivs[stat] ?? 31;
-        const actual  = stats[stat] ?? 0;
-        const barPct  = Math.min(100, Math.round((base / maxStat) * 100));
-        const isPlus  = naturePlus  === stat;
-        const isMinus = natureMinus === stat;
-        const valColor = isPlus ? '#16a34a' : isMinus ? '#dc2626' : '';
-
-        buf += `<div class="pr-stats-row">`;
-
-        // Label
-        buf += `<div class="pr-stats-label">${statLabels[stat]}</div>`;
-
-        // Base value (right-aligned, small)
-        buf += `<div class="pr-stats-base">${base}</div>`;
-
-        // Bar
-        buf += `<div class="pr-stats-bar-wrap">`;
-        buf += `<div class="pr-stats-bar" style="width:${barPct}%;background:${statColors[stat]};"></div>`;
-        buf += `</div>`;
-
-        // Actual stat (computed)
-        buf += `<div class="pr-stats-actual" ${valColor ? `style="color:${valColor};font-weight:700;"` : ''}>${actual}</div>`;
-
-        // IV pip indicator
-        const ivPct = Math.round((iv / 31) * 100);
-        const ivColor = iv === 31 ? '#6d64b0' : iv >= 20 ? '#9d93c8' : '#c0bcb8';
-        buf += `<div class="pr-stats-iv" title="IV: ${iv}/31">`;
-        buf += `<div style="width:${ivPct}%;height:100%;background:${ivColor};border-radius:2px;"></div>`;
-        buf += `</div>`;
-
-        // IV label
-        buf += `<div class="pr-stats-iv-label">${iv}</div>`;
-
-        buf += `</div>`; // end row
-    }
-
-    // BST
-    const bst = statKeys.reduce((sum, s) => sum + (bs[s] ?? 0), 0);
-    buf += `<div style="text-align:right;font-size:10px;color:#5a5068;margin-top:6px;padding-top:6px;border-top:1px solid #b8b4b0;">`
-        + `Total BST: <b style="color:#1c1c28;">${bst}</b></div>`;
-
-    buf += `</div>`; // end stats card
-
-    // ── SECTION 5 · Moves grid ────────────────────────────────────────────
-    buf += `<div class="pr-section-title">Moves</div>`;
-    buf += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">`;
-
-    const typeColors: Record<string, string> = {
-        Normal: '#9FA19F', Fire: '#E62829', Water: '#2980EF', Grass: '#3FA129',
-        Electric: '#FAC000', Ice: '#3DCEF3', Fighting: '#FF8000', Poison: '#9141CB',
-        Ground: '#915121', Flying: '#81B9EF', Psychic: '#EF4179', Bug: '#91A119',
-        Rock: '#AFA981', Ghost: '#704170', Dragon: '#5060E1', Dark: '#624D4E',
-        Steel: '#60A1B8', Fairy: '#EF70EF',
-    };
-
-    const moves = mon.moves || [];
-    for (let i = 0; i < 4; i++) {
-        if (i < moves.length) {
-            const move    = Dex.moves.get(moves[i]);
-            const maxPp   = Math.floor((move.pp || 5) * (8 / 5));
-            const curPp   = mon.ppLeft?.[i] ?? maxPp;
-            const ppPct   = Math.round((curPp / maxPp) * 100);
-            const ppColor = ppPct > 50 ? '#4caf50' : ppPct > 25 ? '#ff9800' : '#f44336';
-            const mColor  = typeColors[move.type] || '#9FA19F';
-            const textC   = getContrastColor(mColor.replace('#', ''));
-
-            buf += `<div class="pr-card" style="margin:0;padding:10px;border-left:4px solid ${mColor};">`;
-
-            // Move name + type badge
-            buf += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">`;
-            buf += `<span style="font-size:12px;font-weight:700;color:#1c1c28;" class="dark-invert">${Utils.escapeHTML(move.name)}</span>`;
-            buf += `<span style="font-size:9px;font-weight:600;background:${mColor};color:${textC === '333333' ? '#333' : '#fff'};`
-                + `padding:1px 6px;border-radius:3px;">${move.type}</span>`;
-            buf += `</div>`;
-
-            // Category + power + accuracy
-            const catEmoji = move.category === 'Physical' ? '⚔️' : move.category === 'Special' ? '🔮' : '💫';
-            buf += `<div style="font-size:10px;color:#5a5068;margin-bottom:6px;">`
-                + `${catEmoji} ${move.category} &nbsp;·&nbsp; `
-                + `Pwr: <b>${move.basePower || '—'}</b> &nbsp;·&nbsp; `
-                + `Acc: <b>${move.accuracy === true ? '∞' : (move.accuracy || '—')}</b>`
-                + `</div>`;
-
-            // PP bar
-            buf += `<div style="display:flex;align-items:center;gap:6px;">`;
-            buf += `<div style="flex:1;height:3px;border-radius:2px;background:#b8b4b0;overflow:hidden;">`;
-            buf += `<div style="width:${ppPct}%;height:100%;background:${ppColor};border-radius:2px;"></div>`;
-            buf += `</div>`;
-            buf += `<span style="font-size:9px;color:#5a5068;white-space:nowrap;">PP ${curPp}/${maxPp}</span>`;
-            buf += `</div>`;
-
-            buf += `</div>`;
-        } else {
-            buf += `<div class="pr-card" style="margin:0;padding:10px;display:flex;align-items:center;`
-                + `justify-content:center;color:#aaa;font-size:12px;border:1px dashed #b8b4b0;">—</div>`;
-        }
-    }
-    buf += `</div>`; // end moves grid
-
-    // ── SECTION 6 · Trainer Memo ──────────────────────────────────────────
-    buf += `<div class="pr-section-title">Trainer Memo</div>`;
-    buf += `<div class="pr-card" style="padding:10px 12px;">`;
-    buf += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">`;
-
-    const memoFields: [string, string][] = [
-        ['OT', Utils.escapeHTML(mon.originalTrainer || 'Unknown')],
-        ['ID', mon.otId || '??????'],
-        ['Met at', Utils.escapeHTML(mon.metLocation || 'Unknown')],
-        ['Date', dateStr],
-        ['Met Lv.', String(mon.metLevel || '?')],
-        ['Ball', Utils.escapeHTML(mon.ball ? mon.ball.replace('ball', ' Ball').replace(/^\w/, c => c.toUpperCase()) : 'Poké Ball')],
-    ];
-    for (const [label, val] of memoFields) {
-        buf += `<div><span style="color:#5a5068;">${label}:</span> <b style="color:#1c1c28;" class="dark-invert">${val}</b></div>`;
-    }
-
-    buf += `</div></div>`;
-
-    // ── Navigation dots (team slots) ──────────────────────────────────────
-    if (state.team.length > 1) {
-        buf += `<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;">`;
-        for (let i = 0; i < state.team.length; i++) {
-            const m    = state.team[i];
-            const spN  = Dex.species.get(toID(m.species));
-            const isMe = i === slot;
-            buf += renderBtn(
-                isMe ? null : `/pokerogue view stats ${i}`,
-                `${spN.name} <span style="font-size:9px;opacity:0.7">Lv.${m.level}</span>`,
-                'pr-shop-buy',
-                `padding:4px 8px;font-size:10px;${isMe ? 'border-color:#5b50c8;background:#e8e4ff;font-weight:700;' : ''}`,
-                isMe,
-            );
-        }
-        buf += `</div>`;
-    }
-
-    return buf;
+	buf += `</div>`; // pr-sv-wrap
+	return buf;
 }
 
 function renderMainView(state: PokeRogueState, user: User): string {
