@@ -156,7 +156,7 @@ export interface PokeRogueState {
 	pendingSwap?: PokemonEntry;
 	pendingMoves?: { pokemonIndex: number, move: string, speciesName: string }[];
 	purchasedItem?: string;
-	pendingConsumableType?: 'healHP' | 'revive' | 'cureStatus';
+	pendingConsumableType?: 'healHP' | 'revive' | 'cureStatus' | 'vitamin';
 	pendingItemName?: string;
 	pendingItemIsEvo?: boolean;
 	isRotationalItem?: boolean;
