@@ -100,7 +100,7 @@ export function renderTypeBadge(types: string[], large = false): string {
 	return types.map(t => {
 		const color = typeColor(t);
 		const textColor = getContrastColor(color);
-		return `<span class="pr-type" style="background:#${color};color:#${textColor};font-size:${large ? '9px' : '9px'}">${t}</span>`;
+		return `<span class="pr-type" style="background:#${color};color:#${textColor};font-size:${large ? '10px' : '9px'}">${t}</span>`;
 	}).join('&nbsp;');
 }
 
@@ -240,7 +240,6 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 
 	const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 	const moves: string[] = mon.moves?.length ? mon.moves : getLevelUpMoves(toID(mon.species), mon.level, genNumber);
-	const displayTypes = mon.types ?? spData.types ?? [];
 
 	let buf = `<tr class="pr-team-row">`;
 	
@@ -253,7 +252,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 
 	buf += `<div class="pr-td-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">`;
 	buf += `${spData.name} &nbsp;&nbsp;&nbsp;<span class="pr-mon-lv">Lv. ${mon.level}</span></div>`;
-	buf += `<div class="pr-types">${renderTypeBadge(displayTypes)}</div>`;
+	buf += `<div class="pr-types">${renderTypeBadge(spData.types ?? [])}</div>`;
 
 	if (mon.heldItem) {
 		const dexHeld = Dex.items.get(mon.heldItem);
@@ -639,7 +638,7 @@ function renderStatsView(state: PokeRogueState): string {
 	buf += `<div class="pr-sv-name">${Utils.escapeHTML(spData.name)} ${gender}${mon.shiny ? ' <span class="pr-sv-shiny">★</span>' : ''}&nbsp;&nbsp;`;
 	buf += `<span class="pr-level-badge">Lv.${mon.level}</span></div>`;
 	buf += `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px;">`;
-	buf += renderTypeBadge(mon.types ?? spData.types ?? []);
+	buf += renderTypeBadge(spData.types ?? []);
 	buf += `</div>`;
 	buf += `<div class="pr-sv-hp-row">`;
 	buf += `<span class="pr-sv-hp-label">HP</span>`;

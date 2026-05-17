@@ -687,121 +687,114 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		choose(target, room, user) {
-	const state = getState(user.id);
-	const n = parseInt(target) - 1;
-	if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
-	const choice = state.pendingChoice[n];
+			const state = getState(user.id);
+			const n = parseInt(target) - 1;
+			if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
+			const choice = state.pendingChoice[n];
 
-	const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
-	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-	const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+			const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
-	let addedLevel = config.starterLevel ?? 5;
-	if (!isStarterChoice) {
-		const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
-		if (state.floor <= 30) {
-			addedLevel = Math.max(1, maxPlayerLevel - 1);
-		} else if (state.floor <= 50) {
-			addedLevel = Math.max(1, maxPlayerLevel - 2);
-		} else {
-			const levelDrop = Math.floor(Math.random() * 2) + 2;
-			addedLevel = Math.max(1, maxPlayerLevel - levelDrop);
-		}
-	}
+			let addedLevel = config.starterLevel ?? 5;
+			if (!isStarterChoice) {
+				const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
+				if (state.floor <= 30) {
+					addedLevel = Math.max(1, maxPlayerLevel - 1);
+				} else if (state.floor <= 50) {
+					addedLevel = Math.max(1, maxPlayerLevel - 2);
+				} else {
+					const levelDrop = Math.floor(Math.random() * 2) + 2;
+					addedLevel = Math.max(1, maxPlayerLevel - levelDrop);
+				}
+			}
 
-	let finalSpecies = choice;
-	if (!isStarterChoice) {
-		while (true) {
-			const evo = getLevelUpEvo(finalSpecies);
-			if (!evo || addedLevel < evo.evoLevel) break;
-			finalSpecies = evo.evoTo;
-		}
-	}
+			let finalSpecies = choice;
+			if (!isStarterChoice) {
+				while (true) {
+					const evo = getLevelUpEvo(finalSpecies);
+					if (!evo || addedLevel < evo.evoLevel) break;
+					finalSpecies = evo.evoTo;
+				}
+			}
 
-	const allTypes = Dex.types.all().filter(t => !t.isNonstandard).map(t => t.name);
-	const speciesData = Dex.species.get(finalSpecies);
-	const speciesTypes = config.randomizeTypes
-		? speciesData.types.map(() => allTypes[Math.floor(Math.random() * allTypes.length)])
-		: [...speciesData.types];
+			let newMon: PokemonEntry;
 
-	const randomIvs = {
-		hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
-		def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
-		spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
-	};
-	const shiny = Math.floor(Math.random() * 4096) === 0;
-	const gender = speciesData.gender || (Math.random() < 0.5 ? 'M' : 'F');
-	const allTypeNames = Dex.types.all().map(t => t.name);
-	const teraType = Math.floor(Math.random() * 20) === 0 ?
-		allTypeNames[Math.floor(Math.random() * allTypeNames.length)] :
-		speciesTypes[Math.floor(Math.random() * speciesTypes.length)];
+			const randomIvs = {
+				hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+				def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+				spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+			};
+			const shiny = Math.floor(Math.random() * 4096) === 0;
+			const gender = Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
+			const allTypes = Dex.types.all().map(t => t.name);
+			const teraType = Math.floor(Math.random() * 20) === 0 ?
+				allTypes[Math.floor(Math.random() * allTypes.length)] :
+				Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)];
 
-	const commonProps = {
-		ivs: randomIvs,
-		evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-		shiny: shiny,
-		gender: gender as any,
-		teraType: teraType,
-		types: speciesTypes,
-		happiness: 120,
-		originalTrainer: state.displayName || user.name,
-		otId: user.id.substring(0, 6),
-		metLocation: "Professor Oak's Lab",
-		metLevel: addedLevel,
-		metDate: Date.now(),
-		marks: [],
-		ball: 'pokeball'
-	};
+			const commonProps = {
+				ivs: randomIvs,
+				evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+				shiny: shiny,
+				gender: gender as any,
+				teraType: teraType,
+				happiness: 120,
+				originalTrainer: state.displayName || user.name,
+				otId: user.id.substring(0, 6),
+				metLocation: "Professor Oak's Lab",
+				metLevel: addedLevel,
+				metDate: Date.now(),
+				marks: [],
+				ball: 'pokeball'
+			};
 
-	let newMon: PokemonEntry;
+			if (config.randomizeMoves || config.randomizeAbilities) {
+				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
+				const g = generated[0];
+				newMon = {
+					species: g.species,
+					level: g.level,
+					exp: expForLevel(g.level, getExpType(g.species)),
+					expType: getExpType(g.species),
+					moves: g.moves,
+					ppLeft: g.moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
+					nature: g.nature,
+					ability: g.ability,
+					...commonProps
+				} as PokemonEntry;
+			} else {
+				const finalExpType = getExpType(finalSpecies);
+				const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
+				const natures = Dex.natures.all().map(n => n.name);
+				const hash = ((state.floor ?? 1) * 37) + (n * 13) + Dex.species.get(finalSpecies).id.length;
+				const displayNature = natures[hash % natures.length] ?? 'Hardy';
 
-	if (config.randomizeMoves || config.randomizeAbilities) {
-		const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
-		const g = generated[0];
-		newMon = {
-			species: g.species,
-			level: g.level,
-			exp: expForLevel(g.level, getExpType(g.species)),
-			expType: getExpType(g.species),
-			moves: g.moves,
-			ppLeft: g.moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
-			nature: g.nature,
-			ability: g.ability,
-			...commonProps
-		} as PokemonEntry;
-	} else {
-		const finalExpType = getExpType(finalSpecies);
-		const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
-		const natures = Dex.natures.all().map(n => n.name);
-		const hash = ((state.floor ?? 1) * 37) + (n * 13) + Dex.species.get(finalSpecies).id.length;
-		const displayNature = natures[hash % natures.length] ?? 'Hardy';
+				newMon = {
+					species: finalSpecies,
+					level: addedLevel,
+					exp: expForLevel(addedLevel, finalExpType),
+					expType: finalExpType,
+					moves: initialMoves,
+					ppLeft: initialMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
+					nature: displayNature,
+					...commonProps
+				} as PokemonEntry;
+			}
 
-		newMon = {
-			species: finalSpecies,
-			level: addedLevel,
-			exp: expForLevel(addedLevel, finalExpType),
-			expType: finalExpType,
-			moves: initialMoves,
-			ppLeft: initialMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
-			nature: displayNature,
-			...commonProps
-		} as PokemonEntry;
-	}
+			if (isStarterChoice) {
+				state.team = [newMon];
+			} else if (state.team.length < 6) {
+				state.team.push(newMon);
+			} else {
+				state.pendingSwap = newMon;
+			}
 
-	if (isStarterChoice) {
-		state.team = [newMon];
-	} else if (state.team.length < 6) {
-		state.team.push(newMon);
-	} else {
-		state.pendingSwap = newMon;
-	}
-
-	delete state.pendingChoice;
-	delete state.pendingChoiceType;
-	delete state.pendingChoiceFloor;
-	setState(user.id, state);
-	refreshGamePage(user);
-},
+			delete state.pendingChoice;
+			delete state.pendingChoiceType;
+			delete state.pendingChoiceFloor;
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
 
 		resolve(target, room, user) {
 			const state = getState(user.id);
@@ -1162,261 +1155,254 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		catch(target, room, user) {
-	const state = getState(user.id);
-	if (!state || state.gameOver) return this.errorReply("No active run.");
-	if (!room?.battle) return this.errorReply("You must be in a battle to catch Pokémon.");
+			const state = getState(user.id);
+			if (!state || state.gameOver) return this.errorReply("No active run.");
+			if (!room?.battle) return this.errorReply("You must be in a battle to catch Pokémon.");
 
-	const catchMatch = activeMatches.get(room.roomid);
-	if (!catchMatch || catchMatch.userId !== user.id) {
-		return this.errorReply("You can only catch Pokémon in your own battle.");
-	}
-
-	if (!room.battle.turn) return this.errorReply("The battle hasnt started yet!");
-	if (state.caughtPokemon) return this.errorReply("You already caught this Pokémon!");
-
-	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-	const floor = state.floor;
-	if (floor % config.bossInterval === 0 || catchMatch.isTrainerBattle) {
-		return this.errorReply("You cannot catch Trainer or Boss Pokémon!");
-	}
-
-	const ballType = toID(target);
-	if (!['pokeball', 'greatball', 'ultraball', 'masterball'].includes(ballType)) {
-		return this.errorReply("Invalid Poké Ball type.");
-	}
-
-	state.inventory = state.inventory || {};
-	if ((state.inventory[ballType] || 0) <= 0) return this.errorReply(`You don't have any ${ballType}s left!`);
-
-	const now = Date.now();
-	const lastThrow = (state as any).lastThrowTime || 0;
-	if (now - lastThrow < 1500) {
-		return this.errorReply("Please wait a moment before throwing another Poké Ball.");
-	}
-	(state as any).lastThrowTime = now;
-
-	const log = room.log?.log || [];
-	let p2Species = '';
-	let p2Level = botLevel(floor, config);
-	let p2Hp = -1;
-	let p2MaxHp = 100;
-	let p2Status = '';
-	let isFainted = false;
-
-	let p1Fainted = false;
-	let p1Found = false;
-
-	for (let i = log.length - 1; i >= 0; i--) {
-		const line = log[i];
-
-		if (!p1Found) {
-			if (/^\|faint\|p1[a-z]:/.test(line)) {
-				p1Fainted = true;
-				p1Found = true;
-			} else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) {
-				p1Fainted = false;
-				p1Found = true;
+			const catchMatch = activeMatches.get(room.roomid);
+			if (!catchMatch || catchMatch.userId !== user.id) {
+				return this.errorReply("You can only catch Pokémon in your own battle.");
 			}
-		}
 
-		if (p2Hp === -1 && /^\|faint\|p2[a-z]:/.test(line)) {
-			isFainted = true;
-		}
+			if (!room.battle.turn) return this.errorReply("The battle hasnt started yet!");
+			if (state.caughtPokemon) return this.errorReply("You already caught this Pokémon!");
 
-		const hpMatch = /^\|(?:-damage|-heal)\|p2[a-z]: [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
-		if (hpMatch && p2Hp === -1 && !isFainted) {
-			p2Hp = parseInt(hpMatch[1]);
-			p2MaxHp = hpMatch[2] ? parseInt(hpMatch[2]) : 100;
-			if (hpMatch[3]) p2Status = hpMatch[3];
-		}
-
-		const statusMatch = /^\|-status\|p2[a-z]: [^|]+\|(brn|psn|tox|par|slp|frz)/.exec(line);
-		if (statusMatch && p2Status === '') p2Status = statusMatch[1];
-
-		const cureMatch = /^\|-curestatus\|p2[a-z]:/.exec(line);
-		if (cureMatch && p2Status === '') p2Status = 'none';
-
-		const switchMatch = /^\|(?:switch|drag)\|p2[a-z]: [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
-		if (switchMatch) {
-			p2Species = toID(switchMatch[1]);
-			if (switchMatch[2]) p2Level = parseInt(switchMatch[2]);
-			if (p2Hp === -1 && !isFainted) {
-				p2Hp = parseInt(switchMatch[3]);
-				p2MaxHp = switchMatch[4] ? parseInt(switchMatch[4]) : 100;
-				if (switchMatch[5] && p2Status === '') p2Status = switchMatch[5];
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const floor = state.floor;
+			if (floor % config.bossInterval === 0 || catchMatch.isTrainerBattle) {
+				return this.errorReply("You cannot catch Trainer or Boss Pokémon!");
 			}
-			break;
-		}
-	}
 
-	if (p1Fainted) {
-		return this.errorReply("You cannot throw a Poké Ball while your Pokémon is fainted! Please send out a new Pokémon first.");
-	}
+			const ballType = toID(target);
+			if (!['pokeball', 'greatball', 'ultraball', 'masterball'].includes(ballType)) {
+				return this.errorReply("Invalid Poké Ball type.");
+			}
 
-	if (p2Status === 'none') p2Status = '';
-	if (p2Hp === -1) p2Hp = 100;
+			state.inventory = state.inventory || {};
+			if ((state.inventory[ballType] || 0) <= 0) return this.errorReply(`You don't have any ${ballType}s left!`);
 
-	if (!p2Species || isFainted) return this.errorReply("There is no active Pokémon to catch.");
+			const now = Date.now();
+			const lastThrow = (state as any).lastThrowTime || 0;
+			if (now - lastThrow < 1500) {
+				return this.errorReply("Please wait a moment before throwing another Poké Ball.");
+			}
+			(state as any).lastThrowTime = now;
 
-	state.inventory[ballType]--;
-	setState(user.id, state);
+			const log = room.log?.log || [];
+			let p2Species = '';
+			let p2Level = botLevel(floor, config);
+			let p2Hp = -1;
+			let p2MaxHp = 100;
+			let p2Status = '';
+			let isFainted = false;
 
-	const turn = room.battle.turn || 1;
-	const inv = state.inventory;
-	const catchHTML = `<div class="pr-catch-panel" style="padding:8px; background:rgba(0,0,0,0.2); border-radius:6px; text-align:center; margin-top:5px;">` +
-		`<div style="font-weight:bold; margin-bottom:6px; color:#ddd;">Wild Encounter!</div>` +
-		`<button name="send" value="/pokerogue catch pokeball" class="button" ${inv['pokeball'] ? '' : 'disabled'}>Poké Ball (${inv['pokeball'] || 0})</button> ` +
-		`<button name="send" value="/pokerogue catch greatball" class="button" ${inv['greatball'] ? '' : 'disabled'}>Great Ball (${inv['greatball'] || 0})</button> ` +
-		`<button name="send" value="/pokerogue catch ultraball" class="button" ${inv['ultraball'] ? '' : 'disabled'}>Ultra Ball (${inv['ultraball'] || 0})</button> ` +
-		`<button name="send" value="/pokerogue catch masterball" class="button" ${inv['masterball'] ? '' : 'disabled'}>Master Ball (${inv['masterball'] || 0})</button>` +
-		`</div>`;
+			let p1Fainted = false;
+			let p1Found = false;
 
-	user.sendTo(room, `|uhtmlchange|catchpanel-${turn}|${catchHTML}`);
-	room.add(`|c|~|You threw a ${ballType}!`).update();
+			for (let i = log.length - 1; i >= 0; i--) {
+				const line = log[i];
 
-	const baseCatchRate = CATCH_RATES[p2Species] || 45;
+				if (!p1Found) {
+					if (/^\|faint\|p1[a-z]:/.test(line)) {
+						p1Fainted = true;
+						p1Found = true;
+					} else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) {
+						p1Fainted = false;
+						p1Found = true;
+					}
+				}
 
-	let ballBonus = 1;
-	if (ballType === 'greatball') ballBonus = 1.5;
-	if (ballType === 'ultraball') ballBonus = 2.0;
+				if (p2Hp === -1 && /^\|faint\|p2[a-z]:/.test(line)) {
+					isFainted = true;
+				}
 
-	let statusBonus = 1;
-	if (['slp', 'frz'].includes(p2Status)) statusBonus = 2.5;
-	else if (['brn', 'psn', 'tox', 'par'].includes(p2Status)) statusBonus = 1.5;
+				const hpMatch = /^\|(?:-damage|-heal)\|p2[a-z]: [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+				if (hpMatch && p2Hp === -1 && !isFainted) {
+					p2Hp = parseInt(hpMatch[1]);
+					p2MaxHp = hpMatch[2] ? parseInt(hpMatch[2]) : 100;
+					if (hpMatch[3]) p2Status = hpMatch[3];
+				}
 
-	const hpPercent = p2Hp / p2MaxHp;
-	const modifiedCatchRate = (1 - (2 / 3) * hpPercent) * baseCatchRate * ballBonus * statusBonus;
-	const shakeProb = Math.min(65536, Math.floor(65536 * (modifiedCatchRate / 255) ** 0.1875));
+				const statusMatch = /^\|-status\|p2[a-z]: [^|]+\|(brn|psn|tox|par|slp|frz)/.exec(line);
+				if (statusMatch && p2Status === '') p2Status = statusMatch[1];
 
-	let shakes = 0;
-	if (ballType === 'masterball') {
-		shakes = 3;
-	} else {
-		for (let i = 0; i < 3; i++) {
-			if (Math.floor(Math.random() * 65536) < shakeProb) {
-				shakes++;
+				const cureMatch = /^\|-curestatus\|p2[a-z]:/.exec(line);
+				if (cureMatch && p2Status === '') p2Status = 'none';
+
+				const switchMatch = /^\|(?:switch|drag)\|p2[a-z]: [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+				if (switchMatch) {
+					p2Species = toID(switchMatch[1]);
+					if (switchMatch[2]) p2Level = parseInt(switchMatch[2]);
+					if (p2Hp === -1 && !isFainted) {
+						p2Hp = parseInt(switchMatch[3]);
+						p2MaxHp = switchMatch[4] ? parseInt(switchMatch[4]) : 100;
+						if (switchMatch[5] && p2Status === '') p2Status = switchMatch[5];
+					}
+					break;
+				}
+			}
+
+			if (p1Fainted) {
+				return this.errorReply("You cannot throw a Poké Ball while your Pokémon is fainted! Please send out a new Pokémon first.");
+			}
+
+			if (p2Status === 'none') p2Status = '';
+			if (p2Hp === -1) p2Hp = 100;
+
+			if (!p2Species || isFainted) return this.errorReply("There is no active Pokémon to catch.");
+
+			state.inventory[ballType]--;
+			setState(user.id, state);
+
+			const turn = room.battle.turn || 1;
+			const inv = state.inventory;
+			const catchHTML = `<div class="pr-catch-panel" style="padding:8px; background:rgba(0,0,0,0.2); border-radius:6px; text-align:center; margin-top:5px;">` +
+				`<div style="font-weight:bold; margin-bottom:6px; color:#ddd;">Wild Encounter!</div>` +
+				`<button name="send" value="/pokerogue catch pokeball" class="button" ${inv['pokeball'] ? '' : 'disabled'}>Poké Ball (${inv['pokeball'] || 0})</button> ` +
+				`<button name="send" value="/pokerogue catch greatball" class="button" ${inv['greatball'] ? '' : 'disabled'}>Great Ball (${inv['greatball'] || 0})</button> ` +
+				`<button name="send" value="/pokerogue catch ultraball" class="button" ${inv['ultraball'] ? '' : 'disabled'}>Ultra Ball (${inv['ultraball'] || 0})</button> ` +
+				`<button name="send" value="/pokerogue catch masterball" class="button" ${inv['masterball'] ? '' : 'disabled'}>Master Ball (${inv['masterball'] || 0})</button>` +
+				`</div>`;
+
+			user.sendTo(room, `|uhtmlchange|catchpanel-${turn}|${catchHTML}`);
+			room.add(`|c|~|You threw a ${ballType}!`).update();
+
+			const baseCatchRate = CATCH_RATES[p2Species] || 45;
+
+			let ballBonus = 1;
+			if (ballType === 'greatball') ballBonus = 1.5;
+			if (ballType === 'ultraball') ballBonus = 2.0;
+
+			let statusBonus = 1;
+			if (['slp', 'frz'].includes(p2Status)) statusBonus = 2.5;
+			else if (['brn', 'psn', 'tox', 'par'].includes(p2Status)) statusBonus = 1.5;
+
+			const hpPercent = p2Hp / p2MaxHp;
+			const modifiedCatchRate = (1 - (2 / 3) * hpPercent) * baseCatchRate * ballBonus * statusBonus;
+			const shakeProb = Math.min(65536, Math.floor(65536 * (modifiedCatchRate / 255) ** 0.1875));
+
+			let shakes = 0;
+			if (ballType === 'masterball') {
+				shakes = 3;
 			} else {
-				break;
+				for (let i = 0; i < 3; i++) {
+					if (Math.floor(Math.random() * 65536) < shakeProb) {
+						shakes++;
+					} else {
+						break;
+					}
+				}
 			}
-		}
-	}
 
-	if (shakes === 3) {
-		const dexSp = Dex.species.get(p2Species);
-		room.add(`|c|~|Gotcha! ${dexSp.name} was caught!`).update();
+			if (shakes === 3) {
+				const dexSp = Dex.species.get(p2Species);
+				room.add(`|c|~|Gotcha! ${dexSp.name} was caught!`).update();
 
-		const p1Participants = new Set<string>();
-		let p2SwitchIdx = 0;
+				const p1Participants = new Set<string>();
+				let p2SwitchIdx = 0;
 
-		for (let i = log.length - 1; i >= 0; i--) {
-			if (/^(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
-				p2SwitchIdx = i;
-				break;
+				for (let i = log.length - 1; i >= 0; i--) {
+					if (/^(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
+						p2SwitchIdx = i;
+						break;
+					}
+				}
+
+				for (let i = p2SwitchIdx; i >= 0; i--) {
+					const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
+					if (match) {
+						p1Participants.add(toID(match[1]));
+						break;
+					}
+				}
+
+				for (let i = p2SwitchIdx; i < log.length; i++) {
+					const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
+					if (match) {
+						p1Participants.add(toID(match[1]));
+					}
+				}
+
+				const participantsStr = Array.from(p1Participants).join(',');
+				room.add(`|-message|PR_EXP|${p2Species}|${p2Level}|${participantsStr}`).update();
+
+				const hpPct = Math.max(1, Math.round((p2Hp / p2MaxHp) * 100));
+				const natures = Dex.natures.all().map(n => n.name);
+				const randomNature = natures[Math.floor(Math.random() * natures.length)];
+
+				let caughtMoves = getLevelUpMoves(p2Species, p2Level, config.generation);
+				let caughtAbility = (Dex.species.get(p2Species).abilities as any)['0'] || '';
+				let caughtItem = '';
+
+				const freshCaughtIvs = {
+					hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+					def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+					spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+				};
+				let caughtShiny = false;
+				let caughtGender = Dex.species.get(p2Species).gender || (Math.random() < 0.5 ? 'M' : 'F');
+				let caughtTera = Dex.species.get(p2Species).types[0];
+
+				if (catchMatch.botTeam) {
+					const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
+					if (botMon) {
+						if (botMon.moves && botMon.moves.length > 0) caughtMoves = botMon.moves;
+						if (botMon.ability) caughtAbility = botMon.ability;
+						if (botMon.item) caughtItem = botMon.item;
+						if (botMon.shiny) caughtShiny = botMon.shiny;
+						if (botMon.gender) caughtGender = botMon.gender;
+						if (botMon.teraType) caughtTera = botMon.teraType;
+					}
+				}
+
+				const caught: any = {
+					species: p2Species,
+					level: p2Level,
+					exp: expForLevel(p2Level, getExpType(p2Species)),
+					expType: getExpType(p2Species),
+					moves: caughtMoves,
+					nature: randomNature,
+					ppLeft: caughtMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
+					currentHp: hpPct,
+					ability: caughtAbility,
+					ball: ballType,
+					ivs: freshCaughtIvs,
+					evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+					shiny: caughtShiny,
+					gender: caughtGender as any,
+					teraType: caughtTera,
+					happiness: 70,
+					originalTrainer: state.displayName || user.name,
+					otId: user.id.substring(0, 6),
+					metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
+					metLevel: p2Level,
+					metDate: Date.now(),
+					marks: []
+				};
+
+				if (caughtItem) caught.heldItem = caughtItem;
+				if (p2Status && p2Status !== 'none') caught.status = p2Status;
+
+				state.caughtPokemon = caught;
+				setState(user.id, state);
+
+				const match = activeMatches.get(room.roomid);
+				if (match) {
+					const botUser = Users.get(match.botUserId);
+					if (botUser) {
+						setTimeout(() => {
+							if (room.battle && !room.battle.ended) (room.battle as any).forfeit(botUser);
+						}, 300);
+					}
+				}
+			} else {
+				let escapeMsg = `|c|~|Oh no! The Pokémon broke free!`;
+				if (shakes === 1) escapeMsg = `|c|~|Aww! It appeared to be caught!`;
+				if (shakes === 2) escapeMsg = `|c|~|Aargh! Almost had it!`;
+				room.add(escapeMsg).update();
+				void room.battle.stream.write(`>p1 pass`);
 			}
-		}
-
-		for (let i = p2SwitchIdx; i >= 0; i--) {
-			const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
-			if (match) {
-				p1Participants.add(toID(match[1]));
-				break;
-			}
-		}
-
-		for (let i = p2SwitchIdx; i < log.length; i++) {
-			const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
-			if (match) {
-				p1Participants.add(toID(match[1]));
-			}
-		}
-
-		const participantsStr = Array.from(p1Participants).join(',');
-		room.add(`|-message|PR_EXP|${p2Species}|${p2Level}|${participantsStr}`).update();
-
-		const hpPct = Math.max(1, Math.round((p2Hp / p2MaxHp) * 100));
-		const natures = Dex.natures.all().map(n => n.name);
-		const randomNature = natures[Math.floor(Math.random() * natures.length)];
-
-		let caughtMoves = getLevelUpMoves(p2Species, p2Level, config.generation);
-		let caughtAbility = (Dex.species.get(p2Species).abilities as any)['0'] || '';
-		let caughtItem = '';
-
-		const freshCaughtIvs = {
-			hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
-			def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
-			spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
-		};
-		let caughtShiny = false;
-		let caughtGender = Dex.species.get(p2Species).gender || (Math.random() < 0.5 ? 'M' : 'F');
-		let caughtTera = Dex.species.get(p2Species).types[0];
-
-		if (catchMatch.botTeam) {
-			const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
-			if (botMon) {
-				if (botMon.moves && botMon.moves.length > 0) caughtMoves = botMon.moves;
-				if (botMon.ability) caughtAbility = botMon.ability;
-				if (botMon.item) caughtItem = botMon.item;
-				if (botMon.shiny) caughtShiny = botMon.shiny;
-				if (botMon.gender) caughtGender = botMon.gender;
-				if (botMon.teraType) caughtTera = botMon.teraType;
-			}
-		}
-
-		const allTypeNames = Dex.types.all().filter(t => !t.isNonstandard).map(t => t.name);
-		const caughtSpeciesTypes = Dex.species.get(p2Species).types;
-		const caughtTypes = config.randomizeTypes
-			? caughtSpeciesTypes.map(() => allTypeNames[Math.floor(Math.random() * allTypeNames.length)])
-			: [...caughtSpeciesTypes];
-
-		const caught: any = {
-			species: p2Species,
-			level: p2Level,
-			exp: expForLevel(p2Level, getExpType(p2Species)),
-			expType: getExpType(p2Species),
-			moves: caughtMoves,
-			nature: randomNature,
-			ppLeft: caughtMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
-			currentHp: hpPct,
-			ability: caughtAbility,
-			ball: ballType,
-			ivs: freshCaughtIvs,
-			evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-			shiny: caughtShiny,
-			gender: caughtGender as any,
-			teraType: caughtTera,
-			types: caughtTypes,
-			happiness: 70,
-			originalTrainer: state.displayName || user.name,
-			otId: user.id.substring(0, 6),
-			metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
-			metLevel: p2Level,
-			metDate: Date.now(),
-			marks: []
-		};
-
-		if (caughtItem) caught.heldItem = caughtItem;
-		if (p2Status && p2Status !== 'none') caught.status = p2Status;
-
-		state.caughtPokemon = caught;
-		setState(user.id, state);
-
-		const match = activeMatches.get(room.roomid);
-		if (match) {
-			const botUser = Users.get(match.botUserId);
-			if (botUser) {
-				setTimeout(() => {
-					if (room.battle && !room.battle.ended) (room.battle as any).forfeit(botUser);
-				}, 300);
-			}
-		}
-	} else {
-		let escapeMsg = `|c|~|Oh no! The Pokémon broke free!`;
-		if (shakes === 1) escapeMsg = `|c|~|Aww! It appeared to be caught!`;
-		if (shakes === 2) escapeMsg = `|c|~|Aargh! Almost had it!`;
-		room.add(escapeMsg).update();
-		void room.battle.stream.write(`>p1 pass`);
-	}
-},
+		},
 
 		qaction(target, room, user) {
 			const state = getState(user.id);

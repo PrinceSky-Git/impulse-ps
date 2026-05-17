@@ -533,7 +533,6 @@ export interface AIPokemonSet {
 	teraType: string;
 	moves: string[];
 	gender: string;
-	types: string[];
 }
 
 export function genAIPokemon(
@@ -614,7 +613,6 @@ export function genPokemon(
 	}
 
 	const allTypes = Dex.types.all().map(t => t.name);
-	const allTypeNames = Dex.types.all().filter(t => !t.isNonstandard).map(t => t.name);
 	const gennedMons: AIPokemonSet[] = [];
 	let depth = 0;
 
@@ -751,10 +749,6 @@ export function genPokemon(
 			break;
 		}
 
-		const speciesTypes = config?.randomizeTypes
-			? finalSpecie.types.map(() => allTypeNames[Math.floor(Math.random() * allTypeNames.length)])
-			: [...finalSpecie.types];
-
 		let ivs: any;
 		if (floor <= 10) {
 			ivs = {
@@ -785,7 +779,7 @@ export function genPokemon(
 		const item = forcedItem ?? pickRandomHeldItem(finalSpecie.name);
 		const teraType = forcedTeraType ?? (Math.floor(Math.random() * 20) === 0 ?
 			allTypes[Math.floor(Math.random() * allTypes.length)] :
-			speciesTypes[Math.floor(Math.random() * speciesTypes.length)]);
+			finalSpecie.types[Math.floor(Math.random() * finalSpecie.types.length)]);
 
 		let moves: string[] = [];
 		if (config?.randomizeMoves) {
@@ -809,7 +803,6 @@ export function genPokemon(
 			teraType,
 			moves,
 			gender: finalSpecie.gender || (Math.random() < 0.5 ? 'M' : 'F'),
-			types: speciesTypes,
 		});
 
 		depth++;
