@@ -11,7 +11,6 @@ export const randomConfig: ModeConfig = {
 	hasTrainers: true,
 	randomizeMoves: true,
 	randomizeAbilities: true,
-	randomizeTypes: true,
 	startingBiome: 'Town',
 	starterLevel: 5,
 	generation: 9,
