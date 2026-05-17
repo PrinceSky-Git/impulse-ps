@@ -702,6 +702,7 @@ export function genPokemon(
 				}
 			}
 
+			// single stage filter — biome pool only
 			if (config?.poolFilterFn) {
 				pool = config.poolFilterFn(pool, floor, !!isBossFloor);
 			} else if (floor < 100) {
@@ -720,26 +721,28 @@ export function genPokemon(
 
 			finalSpeciesId = weightedPick(pool);
 
+			// devolution to base form — biome pool only
 			let sp = Dex.species.get(finalSpeciesId);
 			while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
 				finalSpeciesId = sp.prevo ? sp.prevo : toID(sp.baseSpecies);
 				sp = Dex.species.get(finalSpeciesId);
 			}
+		}
 
-			while (true) {
-				const evo = getLevelUpEvo(finalSpeciesId);
-				if (!evo || chosenLevel < evo.evoLevel) break;
+		// evolution loop runs for both forced and biome pool mons
+		while (true) {
+			const evo = getLevelUpEvo(finalSpeciesId);
+			if (!evo || chosenLevel < evo.evoLevel) break;
 
-				if (isBossFloor) {
-					if (floor <= 20) break;
-					if (floor <= 40) {
-						const nextEvo = Dex.species.get(evo.evoTo);
-						if (!nextEvo.evos || nextEvo.evos.length === 0) break;
-					}
+			if (isBossFloor) {
+				if (floor <= 20) break;
+				if (floor <= 40) {
+					const nextEvo = Dex.species.get(evo.evoTo);
+					if (!nextEvo.evos || nextEvo.evos.length === 0) break;
 				}
-
-				finalSpeciesId = evo.evoTo;
 			}
+
+			finalSpeciesId = evo.evoTo;
 		}
 
 		const finalSpecie = Dex.species.get(finalSpeciesId);
