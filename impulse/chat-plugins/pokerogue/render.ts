@@ -947,8 +947,43 @@ function renderShopView(state: PokeRogueState): string {
 
 	buf += `<div class="pr-section-title">Shop</div>`;
 
+	// Get all items available for the current floor
 	const permItems = Object.entries(activeShop).filter(([, item]: [string, any]) => item.minFloor <= currentFloor);
-	buf += renderShopTable(permItems as any, bp, state.keyItems ?? [], 'pokerogue buy');
+
+	// 1. Dynamically compute categories
+	const categories = new Set<string>();
+	for (const [, item] of permItems) {
+		// Fallback to 'Misc' just in case an item in shopdb.json is missing the category field
+		categories.add((item as any).category || 'Misc'); 
+	}
+	const categoryList = Array.from(categories).sort();
+
+	if (categoryList.length === 0) {
+		return buf + `<div style="text-align:center;padding:16px;color:#888;">No items available yet.</div>`;
+	}
+
+	// 2. Determine the active category tab
+	let activeCategory = (state as any).shopCategory as string;
+	if (!activeCategory || !categoryList.includes(activeCategory)) {
+		activeCategory = categoryList[0];
+	}
+
+	// 3. Render the Tab Navigation (Pill-style buttons)
+	buf += `<div class="pr-sv-nav" style="margin-bottom: 12px; justify-content: center; gap: 6px; display: flex; flex-wrap: wrap;">`;
+	for (const cat of categoryList) {
+		const isBtnActive = cat === activeCategory;
+		buf += renderBtn(
+			isBtnActive ? null : `/pokerogue shoptab ${cat}`,
+			cat,
+			`pr-btn${isBtnActive ? ' primary' : ''}`,
+			'padding: 4px 12px; font-size: 11px; border-radius: 12px;'
+		);
+	}
+	buf += `</div>`;
+
+	// 4. Filter items for the active category and render the standard table
+	const tabItems = permItems.filter(([, item]) => ((item as any).category || 'Misc') === activeCategory);
+	buf += renderShopTable(tabItems as any, bp, state.keyItems ?? [], 'pokerogue buy');
 
 	return buf;
 }
