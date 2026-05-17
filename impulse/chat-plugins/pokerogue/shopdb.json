@@ -108,5 +108,59 @@
 		"desc": "Boosts total EXP gained by the entire party by 25%. Stacks up to 99 times.",
 		"cost": 15,
 		"minFloor": 1
-	}
+	},
+  "hpup": {
+    "name": "HP Up",
+    "icon": "HP Up",
+    "type": "vitamin",
+    "desc": "Raises the HP EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+    "cost": 5,
+    "minFloor": 1,
+    "evStat": "hp"
+  },
+  "protein": {
+    "name": "Protein",
+    "icon": "Protein",
+    "type": "vitamin",
+    "desc": "Raises the Attack EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+    "cost": 5,
+    "minFloor": 1,
+    "evStat": "atk"
+  },
+  "iron": {
+    "name": "Iron",
+    "icon": "Iron",
+    "type": "vitamin",
+    "desc": "Raises the Defense EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+    "cost": 5,
+    "minFloor": 1,
+    "evStat": "def"
+  },
+  "calcium": {
+    "name": "Calcium",
+    "icon": "Calcium",
+    "type": "vitamin",
+    "desc": "Raises the Sp. Atk EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+    "cost": 5,
+    "minFloor": 1,
+    "evStat": "spa"
+  },
+  "zinc": {
+    "name": "Zinc",
+    "icon": "Zinc",
+    "type": "vitamin",
+    "desc": "Raises the Sp. Def EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+    "cost": 5,
+    "minFloor": 1,
+    "evStat": "spd"
+  },
+  "carbos": {
+    "name": "Carbos",
+    "icon": "Carbos",
+    "type": "vitamin",
+    "desc": "Raises the Speed EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+    "cost": 5,
+    "minFloor": 1,
+    "evStat": "spe"
+  }
 }
