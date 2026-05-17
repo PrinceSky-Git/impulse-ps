@@ -779,9 +779,20 @@ function renderStatsView(state: PokeRogueState): string {
 	}
 
 	if (activeTab === 1) {
+		// Column headers
+		buf += `<div class="pr-sv-stat-row" style="font-size:9px;color:#888;margin-bottom:4px;font-weight:600">`;
+		buf += `<span class="pr-sv-stat-label"></span>`;
+		buf += `<span class="pr-sv-stat-base">Base</span>`;
+		buf += `<div class="pr-sv-bar-wrap"></div>`;
+		buf += `<span class="pr-sv-stat-val">Total</span>`;
+		buf += `<span class="pr-sv-stat-iv">IV</span>`;
+		buf += `<span class="pr-sv-stat-iv">EV</span>`;
+		buf += `</div>`;
+
 		for (const stat of statKeys) {
 			const base   = bs[stat] ?? 0;
 			const iv     = ivs[stat] ?? 31;
+			const ev     = evs[stat] ?? 0;
 			const actual = stats[stat] ?? 0;
 			const barPct = Math.min(100, Math.round((base / 255) * 100));
 			const isPlus  = naturePlus  === stat;
@@ -789,6 +800,7 @@ function renderStatsView(state: PokeRogueState): string {
 			const valStyle = isPlus
 				? 'color:#16a34a;font-weight:700'
 				: isMinus ? 'color:#dc2626;font-weight:700' : '';
+			const evStyle = ev > 0 ? 'color:#c4a8ff;font-weight:600' : 'color:#555';
 
 			buf += `<div class="pr-sv-stat-row">`;
 			buf += `<span class="pr-sv-stat-label">${statLabels[stat]}</span>`;
@@ -798,9 +810,12 @@ function renderStatsView(state: PokeRogueState): string {
 			buf += `</div>`;
 			buf += `<span class="pr-sv-stat-val"${valStyle ? ` style="${valStyle}"` : ''}>${actual}</span>`;
 			buf += `<span class="pr-sv-stat-iv" title="IV: ${iv}/31">${iv}</span>`;
+			buf += `<span class="pr-sv-stat-iv" style="${evStyle}" title="EV: ${ev}/252">${ev}</span>`;
 			buf += `</div>`;
 		}
-		buf += `<div class="pr-sv-bst">Total <b>${bst}</b></div>`;
+
+		const totalEvs = Object.values(evs as Record<string, number>).reduce((a, b) => a + b, 0);
+		buf += `<div class="pr-sv-bst">Base Total <b>${bst}</b> &nbsp;·&nbsp; EVs <b style="color:#c4a8ff">${totalEvs}</b><span style="color:#555">/508</span></div>`;
 	}
 
 	if (activeTab === 2) {
@@ -820,7 +835,6 @@ function renderStatsView(state: PokeRogueState): string {
 				buf += `<span class="pr-type" style="background:${mColor};color:#fff;font-size:9px">${move.type}</span>`;
 				buf += `</div>`;
 				buf += `<div class="pr-sv-move-meta">${catIcon} ${move.category} &nbsp;·&nbsp; Pwr: <b>${move.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${move.accuracy === true ? '—' : (move.accuracy || '—')}</b> &nbsp;·&nbsp; Pri: <b>${move.priority > 0 ? `+${move.priority}` : move.priority}</b> &nbsp;·&nbsp; PP: <b>${curPp}/${maxPp}</b></div>`;
-				//buf += `<div class="pr-sv-move-meta">${catIcon} ${move.category} &nbsp;·&nbsp; Pwr: <b>${move.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${move.accuracy === true ? '—' : (move.accuracy || '—')}</b> &nbsp;·&nbsp; PP: <b>${curPp}/${maxPp}</b></div>`;
 				if (moveDesc) buf += `<div class="pr-sv-subdesc" style="margin-top:3px">${Utils.escapeHTML(moveDesc)}</div>`;
 				buf += `</div>`;
 			} else {
