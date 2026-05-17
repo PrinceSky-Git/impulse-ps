@@ -956,8 +956,8 @@ function renderShopView(state: PokeRogueState): string {
 		// Fallback to 'Misc' just in case an item in shopdb.json is missing the category field
 		categories.add((item as any).category || 'Misc'); 
 	}
-	const categoryList = Array.from(categories).sort();
-
+	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
+	
 	if (categoryList.length === 0) {
 		return buf + `<div style="text-align:center;padding:16px;color:#888;">No items available yet.</div>`;
 	}
