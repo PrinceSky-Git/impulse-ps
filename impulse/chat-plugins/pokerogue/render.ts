@@ -387,7 +387,7 @@ function renderPendingSwap(state: PokeRogueState): string {
 	return buf;
 }
 
-function renderPendingMoves(state: PokeRogueState): string {
+/*function renderPendingMoves(state: PokeRogueState): string {
 	const pending = state.pendingMoves![0];
 	const mon = state.team[pending.pokemonIndex];
 	const sp = Dex.species.get(toID(mon.species));
@@ -403,6 +403,59 @@ function renderPendingMoves(state: PokeRogueState): string {
 	}
 
 	buf += renderBtn('/pokerogue resolve learnmove skip', 'Keep old moves', 'pr-btn', 'width:100%;padding:8px;margin-top:2px') + `</div>`;
+	return buf;
+}*/
+
+function renderPendingMoves(state: PokeRogueState): string {
+	const pending = state.pendingMoves![0];
+	const mon = state.team[pending.pokemonIndex];
+	const sp = Dex.species.get(toID(mon.species));
+	const newMove = Dex.moves.get(pending.move);
+	const newMoveColor = '#' + typeColor(newMove.type || 'Normal');
+	const newMoveCatIcon = newMove.category === 'Physical' ? '⚔' : newMove.category === 'Special' ? '◆' : '●';
+	const newMoveMaxPp = Math.floor((newMove.pp || 5) * (8 / 5));
+
+	let buf = `<h2 class="pr-choice-heading">New move!</h2>`;
+	buf += `<div style="text-align:center;margin-bottom:10px">${getSpriteWithBall(sp.id, 60, mon.ball)}`;
+	buf += `<div style="font-size:12px;color:#aaa;margin-top:6px"><b>${sp.name}</b> wants to learn:</div></div>`;
+
+	// New move card (highlighted)
+	buf += `<div class="pr-sv-move" style="border-left:3px solid ${newMoveColor};margin-bottom:14px;background:rgba(138,180,248,0.08)">`;
+	buf += `<div class="pr-sv-move-top">`;
+	buf += `<b class="pr-sv-move-name" style="color:#c4a8ff">${Utils.escapeHTML(newMove.name)}</b>`;
+	buf += `<span class="pr-type" style="background:${newMoveColor};color:#fff;font-size:9px">${newMove.type}</span>`;
+	buf += `</div>`;
+	buf += `<div class="pr-sv-move-meta">${newMoveCatIcon} ${newMove.category} &nbsp;·&nbsp; Pwr: <b>${newMove.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${newMove.accuracy === true ? '—' : (newMove.accuracy || '—')}</b> &nbsp;·&nbsp; Pri: <b>${newMove.priority > 0 ? `+${newMove.priority}` : newMove.priority}</b> &nbsp;·&nbsp; PP: <b>${newMoveMaxPp}</b></div>`;
+	if (newMove.shortDesc || newMove.desc) buf += `<div class="pr-sv-subdesc" style="margin-top:3px">${Utils.escapeHTML(newMove.shortDesc || newMove.desc)}</div>`;
+	buf += `</div>`;
+
+	buf += `<div style="font-size:11px;color:#aaa;margin-bottom:6px">Choose a move to forget:</div>`;
+
+	// Existing moves as rich cards with a Forget button
+	for (let i = 0; i < mon.moves.length; i++) {
+		const oldMove = Dex.moves.get(mon.moves[i]);
+		const maxPp = Math.floor((oldMove.pp || 5) * (8 / 5));
+		const curPp = mon.ppLeft?.[i] ?? maxPp;
+		const mColor = '#' + typeColor(oldMove.type || 'Normal');
+		const catIcon = oldMove.category === 'Physical' ? '⚔' : oldMove.category === 'Special' ? '◆' : '●';
+		const moveDesc = oldMove.shortDesc || oldMove.desc || '';
+
+		buf += `<div style="display:flex;align-items:stretch;gap:6px;margin-bottom:6px">`;
+		buf += `<div class="pr-sv-move" style="border-left:3px solid ${mColor};flex:1;margin-bottom:0">`;
+		buf += `<div class="pr-sv-move-top">`;
+		buf += `<b class="pr-sv-move-name">${Utils.escapeHTML(oldMove.name)}</b>`;
+		buf += `<span class="pr-type" style="background:${mColor};color:#fff;font-size:9px">${oldMove.type}</span>`;
+		buf += `</div>`;
+		buf += `<div class="pr-sv-move-meta">${catIcon} ${oldMove.category} &nbsp;·&nbsp; Pwr: <b>${oldMove.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${oldMove.accuracy === true ? '—' : (oldMove.accuracy || '—')}</b> &nbsp;·&nbsp; Pri: <b>${oldMove.priority > 0 ? `+${oldMove.priority}` : oldMove.priority}</b> &nbsp;·&nbsp; PP: <b>${curPp}/${maxPp}</b></div>`;
+		if (moveDesc) buf += `<div class="pr-sv-subdesc" style="margin-top:3px">${Utils.escapeHTML(moveDesc)}</div>`;
+		buf += `</div>`;
+		buf += `<div style="display:flex;align-items:center;flex-shrink:0">`;
+		buf += renderBtn(`/pokerogue resolve learnmove ${i + 1}`, 'Forget', 'pr-pick-btn');
+		buf += `</div>`;
+		buf += `</div>`;
+	}
+
+	buf += renderBtn('/pokerogue resolve learnmove skip', 'Keep old moves', 'pr-btn', 'width:100%;padding:8px;margin-top:2px');
 	return buf;
 }
 
