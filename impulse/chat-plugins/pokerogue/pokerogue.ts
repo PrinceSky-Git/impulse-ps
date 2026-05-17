@@ -603,7 +603,7 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return;
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
-			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats'].includes(v)) {
+			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load'].includes(v)) {
 				if (v === 'welcome' && state.gameOver) {
 					delete state.gameOver;
 					delete state.lastRunFloor;
@@ -640,6 +640,62 @@ export const commands: Chat.ChatCommands = {
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
+		},
+
+		saveslot(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot save right now.");
+			
+			const slot = parseInt(target.trim());
+			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
+
+			const userData = getUserData(user.id);
+			if (!userData.saveSlots) userData.saveSlots = {};
+
+			// Deep copy the state so the save slot is completely independent of the active run
+			userData.saveSlots[slot] = JSON.parse(JSON.stringify(state));
+			saveUserData(user.id);
+
+			state.notification = `Progress successfully saved to <b>Slot ${slot}</b>!`;
+			(state as any).view = 'main';
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		loadslot(target, room, user) {
+			const slot = parseInt(target.trim());
+			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
+
+			const userData = getUserData(user.id);
+			const slotData = userData.saveSlots?.[slot];
+
+			if (!slotData) return this.errorReply("That save slot is empty.");
+
+			// Check if they are abandoning an active battle
+			const currentState = getState(user.id);
+			if (currentState?.battleRoomId) {
+				const bRoom = Rooms.get(currentState.battleRoomId as RoomID);
+				if (bRoom && bRoom.battle && !bRoom.battle.ended) {
+					return this.errorReply("You cannot load a game while currently in a battle!");
+				}
+			}
+
+			// Deep copy the save data back into the active run
+			const restoredState = JSON.parse(JSON.stringify(slotData));
+			userData.runs[restoredState.gameMode] = restoredState;
+			userData.activeMode = restoredState.gameMode;
+			
+			saveUserData(user.id);
+
+			// Return to main menu with a notification
+			const newState = getState(user.id);
+			if (newState) {
+				newState.notification = `Game loaded successfully from <b>Slot ${slot}</b>!`;
+				(newState as any).view = 'main';
+				setState(user.id, newState);
+			}
+			
+			refreshGamePage(user);
 		},
 
 		statstab(target, room, user) {
