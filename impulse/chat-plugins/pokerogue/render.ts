@@ -1174,10 +1174,14 @@ function renderSlotsView(user: User, action: 'save' | 'load'): string {
 		}
 
 		if (action === 'save') {
-			buf += renderBtn(`/pokerogue saveslot ${i}`, 'Save Here', 'pr-btn primary', 'padding:8px 16px; font-weight:bold;');
+			buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+			buf += renderBtn(`/pokerogue saveslot ${i}`, 'Save Here', 'pr-btn primary', 'padding:5px 10px; font-size: 11px; font-weight:bold;');
+			buf += `</div>`;
 		} else {
 			if (slotData) {
-				buf += renderBtn(`/pokerogue loadslot ${i}`, 'Load', 'pr-btn primary', 'padding:8px 16px; font-weight:bold;');
+				buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+				buf += renderBtn(`/pokerogue loadslot ${i}`, 'Load', 'pr-btn primary', 'padding:5px 10px; font-size: 11px; font-weight:bold;');
+				buf += `</div>`;
 			} else {
 				buf += renderBtn(null, 'Empty', 'pr-btn', 'padding:8px 16px; opacity:0.5;', true);
 			}
