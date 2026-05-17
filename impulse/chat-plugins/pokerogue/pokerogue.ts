@@ -645,6 +645,12 @@ export const commands: Chat.ChatCommands = {
 		saveslot(target, room, user) {
 			const state = getState(user.id);
 			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot save right now.");
+
+			// Prevent save-scumming mid-decision
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				return this.errorReply("You must resolve your pending choices before saving.");
+			}
 			
 			const slot = parseInt(target.trim());
 			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
