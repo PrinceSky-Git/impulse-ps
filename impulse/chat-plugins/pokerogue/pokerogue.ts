@@ -605,6 +605,11 @@ export const commands: Chat.ChatCommands = {
 					delete (state as any).pendingStatsSlot;
 					delete (state as any).statsTab;
 				}
+				
+				if (v !== 'shop') {
+					delete (state as any).shopCategory;
+				}
+
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
@@ -630,6 +635,17 @@ export const commands: Chat.ChatCommands = {
 			(state as any).statsTab = current;
 			setState(user.id, state);
 			refreshGamePage(user);
+		},
+
+		shoptab(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.gameOver) return;
+			const category = target.trim();
+			if (category) {
+				(state as any).shopCategory = category;
+				setState(user.id, state);
+				refreshGamePage(user);
+			}
 		},
 
 		prebattle(target, room, user) {
