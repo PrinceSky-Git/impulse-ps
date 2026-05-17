@@ -742,8 +742,15 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `<span class="pr-sv-row-label">Item</span>`;
 		buf += `<div class="pr-sv-row-val">`;
 		if (heldItem) {
+			// Using Flexbox to put the name/desc on the left and the button on the right
+			buf += `<div style="display:flex; justify-content:space-between; align-items:center;">`;
+			buf += `<div>`;
 			buf += `${getShopItemIcon(heldItem.name, 14)} <b>${Utils.escapeHTML(heldItem.name)}</b>`;
 			if (heldItem.shortDesc) buf += `<div class="pr-sv-subdesc">${Utils.escapeHTML(heldItem.shortDesc)}</div>`;
+			buf += `</div>`;
+			// The new Take Item Button styled identically to Main Menu actions
+			buf += renderBtn(`/pokerogue unequip ${slot + 1}`, 'Take Item', 'pr-shop-buy', 'padding:5px 10px; font-size:11px; margin-left: 10px; white-space:nowrap;');
+			buf += `</div>`;
 		} else {
 			buf += `<span style="color:#aaa">None</span>`;
 		}
@@ -1005,8 +1012,26 @@ function renderBagView(state: PokeRogueState): string {
 	const possessedItems: { key: string, item: any, qty: number }[] = [];
 	
 	for (const [key, qty] of Object.entries(inv)) {
-		if (qty > 0 && activeShop[key]) {
-			possessedItems.push({ key, item: activeShop[key], qty });
+		if (qty > 0) {
+			if (activeShop[key]) {
+				possessedItems.push({ key, item: activeShop[key], qty });
+			} else {
+				// Fallback for standard Dex items (Held Items) not in the shop
+				const dexItem = Dex.items.get(key);
+				if (dexItem.exists) {
+					possessedItems.push({
+						key,
+						item: {
+							name: dexItem.name,
+							icon: dexItem.name, 
+							type: 'item',
+							category: 'Held Items',
+							desc: dexItem.shortDesc || dexItem.desc || 'A held item.',
+						},
+						qty
+					});
+				}
+			}
 		}
 	}
 	
@@ -1022,7 +1047,7 @@ function renderBagView(state: PokeRogueState): string {
 		}
 	}
 
-	// 2. Dynamically compute categories from possessed items
+	// 2. Dynamically compute categories
 	const categories = new Set<string>();
 	for (const { item } of possessedItems) {
 		categories.add(item.category || 'Misc');
@@ -1035,13 +1060,12 @@ function renderBagView(state: PokeRogueState): string {
 		return buf + `<div style="text-align:center;padding:16px;color:#888;">Your bag is empty.</div>`;
 	}
 
-	// 3. Determine active category
 	let activeCategory = (state as any).bagCategory as string;
 	if (!activeCategory || !categoryList.includes(activeCategory)) {
 		activeCategory = categoryList[0];
 	}
 
-	// 4. Render the Tab Navigation (Centered exactly like Main Menu)
+	// 3. Render the Tab Navigation
 	buf += `<div style="text-align:center;margin-bottom:12px">`;
 	for (let i = 0; i < categoryList.length; i++) {
 		const cat = categoryList[i];
@@ -1054,17 +1078,13 @@ function renderBagView(state: PokeRogueState): string {
 			'font-size:11px;padding:5px 10px'
 		);
 		
-		// Add non-breaking spaces between buttons, except after the last one
-		if (i < categoryList.length - 1) {
-			buf += `&nbsp;&nbsp;`;
-		}
+		if (i < categoryList.length - 1) buf += `&nbsp;&nbsp;`;
 	}
 	buf += `</div>`;
 
-	// 5. Filter items for active category
+	// 4. Filter items and render table
 	const tabItems = possessedItems.filter(({ item }) => (item.category || 'Misc') === activeCategory);
 
-	// 6. Render the Compact Table
 	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
 	buf += `<thead><tr style="border-bottom:1px solid rgba(150,150,150,0.2);">`;
 	buf += `<th colspan="2" style="padding:3px 4px; text-align:left;">Item</th>`;
@@ -1088,8 +1108,11 @@ function renderBagView(state: PokeRogueState): string {
 		
 		buf += `<td class="pr-td-action" style="padding:3px 4px; text-align:right;">`;
 		
+		// Render "Use" or "Give" button dynamically!
 		if (['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type) && canUse) {
 			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
+		} else if (item.type === 'item' && canUse) {
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Give', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
 		}
 		
 		buf += `</td></tr>`;
