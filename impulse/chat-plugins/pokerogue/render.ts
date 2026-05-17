@@ -1,11 +1,17 @@
 import { Utils } from '../../../lib';
-//import { Table } from '../../utils';
 import { nameColor } from '../customization/custom-color';
 import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS } from './items';
 import { savedData } from './state';
 import { expForLevel, getLevelUpMoves } from './pokemon';
+
+const TYPE_COLORS: Record<string, string> = {
+	Normal: '9fa19f', Fire: 'e62829', Water: '2980ef', Grass: '3fa129', Electric: 'fac000',
+	Ice: '3dcef3', Fighting: 'ff8000', Poison: '9141cb', Ground: '915121', Flying: '81b9ef',
+	Psychic: 'ef4179', Bug: '91a119', Rock: 'afa981', Ghost: '704170', Dragon: '5060e1',
+	Dark: '624d4e', Steel: '60a1b8', Fairy: 'ef70ef',
+};
 
 export function refreshGamePage(user: User): void {
 	for (const conn of user.connections) {
@@ -53,7 +59,7 @@ function getPokeballInfo(speciesId: string, ball?: string): { src: string, alt: 
 	if (ball === 'greatball') return { src: `${BASE}i3.png`, alt: 'Great Ball' };
 	if (ball === 'pokeball') return { src: `${BASE}i4.png`, alt: 'Poké Ball' };
 	const sp = Dex.species.get(toID(speciesId));
-	if (sp.tags?.some(tag => LEGENDARY_TAGS.has(tag))) return { src: `${BASE}i1.png`, alt: 'Master Ball' };
+	if (sp.tags?.some(tag => LEGARY_TAGS.has(tag))) return { src: `${BASE}i1.png`, alt: 'Master Ball' };
 	if (sp.exists) {
 		const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 		const bst = bs.hp + bs.atk + bs.def + bs.spa + bs.spd + bs.spe;
@@ -72,13 +78,7 @@ export function getSpriteWithBall(species: string, size = 80, ball?: string): st
 }
 
 function typeColor(type: string): string {
-	const colors: Record<string, string> = {
-		Normal: '9fa19f', Fire: 'e62829', Water: '2980ef', Grass: '3fa129', Electric: 'fac000',
-		Ice: '3dcef3', Fighting: 'ff8000', Poison: '9141cb', Ground: '915121', Flying: '81b9ef',
-		Psychic: 'ef4179', Bug: '91a119', Rock: 'afa981', Ghost: '704170', Dragon: '5060e1',
-		Dark: '624d4e', Steel: '60a1b8', Fairy: 'ef70ef',
-	};
-	return colors[type] ?? '68a090';
+	return TYPE_COLORS[type] ?? '68a090';
 }
 
 function getContrastColor(hex: string): string {
@@ -97,6 +97,26 @@ export function renderTypeBadge(types: string[], large = false): string {
 	}).join('&nbsp;');
 }
 
+function renderBaseStatsInline(bs: Record<string, number>): string {
+	let buf = '';
+	for (const [stat, val] of Object.entries(bs)) {
+		buf += `<span>${stat.toUpperCase()} <b>${val}</b></span>`;
+	}
+	return buf;
+}
+
+function renderProgressBarInner(pct: number, fillColorClass = 'pr-bar-fill', extraFillStyle = ''): string {
+	return `<div class="pr-bar-track"><div class="${fillColorClass}" style="width:${pct}%;${extraFillStyle}"></div></div>`;
+}
+
+function getExpPercentage(mon: PokemonEntry): number {
+	if (mon.level >= 9999) return 100;
+	const expType = mon.expType ?? 'Medium Fast';
+	const expAtCurrent = expForLevel(mon.level, expType);
+	const expAtNext = expForLevel(mon.level + 1, expType);
+	const range = expAtNext - expAtCurrent;
+	return range > 0 ? Math.max(0, Math.min(100, Math.round(((mon.exp - expAtCurrent) / range) * 100))) : 0;
+}
 
 function renderBtn(cmd: string | null, label: string, className = 'pr-btn', style = '', disabled = false): string {
 	let buf = `<button`;
@@ -163,14 +183,7 @@ function renderMoveList(moves: string[]): string {
 }
 
 function renderExpBar(mon: PokemonEntry): string {
-	let pct = 100;
-	if (mon.level < 9999) {
-		const expType = mon.expType ?? 'Medium Fast';
-		const expAtCurrent = expForLevel(mon.level, expType);
-		const expAtNext = expForLevel(mon.level + 1, expType);
-		const range = expAtNext - expAtCurrent;
-		pct = range > 0 ? Math.max(0, Math.min(100, Math.round(((mon.exp - expAtCurrent) / range) * 100))) : 0;
-	}
+	const pct = getExpPercentage(mon);
 	return `<div class="pr-expbar"><div class="pr-expbar-fill" style="width:${pct}%"></div></div>`;
 }
 
@@ -178,7 +191,7 @@ function renderHpBar(mon: PokemonEntry): string {
 	const hpPct = mon.currentHp ?? 100;
 	const color = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
 	return `<div class="pr-bar-row">` +
-		`<div class="pr-bar-track"><div class="pr-bar-fill" style="width:${hpPct}%;background:${color}"></div></div>` +
+		renderProgressBarInner(hpPct, 'pr-bar-fill', `background:${color}`) +
 		`<span class="pr-bar-label">${hpPct}% HP</span>` +
 		`</div>`;
 }
@@ -225,16 +238,13 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 	if (nature) buf += `<div class="pr-ct-ability" style="margin-top:4px">Nature: <b>${Utils.escapeHTML(nature)}</b></div>`;
 	if (ability) buf += `<div class="pr-ct-ability" style="margin-top:4px">Ability: <b>${Utils.escapeHTML(ability)}</b></div>`;
 
-	buf += `<div class="pr-ct-stats" style="margin-top:4px">`;
-	for (const [stat, val] of Object.entries(bs)) {
-		buf += `<span>${stat.toUpperCase()} <b>${val}</b></span>`;
-	}
-	buf += `</div>`;
+	buf += `<div class="pr-ct-stats" style="margin-top:4px">${renderBaseStatsInline(bs)}</div>`;
 
 	if (moves.length) buf += renderMoveList(moves);
 
+	const expPct = getExpPercentage(mon);
 	buf += `<div class="pr-bars" style="margin-top:6px">${renderHpBar(mon)}<div class="pr-bar-row">`;
-	buf += `<div class="pr-bar-track">${renderExpBar(mon).replace('pr-expbar', 'pr-bar-track').replace('<div class="pr-expbar"><', '<').replace('</div></div>', '</div>')}</div>`;
+	buf += renderProgressBarInner(expPct, 'pr-expbar-fill');
 	if (mon.level < 9999) {
 		buf += `<span class="pr-bar-label" style="min-width:36px;font-size:8px">${expNeeded} to Lv</span>`;
 	}
@@ -323,9 +333,8 @@ function renderPendingChoice(state: PokeRogueState): string {
 		const displayMoves = getLevelUpMoves(sp.id, 5, genNumber);
 
 		let flexHtml = `<div class="pr-ct-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${sp.name}${isLeg ? ` <span class="pr-legendary-badge">Legendary</span>` : ''}</div>`;
-		flexHtml += `<div class="pr-types">${renderTypeBadge(sp.types ?? [])}</div><div class="pr-ct-stats">`;
-		for (const [stat, val] of Object.entries(bs)) flexHtml += `<span>${stat.toUpperCase()} <b>${val}</b></span>`;
-		flexHtml += `</div><div class="pr-ct-ability" style="margin-top:2px">Nature: <b>${Utils.escapeHTML(nature)}</b></div>`;
+		flexHtml += `<div class="pr-types">${renderTypeBadge(sp.types ?? [])}</div><div class="pr-ct-stats">${renderBaseStatsInline(bs)}</div>`;
+		flexHtml += `<div class="pr-ct-ability" style="margin-top:2px">Nature: <b>${Utils.escapeHTML(nature)}</b></div>`;
 		flexHtml += `<div class="pr-ct-ability" style="margin-top:2px">Ability: <b>${Utils.escapeHTML(ability)}</b></div>`;
 		if (displayMoves.length) flexHtml += renderMoveList(displayMoves);
 
@@ -583,26 +592,22 @@ function renderStatsView(state: PokeRogueState): string {
 	const mon = state.team[slot];
 	const spData = Dex.species.get(toID(mon.species));
 
-	// ── Nature ────────────────────────────────────────────────────────────
 	const natureName = mon.nature || 'Hardy';
 	const nature = Dex.natures.get(natureName) ?? Dex.natures.get('Hardy')!;
 	const naturePlus  = nature?.plus  ?? null;
 	const natureMinus = nature?.minus ?? null;
 
-	// ── Ability ───────────────────────────────────────────────────────────
 	const abilities = spData.abilities as Record<string, string>;
 	const rawAbility  = mon.ability || abilities['0'] || '';
 	const abilityDex  = rawAbility ? Dex.abilities.get(rawAbility) : null;
 	const abilityName = abilityDex?.name || rawAbility || 'Unknown';
 	const abilityDesc = abilityDex?.shortDesc || abilityDex?.desc || '';
 
-	// ── Sprite ────────────────────────────────────────────────────────────
 	const spriteType  = mon.shiny ? 'gen5-shiny' : 'gen5';
 	const rawSpriteId = spData.spriteid || spData.id;
 	const spriteId    = SPRITE_ID_OVERRIDES[spData.id] || SPRITE_ID_OVERRIDES[rawSpriteId] || rawSpriteId;
 	const spriteUrl   = `https://play.pokemonshowdown.com/sprites/${spriteType}/${spriteId}.png`;
 
-	// ── Stat calculation ──────────────────────────────────────────────────
 	const bs  = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 	const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
 	const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
@@ -613,13 +618,6 @@ function renderStatsView(state: PokeRogueState): string {
 	const statColors: Record<string, string> = {
 		hp: '#FF5959', atk: '#F5AC78', def: '#FAE078',
 		spa: '#9DB7F5', spd: '#A7DB8D', spe: '#FA92B2',
-	};
-	const typeColors: Record<string, string> = {
-		Normal: '#9FA19F', Fire: '#E62829', Water: '#2980EF', Grass: '#3FA129',
-		Electric: '#FAC000', Ice: '#3DCEF3', Fighting: '#FF8000', Poison: '#9141CB',
-		Ground: '#915121', Flying: '#81B9EF', Psychic: '#EF4179', Bug: '#91A119',
-		Rock: '#AFA981', Ghost: '#704170', Dragon: '#5060E1', Dark: '#624D4E',
-		Steel: '#60A1B8', Fairy: '#EF70EF',
 	};
 
 	const stats: Record<string, number> = {};
@@ -636,7 +634,6 @@ function renderStatsView(state: PokeRogueState): string {
 	if (spData.id === 'shedinja') stats.hp = 1;
 	const bst = statKeys.reduce((s, k) => s + (bs[k] ?? 0), 0);
 
-	// ── Misc ──────────────────────────────────────────────────────────────
 	const hpPct    = mon.currentHp ?? 100;
 	const hpColor  = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
 	const dateStr  = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
@@ -649,7 +646,6 @@ function renderStatsView(state: PokeRogueState): string {
 		par: '#d4b800', slp: '#7a7a7a', frz: '#6aaed6',
 	};
 
-	// ── Shared header (sprite + name + HP, always visible) ────────────────
 	let buf = `<div class="pr-sv-wrap">`;
 
 	buf += `<div class="pr-sv-header">`;
@@ -670,11 +666,10 @@ function renderStatsView(state: PokeRogueState): string {
 		const sc = statusColors[mon.status] || '#888';
 		buf += `<span style="font-size:9px;font-weight:700;background:${sc};color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px">${mon.status.toUpperCase()}</span>`;
 	}
-	buf += `</div>`; // hp-row
-	buf += `</div>`; // info-col
-	buf += `</div>`; // header
+	buf += `</div>`;
+	buf += `</div>`;
+	buf += `</div>`;
 
-	// ── Tab nav bar ───────────────────────────────────────────────────────
 	const tabNames = ['Info', 'Stats', 'Moves'];
 	const prevTab = (activeTab - 1 + tabNames.length) % tabNames.length;
 	const nextTab = (activeTab + 1) % tabNames.length;
@@ -691,19 +686,15 @@ function renderStatsView(state: PokeRogueState): string {
 	buf += renderBtn(`/pokerogue statstab next`, '&#9654;', 'pr-sv-arrow');
 	buf += `</div>`;
 
-	// ── Tab panel ─────────────────────────────────────────────────────────
 	buf += `<div class="pr-sv-tab">`;
 
-	// ── TAB 0: Info ───────────────────────────────────────────────────────
 	if (activeTab === 0) {
-		// Ability
 		buf += `<div class="pr-sv-row">`;
 		buf += `<span class="pr-sv-row-label">Ability</span>`;
 		buf += `<div class="pr-sv-row-val"><b>${Utils.escapeHTML(abilityName)}</b>`;
 		if (abilityDesc) buf += `<div class="pr-sv-subdesc">${Utils.escapeHTML(abilityDesc)}</div>`;
 		buf += `</div></div>`;
 
-		// Nature
 		let natureSuffix = `<span class="pr-sv-subdesc"></span>`;
 		if (naturePlus && natureMinus) {
 			natureSuffix = ` <span style="color:#16a34a;font-size:10px;font-weight:600">▲${statLabels[naturePlus]}</span>`
@@ -714,7 +705,6 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `<div class="pr-sv-row-val"><b>${Utils.escapeHTML(natureName)}</b>${natureSuffix}</div>`;
 		buf += `</div>`;
 
-		// Held item
 		buf += `<div class="pr-sv-row">`;
 		buf += `<span class="pr-sv-row-label">Item</span>`;
 		buf += `<div class="pr-sv-row-val">`;
@@ -726,7 +716,6 @@ function renderStatsView(state: PokeRogueState): string {
 		}
 		buf += `</div></div>`;
 
-		// Tera type
 		if (mon.teraType) {
 			buf += `<div class="pr-sv-row">`;
 			buf += `<span class="pr-sv-row-label">Tera</span>`;
@@ -734,10 +723,8 @@ function renderStatsView(state: PokeRogueState): string {
 			buf += `</div>`;
 		}
 
-		// Divider
 		buf += `<div class="pr-sv-divider"></div>`;
 
-		// Trainer memo
 		const memo: [string, string][] = [
 			['OT', Utils.escapeHTML(mon.originalTrainer || 'Unknown')],
 			['ID No.', mon.otId || '??????'],
@@ -758,7 +745,6 @@ function renderStatsView(state: PokeRogueState): string {
 		}
 	}
 
-	// ── TAB 1: Stats ──────────────────────────────────────────────────────
 	if (activeTab === 1) {
 		for (const stat of statKeys) {
 			const base   = bs[stat] ?? 0;
@@ -784,7 +770,6 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `<div class="pr-sv-bst">Total <b>${bst}</b></div>`;
 	}
 
-	// ── TAB 2: Moves ─────────────────────────────────────────────────────
 	if (activeTab === 2) {
 		const moves = mon.moves || [];
 		for (let i = 0; i < 4; i++) {
@@ -794,7 +779,7 @@ function renderStatsView(state: PokeRogueState): string {
 				const curPp   = mon.ppLeft?.[i] ?? maxPp;
 				const ppPct   = Math.round((curPp / maxPp) * 100);
 				const ppColor = ppPct > 50 ? '#4caf50' : ppPct > 25 ? '#ff9800' : '#f44336';
-				const mColor  = typeColors[move.type] || '#9FA19F';
+				const mColor  = '#' + typeColor(move.type);
 				const catIcon = move.category === 'Physical' ? '⚔' : move.category === 'Special' ? '◆' : '●';
 
 				buf += `<div class="pr-sv-move" style="border-left:3px solid ${mColor}">`;
@@ -814,9 +799,8 @@ function renderStatsView(state: PokeRogueState): string {
 		}
 	}
 
-	buf += `</div>`; // pr-sv-tab panel
+	buf += `</div>`;
 
-	// ── Team slot dots ────────────────────────────────────────────────────
 	if (state.team.length > 1) {
 		buf += `<div class="pr-sv-team-nav">`;
 		for (let i = 0; i < state.team.length; i++) {
@@ -834,7 +818,7 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `</div>`;
 	}
 
-	buf += `</div>`; // pr-sv-wrap
+	buf += `</div>`;
 	return buf;
 }
 
