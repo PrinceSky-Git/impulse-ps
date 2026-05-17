@@ -387,25 +387,6 @@ function renderPendingSwap(state: PokeRogueState): string {
 	return buf;
 }
 
-/*function renderPendingMoves(state: PokeRogueState): string {
-	const pending = state.pendingMoves![0];
-	const mon = state.team[pending.pokemonIndex];
-	const sp = Dex.species.get(toID(mon.species));
-	const newMove = Dex.moves.get(pending.move);
-
-	let buf = `<h2 class="pr-choice-heading">New move!</h2><div style="text-align:center;margin-bottom:10px">${getSpriteWithBall(sp.id, 60, mon.ball)}`;
-	buf += `<div style="font-size:12px;color:#aaa;margin-top:6px"><b>${sp.name}</b> wants to learn <b style="color:#c4a8ff">${newMove.name}</b>.<br>Choose a move to forget:</div></div><div class="pr-choice-grid">`;
-
-	for (let i = 0; i < mon.moves.length; i++) {
-		const oldMove = Dex.moves.get(mon.moves[i]);
-		const flexHtml = `<div><div style="font-size:12px;font-weight:500">${oldMove.name}</div><div style="font-size:10px;color:#888">Type: ${oldMove.type} &nbsp;|&nbsp; BP: ${oldMove.basePower || '—'}</div></div>`;
-		buf += renderChoiceRow('', flexHtml, renderBtn(`/pokerogue resolve learnmove ${i + 1}`, 'Forget', 'pr-pick-btn'), 'justify-content:space-between');
-	}
-
-	buf += renderBtn('/pokerogue resolve learnmove skip', 'Keep old moves', 'pr-btn', 'width:100%;padding:8px;margin-top:2px') + `</div>`;
-	return buf;
-}*/
-
 function renderPendingMoves(state: PokeRogueState): string {
 	const pending = state.pendingMoves![0];
 	const mon = state.team[pending.pokemonIndex];
