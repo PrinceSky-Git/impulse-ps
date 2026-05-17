@@ -640,7 +640,7 @@ function renderStatsView(state: PokeRogueState): string {
 	buf += `<div class="pr-sv-header">`;
 	buf += `<div class="pr-sv-sprite-col">`;
 	buf += getSprite(mon.species, 80, mon.shiny, 'pr-sv-sprite');
-	buf += `</div>`;
+	buf += `</div>&nbsp;&nbsp;`;
 	buf += `<div class="pr-sv-info-col">`;
 	buf += `<div class="pr-sv-name">${Utils.escapeHTML(spData.name)} ${gender}${mon.shiny ? ' <span class="pr-sv-shiny">★</span>' : ''}&nbsp;&nbsp;`;
 	buf += `<span class="pr-level-badge">Lv.${mon.level}</span></div>`;
