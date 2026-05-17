@@ -94,8 +94,9 @@ export function renderTypeBadge(types: string[], large = false): string {
 		const color = typeColor(t);
 		const textColor = getContrastColor(color);
 		return `<span class="pr-type" style="background:#${color};color:#${textColor};font-size:${large ? '10px' : '9px'}">${t}</span>`;
-	}).join(' ');
+	}).join('&nbsp;&nbsp;');
 }
+
 
 function renderBtn(cmd: string | null, label: string, className = 'pr-btn', style = '', disabled = false): string {
 	let buf = `<button`;
