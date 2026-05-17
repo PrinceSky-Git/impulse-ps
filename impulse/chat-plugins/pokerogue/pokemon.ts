@@ -143,8 +143,11 @@ export function getMovesLearnedBetween(speciesId: string, oldLevel: number, newL
 	const baseLearnsetData = (sp.baseSpecies && toID(sp.baseSpecies) !== id) ?
 		Dex.species.getLearnsetData(toID(sp.baseSpecies)) :
 		null;
-	const learnset = learnsetData?.learnset ?? baseLearnsetData?.learnset;
-	if (!learnset) return [];
+	const learnset = {
+		...(baseLearnsetData?.learnset ?? {}),
+		...(learnsetData?.learnset ?? {}),
+	};
+	if (!Object.keys(learnset).length) return [];
 
 	const learned: string[] = [];
 	const regex = new RegExp(`^${genNumber}L(\\d+)$`);
