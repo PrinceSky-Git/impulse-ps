@@ -610,6 +610,10 @@ export const commands: Chat.ChatCommands = {
 					delete (state as any).shopCategory;
 				}
 
+				if (v !== 'bag') {
+					delete (state as any).bagCategory;
+				}
+
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
@@ -643,6 +647,17 @@ export const commands: Chat.ChatCommands = {
 			const category = target.trim();
 			if (category) {
 				(state as any).shopCategory = category;
+				setState(user.id, state);
+				refreshGamePage(user);
+			}
+		},
+
+		bagtab(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.gameOver) return;
+			const category = target.trim();
+			if (category) {
+				(state as any).bagCategory = category;
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
