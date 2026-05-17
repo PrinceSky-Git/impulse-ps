@@ -468,6 +468,14 @@ function clearStaleBattleRoom(state: PokeRogueState, userId: string): void {
 	}
 }
 
+const EV_STAT_LABELS: Record<string, string> = {
+	hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed',
+};
+
+const MAX_EV_TOTAL = 508;
+const MAX_EV_STAT = 252;
+const EV_VITAMIN_GAIN = 10;
+
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
 
@@ -629,7 +637,6 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
 
-			// clear stale battle room before checking if already in battle
 			clearStaleBattleRoom(state, user.id);
 
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
@@ -683,7 +690,6 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
 
-			// clear stale battle room before checking if already in battle
 			clearStaleBattleRoom(state, user.id);
 
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
@@ -938,59 +944,80 @@ export const commands: Chat.ChatCommands = {
 
 			case 'useshopitem': {
 				if (!state.purchasedItem) return this.errorReply("No item selected.");
+				const itemKey = state.purchasedItem;
+				const fromBag = !!(state as any).bagItem;
+
 				if (rest === 'skip') {
+					// Refund BP only if purchased from shop (not from bag)
 					delete state.purchasedItem;
 					delete state.pendingConsumableType;
-				} else {
-					const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-					const itemKey = state.purchasedItem;
-					const item = activeShop[itemKey];
-					if (!item) return this.errorReply("Unknown item.");
-
-					const slot = parseInt(rest) - 1;
-					if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
-					const mon = state.team[slot];
-					const hp = mon.currentHp ?? 100;
-
-					if (item.type === 'healHP') {
-						if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
-						if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
-						state.battlePoints -= item.cost;
-						const healAmt = item.healAmount || 20;
-						mon.currentHp = item.isMax ? 100 : Math.min(100, hp + healAmt);
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
-					} else if (item.type === 'cureStatus') {
-						if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
-						if (!mon.status) return this.errorReply("That Pokémon has no status condition.");
-						state.battlePoints -= item.cost;
-						const oldStatus = mon.status;
-						delete mon.status;
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
-					} else if (item.type === 'revive') {
-						if (hp > 0) return this.errorReply("That Pokémon hasn't fainted.");
-						state.battlePoints -= item.cost;
-						const revAmt = item.reviveAmount || 50;
-						mon.currentHp = (item.isMax || mon.species === 'shedinja') ? 100 : revAmt;
-						delete mon.status;
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
-					} else if (item.type === 'vitamin') {
-						if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
-						const evStat = (item as any).evStat as keyof typeof mon.evs;
-						if (!evStat) return this.errorReply("Invalid vitamin.");
-						if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-						const totalEvs = Object.values(mon.evs).reduce((a, b) => a + b, 0);
-						if (totalEvs >= 508) return this.errorReply("This Pokémon's EVs are maxed out (508 total).");
-						if (mon.evs[evStat] >= 252) return this.errorReply(`This Pokémon's ${evStat.toUpperCase()} EVs are already at max (252).`);
-						state.battlePoints -= item.cost;
-						const gain = Math.min(10, 252 - mon.evs[evStat], 508 - totalEvs);
-						mon.evs[evStat] += gain;
-						const statLabel: Record<string, string> = { hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed' };
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${statLabel[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/252)`;
-					}
-
-					delete state.purchasedItem;
-					delete state.pendingConsumableType;
+					delete (state as any).bagItem;
+					break;
 				}
+
+				const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+				const item = activeShop[itemKey];
+				if (!item) return this.errorReply("Unknown item.");
+
+				const slot = parseInt(rest) - 1;
+				if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
+				const mon = state.team[slot];
+				const hp = mon.currentHp ?? 100;
+
+				if (item.type === 'healHP') {
+					if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
+					if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
+					if (fromBag) {
+						state.inventory![itemKey] = (state.inventory![itemKey] || 1) - 1;
+					} else {
+						state.battlePoints -= item.cost;
+					}
+					const healAmt = item.healAmount || 20;
+					mon.currentHp = item.isMax ? 100 : Math.min(100, hp + healAmt);
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
+				} else if (item.type === 'cureStatus') {
+					if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
+					if (!mon.status) return this.errorReply("That Pokémon has no status condition.");
+					if (fromBag) {
+						state.inventory![itemKey] = (state.inventory![itemKey] || 1) - 1;
+					} else {
+						state.battlePoints -= item.cost;
+					}
+					const oldStatus = mon.status;
+					delete mon.status;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
+				} else if (item.type === 'revive') {
+					if (hp > 0) return this.errorReply("That Pokémon hasn't fainted.");
+					if (fromBag) {
+						state.inventory![itemKey] = (state.inventory![itemKey] || 1) - 1;
+					} else {
+						state.battlePoints -= item.cost;
+					}
+					const revAmt = item.reviveAmount || 50;
+					mon.currentHp = (item.isMax || mon.species === 'shedinja') ? 100 : revAmt;
+					delete mon.status;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
+				} else if (item.type === 'vitamin') {
+					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+					const evStat = (item as any).evStat as keyof NonNullable<PokemonEntry['evs']>;
+					if (!evStat) return this.errorReply("Invalid vitamin.");
+					if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+					const totalEvs = Object.values(mon.evs).reduce((a, b) => a + b, 0);
+					if (totalEvs >= MAX_EV_TOTAL) return this.errorReply("This Pokémon's EVs are maxed out (508 total).");
+					if (mon.evs[evStat] >= MAX_EV_STAT) return this.errorReply(`This Pokémon's ${EV_STAT_LABELS[evStat] ?? evStat} EVs are already at max (252).`);
+					const gain = Math.min(EV_VITAMIN_GAIN, MAX_EV_STAT - mon.evs[evStat], MAX_EV_TOTAL - totalEvs);
+					if (fromBag) {
+						state.inventory![itemKey] = (state.inventory![itemKey] || 1) - 1;
+					} else {
+						state.battlePoints -= item.cost;
+					}
+					mon.evs[evStat] += gain;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
+				}
+
+				delete state.purchasedItem;
+				delete state.pendingConsumableType;
+				delete (state as any).bagItem;
 				break;
 			}
 
@@ -1172,13 +1199,52 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			if (['healHP', 'revive', 'cureStatus', 'vitamin'].includes(item.type)) {
+				// Vitamins bought from shop go to inventory
+				if (item.type === 'vitamin') {
+					state.battlePoints -= item.cost;
+					state.inventory = state.inventory || {};
+					state.inventory[key] = (state.inventory[key] || 0) + 1;
+					state.notification = `Bought 1x <b>${item.name}</b>! Use it from your Bag.`;
+					setState(user.id, state);
+					refreshGamePage(user);
+					return;
+				}
 				state.purchasedItem = key;
-				state.pendingConsumableType = item.type;
+				state.pendingConsumableType = item.type as any;
 				setState(user.id, state);
 				refreshGamePage(user);
 				return;
 			}
 
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		usebagitem(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.gameOver) return this.errorReply("No active run.");
+			if (state.battleRoomId) return this.errorReply("Can't use items during a battle.");
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				return this.errorReply("Resolve pending choices first.");
+			}
+
+			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+			const key = toID(target);
+			const item = activeShop[key];
+			if (!item) return this.errorReply("Unknown item.");
+
+			state.inventory = state.inventory || {};
+			if ((state.inventory[key] || 0) <= 0) return this.errorReply(`You don't have any ${item.name} left!`);
+
+			if (!['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type)) {
+				return this.errorReply("This item cannot be used from the bag.");
+			}
+
+			state.purchasedItem = key;
+			state.pendingConsumableType = item.type as any;
+			(state as any).bagItem = true;
+			(state as any).view = 'bag';
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
