@@ -642,7 +642,6 @@ export function genPokemon(
 		let forcedTeraType: string | undefined = undefined;
 		let forcedItem: string | undefined = undefined;
 
-		// --- PATH A: HARDCODED BOSSES & TRAINERS ---
 		if (forcedSpeciesPool && forcedSpeciesPool.length > depth) {
 			const forced = forcedSpeciesPool[depth];
 			if (typeof forced === 'string') {
@@ -657,7 +656,6 @@ export function genPokemon(
 				if (forced.item) forcedItem = forced.item;
 			}
 		} else {
-			// --- PATH B: RANDOM BIOME POOL ENCOUNTERS ---
 			const rarity = rollRarity(floor, !!isBossFloor, !!starter, luck);
 			let pool: BiomeEntry[] = [];
 
@@ -717,9 +715,6 @@ export function genPokemon(
 
 			finalSpeciesId = weightedPick(pool);
 
-			// CHANGED: Removed the !isBossFloor restriction here.
-			// This forces randomly rolled biome bosses to devolve to their base form
-			// so they can be properly verified by your floor evolution limits right below.
 			let sp = Dex.species.get(finalSpeciesId);
 			while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
 				finalSpeciesId = sp.prevo ? sp.prevo : toID(sp.baseSpecies);
@@ -727,9 +722,6 @@ export function genPokemon(
 			}
 		}
 
-		// --- FORWARD EVOLUTION PIPELINE ---
-		// Random biome items will scale naturally up to your floor gate caps here.
-		// Hardcoded fully-evolved targets will instantly exit this loop safely because they have no further evolutions.
 		while (true) {
 			const evo = getLevelUpEvo(finalSpeciesId);
 			if (!evo || chosenLevel < evo.evoLevel) break;
