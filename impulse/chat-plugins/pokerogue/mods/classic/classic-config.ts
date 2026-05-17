@@ -28,7 +28,6 @@ export const classicConfig: ModeConfig = {
 	hasTrainers: true,
 	randomizeMoves: false,
 	randomizeAbilities: false,
-	randomizeTypes: false,
 
 	economy: {
 		startingBP: 20,
