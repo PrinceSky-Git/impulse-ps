@@ -13,6 +13,13 @@ const TYPE_COLORS: Record<string, string> = {
 	Dark: '624d4e', Steel: '60a1b8', Fairy: 'ef70ef',
 };
 
+const BALL_MAP: Record<string, { srcSuffix: string; alt: string }> = {
+	masterball: { srcSuffix: 'i1.png', alt: 'Master Ball' },
+	ultraball: { srcSuffix: 'i2.png', alt: 'Ultra Ball' },
+	greatball: { srcSuffix: 'i3.png', alt: 'Great Ball' },
+	pokeball: { srcSuffix: 'i4.png', alt: 'Poké Ball' },
+};
+
 export function refreshGamePage(user: User): void {
 	for (const conn of user.connections) {
 		if (conn.openPages?.has('pokerogue')) {
@@ -56,10 +63,9 @@ function getShopItemIcon(icon: string, size = 20): string {
 
 function getPokeballInfo(speciesId: string, ball?: string): { src: string, alt: string } {
 	const BASE = 'https://raw.githubusercontent.com/smogon/sprites/master/src/minisprites/items/';
-	if (ball === 'masterball') return { src: `${BASE}i1.png`, alt: 'Master Ball' };
-	if (ball === 'ultraball') return { src: `${BASE}i2.png`, alt: 'Ultra Ball' };
-	if (ball === 'greatball') return { src: `${BASE}i3.png`, alt: 'Great Ball' };
-	if (ball === 'pokeball') return { src: `${BASE}i4.png`, alt: 'Poké Ball' };
+	if (ball && BALL_MAP[ball]) {
+		return { src: BASE + BALL_MAP[ball].srcSuffix, alt: BALL_MAP[ball].alt };
+	}
 	const sp = Dex.species.get(toID(speciesId));
 	if (sp.exists) {
 		const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
@@ -131,6 +137,33 @@ function renderBtn(cmd: string | null, label: string, className = 'pr-btn', styl
 
 function renderChoiceRow(spriteHtml: string, flexHtml: string, actionBtnHtml: string, extraStyle = ''): string {
 	return `<div class="pr-choice-row" ${extraStyle ? `style="${extraStyle}"` : ''}>${spriteHtml}<div style="flex:1;min-width:0">${flexHtml}</div>${actionBtnHtml}</div>`;
+}
+
+interface DialogConfig {
+	title: string;
+	spriteUrl?: string;
+	dialog?: string;
+	borderColor?: string;
+	actionsHtml: string;
+}
+
+function renderCharacterDialogView(config: DialogConfig): string {
+	const border = config.borderColor || '#8ab4f8';
+	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
+	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">${Utils.escapeHTML(config.title)}</div>`;
+	if (config.spriteUrl) {
+		buf += `<div style="margin-bottom: 8px;">`;
+		buf += `<img src="${Utils.escapeHTML(config.spriteUrl)}" alt="${Utils.escapeHTML(config.title)}" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
+		buf += `</div>`;
+	}
+	if (config.dialog) {
+		buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 300px; margin: 0 auto 16px auto; border-left: 4px solid ${border}; font-size: 12px; line-height: 1.4; display: block;">`;
+		buf += `"${Utils.escapeHTML(config.dialog)}"`;
+		buf += `</div>`;
+	}
+	buf += `<div>${config.actionsHtml}</div>`;
+	buf += `</div>`;
+	return buf;
 }
 
 function renderNotification(state: PokeRogueState): string {
@@ -489,29 +522,12 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 	const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 	const trainerData = modeData.trainers?.[lookupKey]?.[trainerName];
 
-	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
-
-	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">${Utils.escapeHTML(trainerName)}</div>`;
-
-	if (trainerData?.spriteUrl) {
-		buf += `<div style="margin-bottom: 8px;">`;
-		buf += `<img src="${Utils.escapeHTML(trainerData.spriteUrl)}" alt="${Utils.escapeHTML(trainerName)}" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
-		buf += `</div>`;
-	}
-
-	if (trainerData?.dialog) {
-		buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 300px; margin: 0 auto 16px auto; border-left: 4px solid #8ab4f8; font-size: 12px; line-height: 1.4; display: block;">`;
-		buf += `"${Utils.escapeHTML(trainerData.dialog)}"`;
-		buf += `</div>`;
-	}
-
-	buf += `<div>`;
-	buf += renderBtn('/pokerogue battle', 'Start Battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
-	buf += `</div>`;
-
-	buf += `</div>`;
-
-	return buf;
+	return renderCharacterDialogView({
+		title: trainerName,
+		spriteUrl: trainerData?.spriteUrl,
+		dialog: trainerData?.dialog,
+		actionsHtml: renderBtn('/pokerogue battle', 'Start Battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px')
+	});
 }
 
 function renderWelcomeView(): string {
@@ -522,29 +538,18 @@ function renderWelcomeView(): string {
 		gen1: 'Gen 1',
 	};
 
-	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
-
-	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">Drunk Professor Oak</div>`;
-
-	buf += `<div style="margin-bottom: 8px;">`;
-	buf += `<img src="https://play.pokemonshowdown.com/sprites/trainers/oak.png" alt="Professor Oak" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
-	buf += `</div>`;
-
-	buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 300px; margin: 0 auto 16px auto; border-left: 4px solid #8ab4f8; font-size: 12px; line-height: 1.4; display: block;">`;
-	buf += `"PokèRogue is currently in Beta. Features may change, bugs may occur, and balancing updates will happen frequently. Your feedback helps shape the future of the game!"`;
-	buf += `</div>`;
-
-	buf += `<div style="text-align:center;margin-bottom:8px">`;
+	let actionsHtml = '';
 	for (const mode of Object.keys(MODE_CONFIGS)) {
 		const label = MODE_LABELS[mode] || mode.charAt(0).toUpperCase() + mode.slice(1);
-		buf += renderBtn(`/pokerogue newgame ${mode}`, label, 'pr-btn primary', 'font-size:11px;padding:5px 10px');
-		buf += `&nbsp;&nbsp;`;
+		actionsHtml += renderBtn(`/pokerogue newgame ${mode}`, label, 'pr-btn primary', 'font-size:11px;padding:5px 10px') + `&nbsp;&nbsp;`;
 	}
-	buf += `</div>`;
 
-	buf += `</div>`;
-
-	return buf;
+	return renderCharacterDialogView({
+		title: 'Drunk Professor Oak',
+		spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/oak.png',
+		dialog: 'PokèRogue is currently in Beta. Features may change, bugs may occur, and balancing updates will happen frequently. Your feedback helps shape the future of the game!',
+		actionsHtml
+	});
 }
 
 function renderVictoryView(state: PokeRogueState): string {
@@ -555,25 +560,13 @@ function renderVictoryView(state: PokeRogueState): string {
     const spriteUrl = vc.spriteUrl ?? 'https://play.pokemonshowdown.com/sprites/trainers/oak.png';
     const dialog = vc.dialog ?? `Congratulations! You've completed the run and cleared Floor ${state.lastRunFloor ?? config.maxFloor}! Your journey was truly remarkable. The Pokémon world thanks you!`;
 
-    let buf = `<div style="text-align:center; padding: 40px 10px;">`;
-
-    buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">${Utils.escapeHTML(name)}</div>`;
-
-    buf += `<div style="margin-bottom: 8px;">`;
-    buf += `<img src="${Utils.escapeHTML(spriteUrl)}" alt="${Utils.escapeHTML(name)}" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
-    buf += `</div>`;
-
-    buf += `<div style="background: rgba(0,0,0,0.3); padding: 10px 16px; border-radius: 8px; font-style: italic; max-width: 300px; margin: 0 auto 16px auto; border-left: 4px solid #fac000; font-size: 12px; line-height: 1.4; display: block;">`;
-    buf += `"${Utils.escapeHTML(dialog)}"`;
-    buf += `</div>`;
-
-    buf += `<div style="text-align:center;margin-bottom:8px">`;
-    buf += renderBtn('/pokerogue view welcome', 'Continue', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
-    buf += `</div>`;
-
-    buf += `</div>`;
-
-    return buf;
+	return renderCharacterDialogView({
+		title: name,
+		spriteUrl,
+		dialog,
+		borderColor: '#fac000',
+		actionsHtml: renderBtn('/pokerogue view welcome', 'Continue', 'pr-btn primary', 'font-size:11px;padding:5px 10px')
+	});
 }
 
 function renderStatsView(state: PokeRogueState): string {
