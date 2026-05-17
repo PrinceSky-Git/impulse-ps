@@ -18,6 +18,7 @@ export interface ShopItem {
 	name: string;
 	icon: string;
 	type: ItemType;
+	category: string;
 	desc: string;
 	cost: number;
 	minFloor: number;
