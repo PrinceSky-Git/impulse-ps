@@ -3,7 +3,7 @@ import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS } from './items';
-import { savedData } from './state';
+import { globalStats, getUserData } from './state';
 import { expForLevel, getLevelUpMoves } from './pokemon';
 
 const TYPE_COLORS: Record<string, string> = {
@@ -182,13 +182,19 @@ function renderStatBar(state: PokeRogueState, cols2 = false): string {
 }
 
 function renderHeader(view: string, hasGameOver: boolean): string {
-	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome', victory: 'Victory', stats: 'Pokémon Summary' };
+	const titles: Record<string, string> = { 
+		main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', 
+		resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome', 
+		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game' 
+	};
+	
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
 
 	if (view === 'main' && !hasGameOver) {
 		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+		buf += `${renderBtn('/pokerogue view save', 'Save', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
+		buf += `${renderBtn('/pokerogue view load', 'Load', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
 		buf += `${renderBtn('/pokerogue view top', 'Ladder', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
-		buf += `&nbsp;&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome' && !hasGameOver) {
@@ -400,7 +406,6 @@ function renderPendingMoves(state: PokeRogueState): string {
 	buf += `<div style="text-align:center;margin-bottom:10px">${getSpriteWithBall(sp.id, 60, mon.ball)}`;
 	buf += `<div style="font-size:12px;color:#aaa;margin-top:6px"><b>${sp.name}</b> wants to learn:</div></div>`;
 
-	// New move card (highlighted)
 	buf += `<div class="pr-sv-move" style="border-left:3px solid ${newMoveColor};margin-bottom:14px;background:rgba(138,180,248,0.08)">`;
 	buf += `<div class="pr-sv-move-top">`;
 	buf += `<b class="pr-sv-move-name" style="color:#c4a8ff">${Utils.escapeHTML(newMove.name)}</b>`;
@@ -412,7 +417,6 @@ function renderPendingMoves(state: PokeRogueState): string {
 
 	buf += `<div style="font-size:11px;color:#aaa;margin-bottom:6px">Choose a move to forget:</div>`;
 
-	// Existing moves as rich cards with a Forget button
 	for (let i = 0; i < mon.moves.length; i++) {
 		const oldMove = Dex.moves.get(mon.moves[i]);
 		const maxPp = Math.floor((oldMove.pp || 5) * (8 / 5));
@@ -620,6 +624,171 @@ function renderVictoryView(state: PokeRogueState): string {
 	});
 }
 
+function renderShopView(state: PokeRogueState): string {
+	const bp = state.battlePoints ?? 0;
+	const currentFloor = state.floor ?? 1;
+
+	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+
+	let buf = renderStatBar(state, true);
+
+	buf += `<div class="pr-section-title">Shop</div>`;
+
+	const permItems = Object.entries(activeShop).filter(([, item]: [string, any]) => item.minFloor <= currentFloor);
+
+	const categories = new Set<string>();
+	for (const [, item] of permItems) {
+		categories.add((item as any).category || 'Misc'); 
+	}
+	
+	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
+
+	if (categoryList.length === 0) {
+		return buf + `<div style="text-align:center;padding:16px;color:#888;">No items available yet.</div>`;
+	}
+
+	let activeCategory = (state as any).shopCategory as string;
+	if (!activeCategory || !categoryList.includes(activeCategory)) {
+		activeCategory = categoryList[0];
+	}
+
+	buf += `<div style="text-align:center;margin-bottom:12px">`;
+	for (let i = 0; i < categoryList.length; i++) {
+		const cat = categoryList[i];
+		const isBtnActive = cat === activeCategory;
+		
+		buf += renderBtn(
+			isBtnActive ? null : `/pokerogue shoptab ${cat}`,
+			cat,
+			`pr-btn${isBtnActive ? ' primary' : ''}`,
+			'font-size:11px;padding:5px 10px'
+		);
+		
+		if (i < categoryList.length - 1) {
+			buf += `&nbsp;&nbsp;`;
+		}
+	}
+	buf += `</div>`;
+
+	const tabItems = permItems.filter(([, item]) => ((item as any).category || 'Misc') === activeCategory);
+	buf += renderShopTable(tabItems as any, bp, state.keyItems ?? [], 'pokerogue buy');
+
+	return buf;
+}
+
+function renderBagView(state: PokeRogueState): string {
+	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+	const inv = state.inventory || {};
+	const keyItems = state.keyItems || [];
+
+	const possessedItems: { key: string, item: any, qty: number }[] = [];
+	
+	for (const [key, qty] of Object.entries(inv)) {
+		if (qty > 0) {
+			if (activeShop[key]) {
+				possessedItems.push({ key, item: activeShop[key], qty });
+			} else {
+				const dexItem = Dex.items.get(key);
+				if (dexItem.exists) {
+					possessedItems.push({
+						key,
+						item: {
+							name: dexItem.name,
+							icon: dexItem.name, 
+							type: 'item',
+							category: 'Held Items',
+							desc: dexItem.shortDesc || dexItem.desc || 'A held item.',
+						},
+						qty
+					});
+				}
+			}
+		}
+	}
+	
+	const keyItemCounts = new Map<string, number>();
+	for (const ki of keyItems) {
+		keyItemCounts.set(ki, (keyItemCounts.get(ki) || 0) + 1);
+	}
+	
+	for (const [name, qty] of keyItemCounts.entries()) {
+		const entry = Object.entries(activeShop).find(([, i]) => i.name === name);
+		if (entry) {
+			possessedItems.push({ key: entry[0], item: entry[1], qty });
+		}
+	}
+
+	const categories = new Set<string>();
+	for (const { item } of possessedItems) {
+		categories.add(item.category || 'Misc');
+	}
+	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
+
+	let buf = `<div class="pr-section-title">Bag</div>`;
+
+	if (categoryList.length === 0) {
+		return buf + `<div style="text-align:center;padding:16px;color:#888;">Your bag is empty.</div>`;
+	}
+
+	let activeCategory = (state as any).bagCategory as string;
+	if (!activeCategory || !categoryList.includes(activeCategory)) {
+		activeCategory = categoryList[0];
+	}
+
+	buf += `<div style="text-align:center;margin-bottom:12px">`;
+	for (let i = 0; i < categoryList.length; i++) {
+		const cat = categoryList[i];
+		const isBtnActive = cat === activeCategory;
+		
+		buf += renderBtn(
+			isBtnActive ? null : `/pokerogue bagtab ${cat}`,
+			cat,
+			`pr-btn${isBtnActive ? ' primary' : ''}`,
+			'font-size:11px;padding:5px 10px'
+		);
+		
+		if (i < categoryList.length - 1) buf += `&nbsp;&nbsp;`;
+	}
+	buf += `</div>`;
+
+	const tabItems = possessedItems.filter(({ item }) => (item.category || 'Misc') === activeCategory);
+
+	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
+	buf += `<thead><tr style="border-bottom:1px solid rgba(150,150,150,0.2);">`;
+	buf += `<th colspan="2" style="padding:3px 4px; text-align:left;">Item</th>`;
+	buf += `<th style="padding:3px 4px; text-align:left;">Description</th>`;
+	buf += `<th style="text-align:right; padding:3px 4px;">Qty</th>`;
+	buf += `<th style="text-align:right; padding:3px 4px;">Action</th>`;
+	buf += `</tr></thead><tbody>`;
+
+	const canUse = !state.battleRoomId && !state.pendingChoice?.length && !state.pendingMoves?.length &&
+		!state.pendingSwap && !state.moveToLearn && !state.pendingItemName &&
+		!state.itemOptions?.length && !state.pendingConsumableType;
+
+	for (const { key, item, qty } of tabItems) {
+		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
+		buf += `<td class="pr-td-icon" style="padding:3px 4px; width:18px;">${getShopItemIcon(item.icon, 16)}</td>`;
+		buf += `<td class="pr-td-name" style="padding:3px 4px; font-weight:500; white-space:nowrap;">${Utils.escapeHTML(item.name)}</td>`;
+		buf += `<td class="pr-td-desc" style="padding:3px 4px; font-size:10px; color:#aaa;">${Utils.escapeHTML(item.desc)}</td>`;
+		
+		const qtyColor = item.type === 'key' ? '#8ab4f8' : 'inherit';
+		buf += `<td class="pr-td-qty" style="padding:3px 4px; text-align:right; font-weight:bold; font-size:13px; color:${qtyColor};">x${qty}</td>`;
+		
+		buf += `<td class="pr-td-action" style="padding:3px 4px; text-align:right;">`;
+		
+		if (['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type) && canUse) {
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
+		} else if (item.type === 'item' && canUse) {
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Give', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
+		}
+		
+		buf += `</td></tr>`;
+	}
+
+	buf += `</tbody></table></div>`;
+	return buf;
+}
+
 function renderStatsView(state: PokeRogueState): string {
 	const slot = (state as any).pendingStatsSlot;
 	const activeTab: number = (state as any).statsTab ?? 0;
@@ -742,13 +911,11 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `<span class="pr-sv-row-label">Item</span>`;
 		buf += `<div class="pr-sv-row-val">`;
 		if (heldItem) {
-			// Using Flexbox to put the name/desc on the left and the button on the right
 			buf += `<div style="display:flex; justify-content:space-between; align-items:center;">`;
 			buf += `<div>`;
 			buf += `${getShopItemIcon(heldItem.name, 14)} <b>${Utils.escapeHTML(heldItem.name)}</b>`;
 			if (heldItem.shortDesc) buf += `<div class="pr-sv-subdesc">${Utils.escapeHTML(heldItem.shortDesc)}</div>`;
 			buf += `</div>`;
-			// The new Take Item Button styled identically to Main Menu actions
 			buf += renderBtn(`/pokerogue unequip ${slot + 1}`, 'Take Item', 'pr-shop-buy', 'padding:5px 10px; font-size:11px; margin-left: 10px; white-space:nowrap;');
 			buf += `</div>`;
 		} else {
@@ -786,7 +953,6 @@ function renderStatsView(state: PokeRogueState): string {
 	}
 
 	if (activeTab === 1) {
-		// Column headers
 		buf += `<div class="pr-sv-stat-row" style="font-size:9px;color:#888;margin-bottom:4px;font-weight:600">`;
 		buf += `<span class="pr-sv-stat-label"></span>`;
 		buf += `<span class="pr-sv-stat-base">Base</span>`;
@@ -944,186 +1110,8 @@ function renderMainView(state: PokeRogueState, user: User): string {
 	return buf;
 }
 
-function renderShopView(state: PokeRogueState): string {
-	const bp = state.battlePoints ?? 0;
-	const currentFloor = state.floor ?? 1;
-
-	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-
-	let buf = renderStatBar(state, true);
-
-	buf += `<div class="pr-section-title">Shop</div>`;
-
-	// Get all items available for the current floor
-	const permItems = Object.entries(activeShop).filter(([, item]: [string, any]) => item.minFloor <= currentFloor);
-
-	// 1. Dynamically compute categories
-	const categories = new Set<string>();
-	for (const [, item] of permItems) {
-		categories.add((item as any).category || 'Misc'); 
-	}
-	
-	// Sort categories alphabetically A to Z
-	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
-
-	if (categoryList.length === 0) {
-		return buf + `<div style="text-align:center;padding:16px;color:#888;">No items available yet.</div>`;
-	}
-
-	// 2. Determine the active category tab
-	let activeCategory = (state as any).shopCategory as string;
-	if (!activeCategory || !categoryList.includes(activeCategory)) {
-		activeCategory = categoryList[0];
-	}
-
-	// 3. Render the Tab Navigation (Centered exactly like Main Menu)
-	buf += `<div style="text-align:center;margin-bottom:12px">`;
-	for (let i = 0; i < categoryList.length; i++) {
-		const cat = categoryList[i];
-		const isBtnActive = cat === activeCategory;
-		
-		buf += renderBtn(
-			isBtnActive ? null : `/pokerogue shoptab ${cat}`,
-			cat,
-			`pr-btn${isBtnActive ? ' primary' : ''}`,
-			'font-size:11px;padding:5px 10px'
-		);
-		
-		// Add non-breaking spaces between buttons, except after the last one
-		if (i < categoryList.length - 1) {
-			buf += `&nbsp;&nbsp;`;
-		}
-	}
-	buf += `</div>`;
-
-	// 4. Filter items for the active category and render the standard table
-	const tabItems = permItems.filter(([, item]) => ((item as any).category || 'Misc') === activeCategory);
-	buf += renderShopTable(tabItems as any, bp, state.keyItems ?? [], 'pokerogue buy');
-
-	return buf;
-}
-
-function renderBagView(state: PokeRogueState): string {
-	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-	const inv = state.inventory || {};
-	const keyItems = state.keyItems || [];
-
-	// 1. Collect all possessed items
-	const possessedItems: { key: string, item: any, qty: number }[] = [];
-	
-	for (const [key, qty] of Object.entries(inv)) {
-		if (qty > 0) {
-			if (activeShop[key]) {
-				possessedItems.push({ key, item: activeShop[key], qty });
-			} else {
-				// Fallback for standard Dex items (Held Items) not in the shop
-				const dexItem = Dex.items.get(key);
-				if (dexItem.exists) {
-					possessedItems.push({
-						key,
-						item: {
-							name: dexItem.name,
-							icon: dexItem.name, 
-							type: 'item',
-							category: 'Held Items',
-							desc: dexItem.shortDesc || dexItem.desc || 'A held item.',
-						},
-						qty
-					});
-				}
-			}
-		}
-	}
-	
-	const keyItemCounts = new Map<string, number>();
-	for (const ki of keyItems) {
-		keyItemCounts.set(ki, (keyItemCounts.get(ki) || 0) + 1);
-	}
-	
-	for (const [name, qty] of keyItemCounts.entries()) {
-		const entry = Object.entries(activeShop).find(([, i]) => i.name === name);
-		if (entry) {
-			possessedItems.push({ key: entry[0], item: entry[1], qty });
-		}
-	}
-
-	// 2. Dynamically compute categories
-	const categories = new Set<string>();
-	for (const { item } of possessedItems) {
-		categories.add(item.category || 'Misc');
-	}
-	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
-
-	let buf = `<div class="pr-section-title">Bag</div>`;
-
-	if (categoryList.length === 0) {
-		return buf + `<div style="text-align:center;padding:16px;color:#888;">Your bag is empty.</div>`;
-	}
-
-	let activeCategory = (state as any).bagCategory as string;
-	if (!activeCategory || !categoryList.includes(activeCategory)) {
-		activeCategory = categoryList[0];
-	}
-
-	// 3. Render the Tab Navigation
-	buf += `<div style="text-align:center;margin-bottom:12px">`;
-	for (let i = 0; i < categoryList.length; i++) {
-		const cat = categoryList[i];
-		const isBtnActive = cat === activeCategory;
-		
-		buf += renderBtn(
-			isBtnActive ? null : `/pokerogue bagtab ${cat}`,
-			cat,
-			`pr-btn${isBtnActive ? ' primary' : ''}`,
-			'font-size:11px;padding:5px 10px'
-		);
-		
-		if (i < categoryList.length - 1) buf += `&nbsp;&nbsp;`;
-	}
-	buf += `</div>`;
-
-	// 4. Filter items and render table
-	const tabItems = possessedItems.filter(({ item }) => (item.category || 'Misc') === activeCategory);
-
-	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
-	buf += `<thead><tr style="border-bottom:1px solid rgba(150,150,150,0.2);">`;
-	buf += `<th colspan="2" style="padding:3px 4px; text-align:left;">Item</th>`;
-	buf += `<th style="padding:3px 4px; text-align:left;">Description</th>`;
-	buf += `<th style="text-align:right; padding:3px 4px;">Qty</th>`;
-	buf += `<th style="text-align:right; padding:3px 4px;">Action</th>`;
-	buf += `</tr></thead><tbody>`;
-
-	const canUse = !state.battleRoomId && !state.pendingChoice?.length && !state.pendingMoves?.length &&
-		!state.pendingSwap && !state.moveToLearn && !state.pendingItemName &&
-		!state.itemOptions?.length && !state.pendingConsumableType;
-
-	for (const { key, item, qty } of tabItems) {
-		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
-		buf += `<td class="pr-td-icon" style="padding:3px 4px; width:18px;">${getShopItemIcon(item.icon, 16)}</td>`;
-		buf += `<td class="pr-td-name" style="padding:3px 4px; font-weight:500; white-space:nowrap;">${Utils.escapeHTML(item.name)}</td>`;
-		buf += `<td class="pr-td-desc" style="padding:3px 4px; font-size:10px; color:#aaa;">${Utils.escapeHTML(item.desc)}</td>`;
-		
-		const qtyColor = item.type === 'key' ? '#8ab4f8' : 'inherit';
-		buf += `<td class="pr-td-qty" style="padding:3px 4px; text-align:right; font-weight:bold; font-size:13px; color:${qtyColor};">x${qty}</td>`;
-		
-		buf += `<td class="pr-td-action" style="padding:3px 4px; text-align:right;">`;
-		
-		// Render "Use" or "Give" button dynamically!
-		if (['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type) && canUse) {
-			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
-		} else if (item.type === 'item' && canUse) {
-			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Give', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
-		}
-		
-		buf += `</td></tr>`;
-	}
-
-	buf += `</tbody></table></div>`;
-	return buf;
-}
-
 function renderTopView(): string {
-	const entries = Object.entries(savedData)
+	const entries = Object.entries(globalStats)
 		.filter(([, s]) => (s.highestFloor ?? 0) > 0)
 		.sort((a, b) => (b[1].highestFloor ?? 0) - (a[1].highestFloor ?? 0))
 		.slice(0, 100);
@@ -1157,6 +1145,47 @@ function renderGameOverView(state: PokeRogueState): string {
 		renderBtn('/pokerogue view welcome', 'Start new run', 'pr-newrun-btn') + `</div>`;
 }
 
+function renderSlotsView(user: User, action: 'save' | 'load'): string {
+	const userData = getUserData(user.id);
+	let buf = `<div class="pr-section-title">${action === 'save' ? 'Save to Slot' : 'Load from Slot'}</div>`;
+	buf += `<div style="text-align:center; color:#aaa; font-size:12px; margin-bottom:12px;">`;
+	buf += action === 'save' ? `Choose a slot to save your current progress.` : `Choose a saved game to load. This will overwrite your current active run.`;
+	buf += `</div>`;
+
+	for (let i = 1; i <= 3; i++) {
+		const slotData = userData.saveSlots?.[i];
+		
+		buf += `<div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">`;
+		
+		if (slotData) {
+			const mode = slotData.gameMode.charAt(0).toUpperCase() + slotData.gameMode.slice(1);
+			buf += `<div style="flex:1;">`;
+			buf += `<div style="font-weight:bold; font-size:13px; margin-bottom:6px;">Slot ${i} <span style="color:#888; font-weight:normal; font-size:11px; margin-left:6px;">${mode} Mode &nbsp;·&nbsp; Floor ${slotData.floor}</span></div>`;
+			buf += `<div style="display:flex; gap:2px;">`;
+			for (const mon of slotData.team || []) {
+				buf += getSprite(mon.species, 32);
+			}
+			buf += `</div></div>`;
+		} else {
+			buf += `<div style="flex:1; color:#888; font-style:italic; font-size:13px;">Slot ${i} - Empty</div>`;
+		}
+
+		if (action === 'save') {
+			buf += renderBtn(`/pokerogue saveslot ${i}`, 'Save Here', 'pr-btn primary', 'padding:8px 16px; font-weight:bold;');
+		} else {
+			if (slotData) {
+				buf += renderBtn(`/pokerogue loadslot ${i}`, 'Load', 'pr-btn primary', 'padding:8px 16px; font-weight:bold;');
+			} else {
+				buf += renderBtn(null, 'Empty', 'pr-btn', 'padding:8px 16px; opacity:0.5;', true);
+			}
+		}
+		
+		buf += `</div>`;
+	}
+
+	return buf;
+}
+
 export function renderGamePage(state: PokeRogueState, user: User): string {
 	const view = (state as any).view || 'main';
 
@@ -1169,6 +1198,8 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderTopView()}</div></div>`;
 	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderWelcomeView()}</div></div>`;
 	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderStatsView(state)}</div></div>`;
+	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderSlotsView(user, 'save')}</div></div>`;
+	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderSlotsView(user, 'load')}</div></div>`;
 
 	buf += renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 
