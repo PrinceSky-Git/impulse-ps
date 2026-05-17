@@ -4,7 +4,7 @@ const GITHUB_TOKEN = 'your_github_token_here';
 const WHITELISTED_USERS = ['princesky', 'musaddiktemkar', 'turborx'];
 
 // Paths that are restricted from write/delete/move operations
-const PROTECTED_PATHS = ['config/', 'fullchain.pem', 'privkey.pem'];
+const PROTECTED_PATHS = ['fullchain.pem', 'privkey.pem'];
 
 const FileManager = {
 	isProtected(path: string): boolean {
