@@ -100,7 +100,7 @@ export function renderTypeBadge(types: string[], large = false): string {
 	return types.map(t => {
 		const color = typeColor(t);
 		const textColor = getContrastColor(color);
-		return `<span class="pr-type" style="background:#${color};color:#${textColor};font-size:${large ? '10px' : '9px'}">${t}</span>`;
+		return `<span class="pr-type" style="background:#${color};color:#${textColor};font-size:${large ? '9px' : '9px'}">${t}</span>`;
 	}).join('&nbsp;');
 }
 
