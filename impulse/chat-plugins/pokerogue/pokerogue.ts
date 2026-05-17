@@ -502,11 +502,25 @@ export const commands: Chat.ChatCommands = {
 		start(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			let state = getState(user.id);
+
+			// Repair stale battle room reference
 			if (state?.battleRoomId) {
 				const bRoom = Rooms.get(state.battleRoomId as RoomID);
 				if (!bRoom?.battle || bRoom.battle.ended) delete state.battleRoomId;
 			}
-			if (!state || (!state.team?.length && !state.pendingChoice?.length && !state.battleRoomId && !state.gameOver)) {
+
+			// Only create a brand-new state if there is genuinely no existing run.
+			// A run is considered "active" if it has a team, is past floor 1, or has
+			// a pending starter choice. This prevents hotpatch / cache wipes from
+			// wiping progress by treating a recovered-from-disk state as "new".
+			const hasActiveRun = state && (
+				(state.team?.length > 0) ||
+				((state.floor ?? 1) > 1) ||
+				(state.pendingChoice?.length ?? 0) > 0
+			);
+			const isGameOver = state?.gameOver;
+
+			if (!state || (!hasActiveRun && !isGameOver)) {
 				const highestFloor = state?.highestFloor || 0;
 				const displayName = state?.displayName || user.name;
 				const recordTeam = state?.recordTeam || [];
@@ -599,8 +613,11 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		view(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return;
+			let state = getState(user.id);
+			// FIX: If state is null after a hotpatch/cache wipe, recover via start
+			// instead of silently doing nothing (which leaves all buttons dead).
+			if (!state) return this.parse('/pokerogue start');
+
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load'].includes(v)) {
@@ -706,7 +723,7 @@ export const commands: Chat.ChatCommands = {
 
 		statstab(target, room, user) {
 			const state = getState(user.id);
-			if (!state) return;
+			if (!state) return this.parse('/pokerogue start');
 			const args = target.trim().split(' ');
 			const dir = args[0];
 			const TAB_COUNT = 3;
@@ -750,7 +767,8 @@ export const commands: Chat.ChatCommands = {
 		prebattle(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			const state = getState(user.id);
-			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
 
 			clearStaleBattleRoom(state, user.id);
 
@@ -803,7 +821,8 @@ export const commands: Chat.ChatCommands = {
 
 		battle(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
 
 			clearStaleBattleRoom(state, user.id);
 
@@ -825,6 +844,7 @@ export const commands: Chat.ChatCommands = {
 
 		choose(target, room, user) {
 			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
 			const n = parseInt(target) - 1;
 			if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
 			const choice = state.pendingChoice[n];
@@ -935,7 +955,7 @@ export const commands: Chat.ChatCommands = {
 
 		resolve(target, room, user) {
 			const state = getState(user.id);
-			if (!state) return;
+			if (!state) return this.parse('/pokerogue start');
 
 			const spaceIdx = target.indexOf(' ');
 			const action = spaceIdx === -1 ? target.trim() : target.slice(0, spaceIdx).trim();
@@ -1157,7 +1177,8 @@ export const commands: Chat.ChatCommands = {
 
 		movemon(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.gameOver) return this.errorReply("No active run.");
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't organize your team during a battle.");
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
@@ -1200,7 +1221,8 @@ export const commands: Chat.ChatCommands = {
 
 		releasemon(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.gameOver) return this.errorReply("No active run.");
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't release Pokémon during a battle.");
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
@@ -1247,7 +1269,8 @@ export const commands: Chat.ChatCommands = {
 
 		buy(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.gameOver) return this.errorReply("No active run.");
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't shop during a battle.");
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
@@ -1348,7 +1371,8 @@ export const commands: Chat.ChatCommands = {
 
 		usebagitem(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.gameOver) return this.errorReply("No active run.");
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't use items during a battle.");
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
@@ -1655,7 +1679,8 @@ export const commands: Chat.ChatCommands = {
 
 		qaction(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot use quick actions right now.");
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver || state.battleRoomId) return this.errorReply("Cannot use quick actions right now.");
 
 			const [type, slotStr] = target.trim().split(' ');
 			const slot = parseInt(slotStr) - 1;
@@ -1718,7 +1743,7 @@ export const commands: Chat.ChatCommands = {
 
 		unequip(target, room, user) {
 			const state = getState(user.id);
-			if (!state) return;
+			if (!state) return this.parse('/pokerogue start');
 			if (state.battleRoomId) return this.errorReply("Can't manage items during a battle.");
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
