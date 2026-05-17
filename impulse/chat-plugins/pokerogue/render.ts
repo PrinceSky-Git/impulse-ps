@@ -1,6 +1,6 @@
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
-import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
+import { type PokemonEntry, type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS } from './items';
 import { savedData } from './state';
@@ -34,17 +34,19 @@ const SPRITE_ID_OVERRIDES: { [id: string]: string } = {
 	ursalunabloodmoon: 'ursaluna',
 };
 
-function getSprite(species: string, size = 80): string {
+function getSprite(species: string, size = 80, shiny = false, className = 'pr-mon-img'): string {
 	const id = toID(species);
 	const sp = Dex.species.get(id);
 	const name = sp.name || species;
 	const altName = Utils.escapeHTML(name);
 	const rawId = (sp.exists ? (sp.spriteid || id) : id);
 	const spriteId = SPRITE_ID_OVERRIDES[id] || SPRITE_ID_OVERRIDES[rawId] || rawId;
-	const src = `https://play.pokemonshowdown.com/sprites/home-centered/${spriteId}.png`;
-	const fallback = `https://play.pokemonshowdown.com/sprites/gen5/${spriteId}.png`;
+	const dir = shiny ? 'home-centered-shiny' : 'home-centered';
+	const fallbackDir = shiny ? 'gen5-shiny' : 'gen5';
+	const src = `https://play.pokemonshowdown.com/sprites/${dir}/${spriteId}.png`;
+	const fallback = `https://play.pokemonshowdown.com/sprites/${fallbackDir}/${spriteId}.png`;
 	const onerror = ` onerror="this.onerror=function(){this.style.display='none'};this.src='${fallback}'"`;
-	return `<img src="${src}"${onerror} width="${size}" height="${size}" alt="${altName} sprite" class="pr-mon-img" style="width:${size}px;height:${size}px" />`;
+	return `<img src="${src}"${onerror} width="${size}" height="${size}" alt="${altName} sprite" class="${className}" style="width:${size}px;height:${size}px" />`;
 }
 
 function getShopItemIcon(icon: string, size = 20): string {
@@ -59,7 +61,6 @@ function getPokeballInfo(speciesId: string, ball?: string): { src: string, alt: 
 	if (ball === 'greatball') return { src: `${BASE}i3.png`, alt: 'Great Ball' };
 	if (ball === 'pokeball') return { src: `${BASE}i4.png`, alt: 'Poké Ball' };
 	const sp = Dex.species.get(toID(speciesId));
-	if (sp.tags?.some(tag => LEGARY_TAGS.has(tag))) return { src: `${BASE}i1.png`, alt: 'Master Ball' };
 	if (sp.exists) {
 		const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 		const bst = bs.hp + bs.atk + bs.def + bs.spa + bs.spd + bs.spe;
@@ -69,10 +70,10 @@ function getPokeballInfo(speciesId: string, ball?: string): { src: string, alt: 
 	return { src: `${BASE}i4.png`, alt: 'Poké Ball' };
 }
 
-export function getSpriteWithBall(species: string, size = 80, ball?: string): string {
+export function getSpriteWithBall(species: string, size = 80, ball?: string, shiny = false): string {
 	const ballInfo = getPokeballInfo(species, ball);
 	return `<div class="pr-sprite-wrap" style="width:${size}px;height:${size}px;flex-shrink:0;margin:0 auto;">` +
-		getSprite(species, size) +
+		getSprite(species, size, shiny) +
 		`<img src="${ballInfo.src}" alt="${Utils.escapeHTML(ballInfo.alt)}" class="pr-pokeball-overlay" />` +
 		`</div>`;
 }
@@ -132,10 +133,6 @@ function renderChoiceRow(spriteHtml: string, flexHtml: string, actionBtnHtml: st
 	return `<div class="pr-choice-row" ${extraStyle ? `style="${extraStyle}"` : ''}>${spriteHtml}<div style="flex:1;min-width:0">${flexHtml}</div>${actionBtnHtml}</div>`;
 }
 
-function renderGuidePanel(content: string): string {
-	return `<div style="background:rgba(0,0,0,0.15);padding:11px 13px;border-radius:8px;margin-bottom:8px;font-size:12px;line-height:1.55">${content}</div>`;
-}
-
 function renderNotification(state: PokeRogueState): string {
 	if (!state.notification) return '';
 	return `<div class="pr-notification">` +
@@ -152,13 +149,11 @@ function renderStatBar(state: PokeRogueState, cols2 = false): string {
 }
 
 function renderHeader(view: string, hasGameOver: boolean): string {
-	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', guide: 'PokèRogue Guide', trainer: 'Encounter!', welcome: 'Welcome', victory: 'Victory', stats: 'Pokémon Summary' };
+	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome', victory: 'Victory', stats: 'Pokémon Summary' };
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
 
 	if (view === 'main' && !hasGameOver) {
 		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
-		buf += `${renderBtn('/pokerogue view guide', 'Guide', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
-		buf += `&nbsp;&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view top', 'Ladder', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
 		buf += `&nbsp;&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
@@ -216,7 +211,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 	let buf = `<tr class="pr-team-row">`;
 	
 	buf += `<td class="pr-td-icon" style="vertical-align:top;padding-top:10px">`;
-	buf += getSpriteWithBall(mon.species, 44, mon.ball);
+	buf += getSpriteWithBall(mon.species, 44, mon.ball, mon.shiny);
 	if (statsButton) buf += statsButton;
 	buf += `</td>`;
 	
@@ -323,7 +318,6 @@ function renderPendingChoice(state: PokeRogueState): string {
 
 	for (let i = 0; i < state.pendingChoice!.length; i++) {
 		const sp = Dex.species.get(toID(state.pendingChoice![i]));
-		const isLeg = sp.tags?.some((t: string) => LEGENDARY_TAGS.has(t)) ?? false;
 		const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 		const abilities = sp.abilities ?? {};
 		const ability = (abilities as unknown as Record<string, string>)['0'] || 'Unknown';
@@ -332,13 +326,13 @@ function renderPendingChoice(state: PokeRogueState): string {
 		const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
 		const displayMoves = getLevelUpMoves(sp.id, 5, genNumber);
 
-		let flexHtml = `<div class="pr-ct-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${sp.name}${isLeg ? ` <span class="pr-legendary-badge">Legendary</span>` : ''}</div>`;
+		let flexHtml = `<div class="pr-ct-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${sp.name}</div>`;
 		flexHtml += `<div class="pr-types">${renderTypeBadge(sp.types ?? [])}</div><div class="pr-ct-stats">${renderBaseStatsInline(bs)}</div>`;
 		flexHtml += `<div class="pr-ct-ability" style="margin-top:2px">Nature: <b>${Utils.escapeHTML(nature)}</b></div>`;
 		flexHtml += `<div class="pr-ct-ability" style="margin-top:2px">Ability: <b>${Utils.escapeHTML(ability)}</b></div>`;
 		if (displayMoves.length) flexHtml += renderMoveList(displayMoves);
 
-		buf += renderChoiceRow(getSpriteWithBall(sp.id, 52), flexHtml, renderBtn(`/pokerogue choose ${i + 1}`, 'Pick', 'pr-pick-btn'), isLeg ? 'leg' : '');
+		buf += renderChoiceRow(getSpriteWithBall(sp.id, 52), flexHtml, renderBtn(`/pokerogue choose ${i + 1}`, 'Pick', 'pr-pick-btn'));
 	}
 
 	return buf + `</div>`;
@@ -603,11 +597,6 @@ function renderStatsView(state: PokeRogueState): string {
 	const abilityName = abilityDex?.name || rawAbility || 'Unknown';
 	const abilityDesc = abilityDex?.shortDesc || abilityDex?.desc || '';
 
-	const spriteType  = mon.shiny ? 'gen5-shiny' : 'gen5';
-	const rawSpriteId = spData.spriteid || spData.id;
-	const spriteId    = SPRITE_ID_OVERRIDES[spData.id] || SPRITE_ID_OVERRIDES[rawSpriteId] || rawSpriteId;
-	const spriteUrl   = `https://play.pokemonshowdown.com/sprites/${spriteType}/${spriteId}.png`;
-
 	const bs  = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 	const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
 	const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
@@ -650,7 +639,7 @@ function renderStatsView(state: PokeRogueState): string {
 
 	buf += `<div class="pr-sv-header">`;
 	buf += `<div class="pr-sv-sprite-col">`;
-	buf += `<img src="${spriteUrl}" class="pr-sv-sprite" onerror="this.src='https://play.pokemonshowdown.com/sprites/gen5/substitute.png'" />`;
+	buf += getSprite(mon.species, 80, mon.shiny, 'pr-sv-sprite');
 	buf += `</div>`;
 	buf += `<div class="pr-sv-info-col">`;
 	buf += `<div class="pr-sv-name">${Utils.escapeHTML(spData.name)} ${gender}${mon.shiny ? ' <span class="pr-sv-shiny">★</span>' : ''}&nbsp;&nbsp;`;
@@ -975,47 +964,6 @@ function renderGameOverView(state: PokeRogueState): string {
 		renderBtn('/pokerogue view welcome', 'Start new run', 'pr-newrun-btn') + `</div>`;
 }
 
-function renderGuideView(): string {
-	let buf = `<div class="pr-section-title">The core loop</div>`;
-	buf += renderGuidePanel(`The game runs floor by floor. Every 10 floors is one <b>Zone</b>. Each zone has a random Biome (Except Floors 1-10, which are always TOWN) that determines which wild Pokémon you fight. The Biomes: <b>Town, Plains, Grass, Forest, Cave, Mountain, Volcano, Sea</b>.`);
-	buf += renderGuidePanel(`<b>Zone Boss</b> — Floors 10, 20, 30, 40… Harder fight. Win = full party heal and +10 BP total.`);
-
-	buf += `<div class="pr-section-title">Level cap system</div>`;
-	buf += renderGuidePanel(`Your Pokémon cannot exceed the cap for your current zone: <b>Floors 1–10 = cap 10, 11–20 = cap 20, 21–30 = cap 30</b>, and so on up to 100. EXP earned beyond the cap is held — it all counts once you enter the next zone. The enemy AI scales its levels to match each zone as well.`);
-
-	buf += `<div class="pr-section-title">Rarity tiers</div>`;
-	buf += renderGuidePanel(`<div style="margin-bottom:7px">Common → Uncommon → Rare → Super Rare → Ultra Rare → Boss → Boss Rare → Boss Ultra Rare. Higher floors unlock higher rarities in battles. Wild encounters draw from the current Biome's pool.</div><ul style="margin:0;padding-left:16px"><li><b>Common / Uncommon</b> — Early-game route Pokémon, fully dominant in Floors 1–10.</li><li><b>Rare</b> — Starter Pokémon and mid-tier species. Begin appearing reliably from Floor 11+.</li><li><b>Super Rare</b> — Powerful single-stage or fully-evolved Pokémon. Floor 21+.</li><li><b>Ultra Rare</b> — Sub-legendaries and mythicals. Floor 31+.</li><li><b>Boss / Boss Rare / Boss Ultra Rare</b> — Fully-evolved starters and legendaries. Boss floors 40+.</li></ul>`);
-
-	buf += `<div class="pr-section-title">HP & Status conditions — persist between battles</div>`;
-	buf += renderGuidePanel(`HP is tracked as a percentage (0–100%) and carries into every subsequent battle exactly where it left off. Status conditions — <b>burn, poison, toxic, paralysis, sleep, freeze</b> — also persist between floors. Boss floor clears trigger a <b>full party heal</b> (HP and Status).<ul style="margin:5px 0 0;padding-left:16px"><li>Buy <b>Potions</b>, <b>Full Heals</b> from the shop to recover between fights.</li><li>A fainted Pokémon (0% HP) is completely unusable until you buy a <b>Revive</b> and use it on them.</li></ul>`);
-
-	buf += `<div class="pr-section-title">EXP & modern scaling</div>`;
-	buf += renderGuidePanel(`EXP uses a <b>scaled formula</b> based on official Pokémon growth rates. Defeating Pokémon at a higher level than your own yields significantly more EXP, while defeating weaker Pokémon yields less. The base EXP earned is divided evenly among all Pokémon that directly participated in the battle.<ul style="margin:5px 0 0;padding-left:16px"><li>Boss floors (Trainer battles) award a <b>1.5× EXP</b> bonus.</li><li>When a Pokémon levels up and already knows 4 moves, you are prompted to choose a move to forget or skip learning the new move entirely.</li><li>Pokémon evolve automatically upon reaching the required level.</li><li>EXP is capped at the current zone's level cap. Excess EXP is preserved and applied when the cap increases.</li></ul>`);
-
-	buf += `<div class="pr-section-title">EXP Items & stacking</div>`;
-	buf += renderGuidePanel(`Purchasable from the permanent shop. These are crucial for keeping your entire team leveled up:<ul style="margin:5px 0 0;padding-left:16px"><li><b>Exp. All:</b> Grants non-participating (benched) Pokémon 20% of the active Pokémon's earned EXP per stack. <b>Stacks up to 5 times.</b> At 5 stacks, the bench receives 100% of the active EXP.</li><li><b>Exp. Charm:</b> Provides a global +25% multiplier to all EXP earned by your team. <b>Stacks up to 99 times.</b></li></ul>`);
-
-	buf += `<div class="pr-section-title">Adding Pokémon to your team</div>`;
-	buf += renderGuidePanel(`<ul style="margin:0;padding-left:16px"><li><b>Starter</b> — choose one of 5 randomly drawn traditional starters at Level 5.</li><li><b>Catching</b> — buy Poké Balls from the permanent shop and throw them during wild encounters!</li><li>If your team is already at 6, you are offered to swap the caught Pokémon into a slot, or release it back into the wild.</li><li><b>Bosses</b> — you cannot catch Trainer or Boss Pokémon (Floors 10, 20, 30, etc.).</li></ul>`);
-
-	buf += `<div class="pr-section-title">Economy & Battle Points (BP)</div>`;
-	buf += renderGuidePanel(`You start with <b>20 BP</b>.<ul style="margin:5px 0 0;padding-left:16px"><li><b>+5 BP</b> for every floor cleared.</li><li><b>+5 BP bonus</b> for defeating a Zone Boss (total +10 BP on boss floors).</li></ul>`);
-
-	buf += `<div class="pr-section-title">Held items</div>`;
-	buf += renderGuidePanel(`Each Pokémon can hold one item. Species-locked items (e.g. Pikachu's Light Ball) and Z-Crystals are filtered to only compatible Pokémon. Some items shift a Pokémon's form on equip (e.g. Griseous Orb on Giratina). Items can be removed freely via the <b>Bag</b> screen — but there is no storage, so removed items are permanently lost. Berries and single-use items consumed mid-battle are removed automatically after use.`);
-
-	buf += `<div class="pr-section-title">Team management</div>`;
-	buf += renderGuidePanel(`From the main screen you can:<ul style="margin:5px 0 0;padding-left:16px"><li><b>Move</b> — reorder your Pokémon. The first slot is sent out first, so your lead goes at the top.</li><li><b>Release</b> — permanently remove a Pokémon. You cannot release your last Pokémon. Any held item is permanently lost on release.</li><li><b>Bag</b> — unequip held items from Pokémon (items are discarded, not stored).</li></ul>All team management is locked while an active battle room is open.`);
-
-	buf += `<div class="pr-section-title">AI difficulty & heuristics</div>`;
-	buf += renderGuidePanel(`The enemy AI grows meaningfully stronger as you climb:<ul style="margin:5px 0 0;padding-left:16px"><li><b>Floors 1–10</b> — random IVs (0–31), minimal EVs (0–40 per stat), random natures.</li><li><b>Floors 11–20</b> — IVs 15–31, balanced 40 EVs per stat.</li><li><b>Floors 21–30</b> — IVs 20–31, full 510 EV spread (85 per stat).</li><li><b>Floors 31–40</b> — perfect 31 IVs, 510 EVs.</li><li><b>Floors 41+</b> — perfect IVs, optimised 252/252/6 EV spread targeting the two highest base stats, with an appropriate speed or attack nature.</li></ul><div style="margin-top:7px"><b>Advanced Decision Making:</b> The AI evaluates the battle dynamically every turn. It calculates expected damage (factoring in STAB and type effectiveness), actively avoids moves that trigger immunities (e.g., Levitate, Volt Absorb, Wonder Guard, Bulletproof), prioritizes setup moves based on HP ratios, and will strategically <b>switch out</b> if its active Pokémon is entirely walled by your team or at critically low HP.</div>`);
-
-	buf += `<div class="pr-section-title">Boss floor Pokémon tiers</div>`;
-	buf += renderGuidePanel(`<ul style="margin:0;padding-left:16px"><li><b>Floor 10</b> — 100% Rare tier (starter base forms, early Eevee, strong normals).</li><li><b>Floor 20</b> — mostly Rare, with a small chance of Super Rare (Snorlax, Lapras).</li><li><b>Floor 30</b> — Super Rare is the standard; small Ultra Rare chance appears.</li><li><b>Floor 40</b> — Boss tier introduced: fully-evolved starters, powerful single-stage Pokémon.</li><li><b>Floor 50+</b> — Boss, Boss Rare, and Boss Ultra Rare all possible. Expect major legendaries.</li></ul>`);
-
-	return buf;
-}
-
 export function renderGamePage(state: PokeRogueState, user: User): string {
 	const view = (state as any).view || 'main';
 
@@ -1039,7 +987,6 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (state.pendingConsumableType && state.purchasedItem) return buf + renderConsumable(state) + `</div></div>`;
 	if (view === 'shop') return buf + renderShopView(state) + `</div></div>`;
 	if (view === 'bag') return buf + renderBagView(state) + `</div></div>`;
-	if (view === 'guide') return buf + renderGuideView() + `</div></div>`;
 	if (view === 'trainer' && state.pendingTrainer) return buf + renderTrainerIntroView(state) + `</div></div>`;
 	if (state.pendingMoveSlot !== undefined) return buf + renderMoveMon(state) + `</div></div>`;
 	if (state.pendingReleaseSlot !== undefined) return buf + renderReleaseMon(state) + `</div></div>`;
