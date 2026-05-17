@@ -574,137 +574,315 @@ function renderVictoryView(state: PokeRogueState): string {
 
 function renderStatsView(state: PokeRogueState): string {
     const slot = (state as any).pendingStatsSlot;
-    if (slot === undefined || slot < 0 || slot >= state.team.length) return `<div class="pr-warning-box">Error loading stats.</div>`;
-    
+    if (slot === undefined || slot < 0 || slot >= state.team.length) {
+        return `<div class="pr-warning-box">Error loading stats.</div>`;
+    }
+
     const mon = state.team[slot];
     const spData = Dex.species.get(toID(mon.species));
-    
-    const dateStr = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
-    const spriteType = mon.shiny ? 'gen5-shiny' : 'gen5';
-    const spriteId = spData.spriteid || spData.id;
-    const spriteUrl = `https://play.pokemonshowdown.com/sprites/${spriteType}/${spriteId}.png`;
 
-    const nature = Dex.natures.get(mon.nature || 'Hardy');
-    const stats: Record<string, number> = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-    const bs = spData.baseStats;
+    // ── Nature (robust lookup) ─────────────────────────────────────────────
+    const natureName = mon.nature || 'Hardy';
+    const nature = Dex.natures.get(natureName) ?? Dex.natures.get('Hardy');
+    const naturePlus  = nature?.plus  ?? null;
+    const natureMinus = nature?.minus ?? null;
+
+    // ── Ability (robust lookup) ────────────────────────────────────────────
+    const rawAbility   = mon.ability || (spData.abilities as Record<string, string>)['0'] || '';
+    const abilityDex   = rawAbility ? Dex.abilities.get(rawAbility) : null;
+    const abilityName  = abilityDex?.name || rawAbility || 'Unknown';
+    const abilityDesc  = abilityDex?.desc || abilityDex?.shortDesc || '';
+
+    // ── Sprite ─────────────────────────────────────────────────────────────
+    const spriteType = mon.shiny ? 'gen5-shiny' : 'gen5';
+    const rawSpriteId = spData.spriteid || spData.id;
+    const spriteId    = SPRITE_ID_OVERRIDES[spData.id] || SPRITE_ID_OVERRIDES[rawSpriteId] || rawSpriteId;
+    const spriteUrl   = `https://play.pokemonshowdown.com/sprites/${spriteType}/${spriteId}.png`;
+
+    // ── Stats calculation ──────────────────────────────────────────────────
+    const bs  = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
     const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
     const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 
-    for (const stat of ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const) {
+    const statKeys  = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
+    const statLabels: Record<string, string> = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'Sp.Atk', spd: 'Sp.Def', spe: 'Speed' };
+    const statColors: Record<string, string> = {
+        hp: '#FF5959', atk: '#F5AC78', def: '#FAE078',
+        spa: '#9DB7F5', spd: '#A7DB8D', spe: '#FA92B2',
+    };
+
+    const stats: Record<string, number> = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+    for (const stat of statKeys) {
         if (stat === 'hp') {
             stats.hp = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
         } else {
             let val = Math.floor((2 * bs[stat] + ivs[stat] + Math.floor(evs[stat] / 4)) * mon.level / 100) + 5;
-            if (nature.plus === stat) val = Math.floor(val * 1.1);
-            if (nature.minus === stat) val = Math.floor(val * 0.9);
+            if (naturePlus  === stat) val = Math.floor(val * 1.1);
+            if (natureMinus === stat) val = Math.floor(val * 0.9);
             stats[stat] = val;
         }
     }
     if (spData.id === 'shedinja') stats.hp = 1;
 
-    const typeColors: Record<string, string> = {
-        Normal: '#A8A77A', Fire: '#EE8130', Water: '#6390F0', Electric: '#F7D02C',
-        Grass: '#7AC74C', Ice: '#96D9D6', Fighting: '#C22E28', Poison: '#A33EA1',
-        Ground: '#E2BF65', Flying: '#A98FF3', Psychic: '#F95587', Bug: '#A6B91A',
-        Rock: '#B6A136', Ghost: '#735797', Dragon: '#6F35FC', Dark: '#705848',
-        Steel: '#B7B7CE', Fairy: '#D685AD'
-    };
-    const primaryColor = typeColors[spData.types[0]] || '#A8A77A';
+    // ── Misc ───────────────────────────────────────────────────────────────
+    const dateStr   = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
+    const heldItem  = mon.heldItem ? Dex.items.get(mon.heldItem) : null;
+    const hpPct     = mon.currentHp ?? 100;
+    const hpColor   = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
+    const genderHtml = mon.gender === 'M'
+        ? `<span style="color:#4f8ef7;font-size:15px;font-weight:700;">♂</span>`
+        : mon.gender === 'F'
+            ? `<span style="color:#f74f8e;font-size:15px;font-weight:700;">♀</span>`
+            : '';
 
-    let buf = ``;
+    // ── Max base stat for bar scaling ──────────────────────────────────────
+    const maxStat = 255; // absolute max base stat for scaling
 
-    buf += `<div class="pr-card" style="display:flex; gap:14px; align-items:center; background: linear-gradient(135deg, ${primaryColor}22, transparent); border-left: 4px solid ${primaryColor};">`;
-    buf += `<div style="width:80px; height:80px; flex-shrink:0; background:rgba(255,255,255,0.4); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`;
-    buf += `<img src="${spriteUrl}" style="image-rendering:pixelated; max-width:120%; max-height:120%;" onerror="this.src='https://play.pokemonshowdown.com/sprites/gen5/substitute.png'" />`;
+    // ── Build HTML ─────────────────────────────────────────────────────────
+    let buf = '';
+
+    // ── SECTION 1 · Identity card ──────────────────────────────────────────
+    buf += `<div class="pr-stats-identity pr-card" style="display:flex;gap:12px;align-items:center;padding:12px 14px;">`;
+
+    // Sprite box
+    buf += `<div class="pr-stats-sprite-box">`;
+    buf += `<img src="${spriteUrl}" style="image-rendering:pixelated;width:72px;height:72px;" `
+        + `onerror="this.src='https://play.pokemonshowdown.com/sprites/gen5/substitute.png'" />`;
+    if (mon.shiny) buf += `<div class="pr-stats-shiny-badge">✨ Shiny</div>`;
     buf += `</div>`;
-    buf += `<div style="flex-grow:1;">`;
-    buf += `<div style="font-size:20px; font-weight:700; display:flex; align-items:center; gap:6px;">${Utils.escapeHTML(mon.nickname || spData.name)} ${mon.shiny ? '✨' : ''} ${mon.gender === 'M' ? '<span style="color:#3b82f6">♂</span>' : mon.gender === 'F' ? '<span style="color:#ec4899">♀</span>' : ''}</div>`;
-    buf += `<div style="margin-top:4px; margin-bottom:6px; font-size:12px;">Lv. <b style="font-size:14px;">${mon.level}</b> &nbsp;|&nbsp; ${renderTypeBadge(spData.types)}</div>`;
+
+    // Right of sprite
+    buf += `<div style="flex:1;min-width:0;">`;
+
+    // Name row
+    buf += `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">`;
+    buf += `<span style="font-size:16px;font-weight:700;color:#1c1c28;" class="dark-invert">`
+        + `${Utils.escapeHTML(spData.name)}</span>`;
+    buf += genderHtml;
+    buf += `<span class="pr-level-badge">Lv.${mon.level}</span>`;
+    if (mon.ball) {
+        const ballInfo = getPokeballInfo(mon.species, mon.ball);
+        buf += `<img src="${ballInfo.src}" title="${Utils.escapeHTML(ballInfo.alt)}" `
+            + `width="16" height="16" style="image-rendering:pixelated;vertical-align:middle;" />`;
+    }
+    buf += `</div>`;
+
+    // Types
+    buf += `<div class="pr-types" style="margin-bottom:6px;">${renderTypeBadge(spData.types ?? [])}</div>`;
+
+    // HP bar (in-battle state)
+    buf += `<div style="margin-bottom:6px;">`;
+    buf += `<div style="display:flex;justify-content:space-between;font-size:9px;color:#5a5068;margin-bottom:2px;">`
+        + `<span>HP</span><span>${hpPct}%</span></div>`;
+    buf += `<div class="pr-bar-track"><div class="pr-bar-fill" style="width:${hpPct}%;background:${hpColor};"></div></div>`;
+    buf += `</div>`;
+
+    // Status + Tera
+    buf += `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">`;
+    if (mon.status) {
+        const statusColors: Record<string, string> = {
+            brn: '#e8603c', psn: '#b563ce', tox: '#b563ce',
+            par: '#d4b800', slp: '#7a7a7a', frz: '#6aaed6',
+        };
+        const sc = statusColors[mon.status] || '#888';
+        buf += `<span style="font-size:9px;font-weight:700;background:${sc};color:#fff;`
+            + `padding:1px 5px;border-radius:3px;letter-spacing:0.05em;">${mon.status.toUpperCase()}</span>`;
+    }
     if (mon.teraType) {
-        buf += `<div style="font-size:11px; color:#5a5068; display:flex; align-items:center; gap:4px;">Tera Type: ${renderTypeBadge([mon.teraType])}</div>`;
+        buf += `<span style="font-size:9px;color:#5a5068;">Tera: ${renderTypeBadge([mon.teraType])}</span>`;
     }
-    buf += `</div></div>`;
-
-    buf += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">`;
-    
-    const abilityName = Dex.abilities.get(mon.ability || '').name || 'Unknown';
-    buf += `<div class="pr-card" style="margin:0; padding:10px;">`;
-    buf += `<div style="color:#5a5068; font-size:9px; text-transform:uppercase; font-weight:600; letter-spacing:0.05em;">Ability</div>`;
-    buf += `<div style="font-size:13px; font-weight:600;">${abilityName}</div>`;
     buf += `</div>`;
 
-    const itemName = mon.heldItem ? Dex.items.get(mon.heldItem).name : 'None';
-    buf += `<div class="pr-card" style="margin:0; padding:10px;">`;
-    buf += `<div style="color:#5a5068; font-size:9px; text-transform:uppercase; font-weight:600; letter-spacing:0.05em;">Held Item</div>`;
-    buf += `<div style="font-size:13px; font-weight:600; color:${mon.heldItem ? '#1d4ed8' : 'inherit'};">${itemName}</div>`;
-    buf += `</div>`;
-    
-    buf += `</div>`;
+    buf += `</div>`; // end right-of-sprite
+    buf += `</div>`; // end identity card
 
-    buf += `<div class="pr-section-title">Base Stats & IVs</div>`;
-    buf += `<div class="pr-card" style="padding:14px;">`;
-    buf += `<div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:10px;">`;
-    buf += `<div>Nature: <b>${nature.name}</b> <span style="color:#16a34a">(+${nature.plus || 'None'})</span> <span style="color:#dc2626">(-${nature.minus || 'None'})</span></div>`;
-    buf += `<div>Happiness: <b>${mon.happiness || 0}/255</b></div>`;
-    buf += `</div>`;
+    // ── SECTION 2 · Ability + Item row ────────────────────────────────────
+    buf += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">`;
 
-    const statColors: Record<string, string> = { hp: '#FF5959', atk: '#F5AC78', def: '#FAE078', spa: '#9DB7F5', spd: '#A7DB8D', spe: '#FA92B2' };
-    const statLabels: Record<string, string> = { hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed' };
-    
-    buf += `<div style="display:flex; flex-direction:column; gap:6px;">`;
-    for (const stat of ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const) {
-        let color = '';
-        if (nature.plus === stat) color = 'color:#16a34a; font-weight:bold;'; 
-        if (nature.minus === stat) color = 'color:#dc2626; font-weight:bold;'; 
-        
-        const barWidth = Math.min(100, Math.max(2, (bs[stat] / 255) * 100));
-
-        buf += `<div style="display:flex; align-items:center; gap:8px;">`;
-        buf += `<div style="width:45px; font-size:10px; font-weight:600; color:#5a5068; text-transform:uppercase;">${statLabels[stat]}</div>`;
-        buf += `<div style="width:30px; font-size:13px; text-align:right; font-weight:600; ${color}">${stats[stat]}</div>`;
-        buf += `<div style="flex-grow:1; background:rgba(0,0,0,0.08); height:8px; border-radius:4px; overflow:hidden;">`;
-        buf += `<div style="width:${barWidth}%; background:${statColors[stat]}; height:100%; border-radius:4px;"></div>`;
-        buf += `</div>`;
-        buf += `<div style="width:40px; font-size:10px; color:#888; text-align:right;">IV: <b style="color:#5a5068">${ivs[stat]}</b></div>`;
-        buf += `</div>`;
+    // Ability box
+    buf += `<div class="pr-card" style="margin:0;padding:10px 12px;">`;
+    buf += `<div class="pr-section-title" style="margin-bottom:4px;">Ability</div>`;
+    buf += `<div style="font-size:13px;font-weight:600;color:#1c1c28;margin-bottom:3px;" class="dark-invert">`
+        + `${Utils.escapeHTML(abilityName)}</div>`;
+    if (abilityDesc) {
+        buf += `<div style="font-size:10px;color:#5a5068;line-height:1.4;">${Utils.escapeHTML(abilityDesc)}</div>`;
     }
-    buf += `</div></div>`;
+    buf += `</div>`;
 
-    buf += `<div class="pr-section-title">Known Moves</div>`;
-    buf += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:14px;">`;
-    
+    // Held item box
+    buf += `<div class="pr-card" style="margin:0;padding:10px 12px;">`;
+    buf += `<div class="pr-section-title" style="margin-bottom:4px;">Held Item</div>`;
+    if (heldItem) {
+        buf += `<div style="display:flex;align-items:center;gap:6px;">`;
+        buf += getShopItemIcon(heldItem.name, 20);
+        buf += `<span style="font-size:13px;font-weight:600;color:#1d4ed8;">${Utils.escapeHTML(heldItem.name)}</span>`;
+        buf += `</div>`;
+        if (heldItem.desc || heldItem.shortDesc) {
+            buf += `<div style="font-size:10px;color:#5a5068;line-height:1.4;margin-top:3px;">`
+                + `${Utils.escapeHTML(heldItem.shortDesc || heldItem.desc || '')}</div>`;
+        }
+    } else {
+        buf += `<div style="font-size:13px;font-weight:500;color:#aaa;">None</div>`;
+    }
+    buf += `</div>`;
+
+    buf += `</div>`; // end ability+item grid
+
+    // ── SECTION 3 · Nature ────────────────────────────────────────────────
+    buf += `<div class="pr-card" style="margin-bottom:10px;padding:10px 12px;">`;
+    buf += `<div class="pr-section-title" style="margin-bottom:6px;">Nature</div>`;
+    buf += `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">`;
+    buf += `<span style="font-size:14px;font-weight:700;color:#1c1c28;" class="dark-invert">${Utils.escapeHTML(natureName)}</span>`;
+    buf += `<div style="display:flex;gap:8px;font-size:10px;">`;
+    if (naturePlus && natureMinus) {
+        buf += `<span style="color:#16a34a;font-weight:600;">▲ ${statLabels[naturePlus] ?? naturePlus}</span>`;
+        buf += `<span style="color:#dc2626;font-weight:600;">▼ ${statLabels[natureMinus] ?? natureMinus}</span>`;
+    } else {
+        buf += `<span style="color:#5a5068;">No stat change (neutral)</span>`;
+    }
+    buf += `</div></div></div>`;
+
+    // ── SECTION 4 · Stat bars (Pokémon-game style) ────────────────────────
+    buf += `<div class="pr-card" style="margin-bottom:10px;padding:10px 12px;">`;
+    buf += `<div class="pr-section-title" style="margin-bottom:8px;">Base Stats</div>`;
+
+    for (const stat of statKeys) {
+        const base    = bs[stat] ?? 0;
+        const iv      = ivs[stat] ?? 31;
+        const actual  = stats[stat] ?? 0;
+        const barPct  = Math.min(100, Math.round((base / maxStat) * 100));
+        const isPlus  = naturePlus  === stat;
+        const isMinus = natureMinus === stat;
+        const valColor = isPlus ? '#16a34a' : isMinus ? '#dc2626' : '';
+
+        buf += `<div class="pr-stats-row">`;
+
+        // Label
+        buf += `<div class="pr-stats-label">${statLabels[stat]}</div>`;
+
+        // Base value (right-aligned, small)
+        buf += `<div class="pr-stats-base">${base}</div>`;
+
+        // Bar
+        buf += `<div class="pr-stats-bar-wrap">`;
+        buf += `<div class="pr-stats-bar" style="width:${barPct}%;background:${statColors[stat]};"></div>`;
+        buf += `</div>`;
+
+        // Actual stat (computed)
+        buf += `<div class="pr-stats-actual" ${valColor ? `style="color:${valColor};font-weight:700;"` : ''}>${actual}</div>`;
+
+        // IV pip indicator
+        const ivPct = Math.round((iv / 31) * 100);
+        const ivColor = iv === 31 ? '#6d64b0' : iv >= 20 ? '#9d93c8' : '#c0bcb8';
+        buf += `<div class="pr-stats-iv" title="IV: ${iv}/31">`;
+        buf += `<div style="width:${ivPct}%;height:100%;background:${ivColor};border-radius:2px;"></div>`;
+        buf += `</div>`;
+
+        // IV label
+        buf += `<div class="pr-stats-iv-label">${iv}</div>`;
+
+        buf += `</div>`; // end row
+    }
+
+    // BST
+    const bst = statKeys.reduce((sum, s) => sum + (bs[s] ?? 0), 0);
+    buf += `<div style="text-align:right;font-size:10px;color:#5a5068;margin-top:6px;padding-top:6px;border-top:1px solid #b8b4b0;">`
+        + `Total BST: <b style="color:#1c1c28;">${bst}</b></div>`;
+
+    buf += `</div>`; // end stats card
+
+    // ── SECTION 5 · Moves grid ────────────────────────────────────────────
+    buf += `<div class="pr-section-title">Moves</div>`;
+    buf += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">`;
+
+    const typeColors: Record<string, string> = {
+        Normal: '#9FA19F', Fire: '#E62829', Water: '#2980EF', Grass: '#3FA129',
+        Electric: '#FAC000', Ice: '#3DCEF3', Fighting: '#FF8000', Poison: '#9141CB',
+        Ground: '#915121', Flying: '#81B9EF', Psychic: '#EF4179', Bug: '#91A119',
+        Rock: '#AFA981', Ghost: '#704170', Dragon: '#5060E1', Dark: '#624D4E',
+        Steel: '#60A1B8', Fairy: '#EF70EF',
+    };
+
+    const moves = mon.moves || [];
     for (let i = 0; i < 4; i++) {
-        if (i < (mon.moves || []).length) {
-            const move = Dex.moves.get(mon.moves[i]);
-            const maxPp = Math.floor((move.pp || 5) * (8 / 5));
-            const currentPp = mon.ppLeft ? mon.ppLeft[i] : maxPp;
-            const moveColor = typeColors[move.type] || '#A8A77A';
-            
-            buf += `<div class="pr-card" style="margin:0; padding:10px; border-left: 3px solid ${moveColor};">`;
-            buf += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">`;
-            buf += `<strong style="font-size:13px;">${move.name}</strong>`;
-            buf += renderTypeBadge([move.type]);
+        if (i < moves.length) {
+            const move    = Dex.moves.get(moves[i]);
+            const maxPp   = Math.floor((move.pp || 5) * (8 / 5));
+            const curPp   = mon.ppLeft?.[i] ?? maxPp;
+            const ppPct   = Math.round((curPp / maxPp) * 100);
+            const ppColor = ppPct > 50 ? '#4caf50' : ppPct > 25 ? '#ff9800' : '#f44336';
+            const mColor  = typeColors[move.type] || '#9FA19F';
+            const textC   = getContrastColor(mColor.replace('#', ''));
+
+            buf += `<div class="pr-card" style="margin:0;padding:10px;border-left:4px solid ${mColor};">`;
+
+            // Move name + type badge
+            buf += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">`;
+            buf += `<span style="font-size:12px;font-weight:700;color:#1c1c28;" class="dark-invert">${Utils.escapeHTML(move.name)}</span>`;
+            buf += `<span style="font-size:9px;font-weight:600;background:${mColor};color:${textC === '333333' ? '#333' : '#fff'};`
+                + `padding:1px 6px;border-radius:3px;">${move.type}</span>`;
             buf += `</div>`;
-            buf += `<div style="display:flex; justify-content:space-between; font-size:11px; color:#5a5068;">`;
-            buf += `<span>Pwr: <b style="color:#1c1c28">${move.basePower || '—'}</b> | Acc: <b style="color:#1c1c28">${move.accuracy === true ? '—' : move.accuracy}</b></span>`;
-            buf += `<span>PP: <b style="color:#1c1c28">${currentPp}/${maxPp}</b></span>`;
+
+            // Category + power + accuracy
+            const catEmoji = move.category === 'Physical' ? '⚔️' : move.category === 'Special' ? '🔮' : '💫';
+            buf += `<div style="font-size:10px;color:#5a5068;margin-bottom:6px;">`
+                + `${catEmoji} ${move.category} &nbsp;·&nbsp; `
+                + `Pwr: <b>${move.basePower || '—'}</b> &nbsp;·&nbsp; `
+                + `Acc: <b>${move.accuracy === true ? '∞' : (move.accuracy || '—')}</b>`
+                + `</div>`;
+
+            // PP bar
+            buf += `<div style="display:flex;align-items:center;gap:6px;">`;
+            buf += `<div style="flex:1;height:3px;border-radius:2px;background:#b8b4b0;overflow:hidden;">`;
+            buf += `<div style="width:${ppPct}%;height:100%;background:${ppColor};border-radius:2px;"></div>`;
             buf += `</div>`;
+            buf += `<span style="font-size:9px;color:#5a5068;white-space:nowrap;">PP ${curPp}/${maxPp}</span>`;
+            buf += `</div>`;
+
             buf += `</div>`;
         } else {
-            buf += `<div class="pr-card" style="margin:0; padding:10px; background:rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; color:#aaa; font-size:12px;">`;
-            buf += `Empty Slot`;
-            buf += `</div>`;
+            buf += `<div class="pr-card" style="margin:0;padding:10px;display:flex;align-items:center;`
+                + `justify-content:center;color:#aaa;font-size:12px;border:1px dashed #b8b4b0;">—</div>`;
         }
     }
-    buf += `</div>`;
+    buf += `</div>`; // end moves grid
 
+    // ── SECTION 6 · Trainer Memo ──────────────────────────────────────────
     buf += `<div class="pr-section-title">Trainer Memo</div>`;
-    buf += `<div class="pr-card" style="font-size:11px; line-height:1.6; color:#3e3850; display:grid; grid-template-columns: 1fr 1fr; gap:8px;">`;
-    buf += `<div><span style="color:#888;">Original Trainer:</span> <br><b style="color:#1c1c28">${Utils.escapeHTML(mon.originalTrainer || 'Unknown')}</b> (ID: ${mon.otId || '000000'})</div>`;
-    buf += `<div><span style="color:#888;">Date Met:</span> <br><b style="color:#1c1c28">${dateStr}</b></div>`;
-    buf += `<div><span style="color:#888;">Met Location:</span> <br><b style="color:#1c1c28">${Utils.escapeHTML(mon.metLocation || 'Unknown')}</b></div>`;
-    buf += `<div><span style="color:#888;">Met Level:</span> <br><b style="color:#1c1c28">${mon.metLevel || '?'}</b></div>`;
-    buf += `</div>`;
+    buf += `<div class="pr-card" style="padding:10px 12px;">`;
+    buf += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">`;
+
+    const memoFields: [string, string][] = [
+        ['OT', Utils.escapeHTML(mon.originalTrainer || 'Unknown')],
+        ['ID', mon.otId || '??????'],
+        ['Met at', Utils.escapeHTML(mon.metLocation || 'Unknown')],
+        ['Date', dateStr],
+        ['Met Lv.', String(mon.metLevel || '?')],
+        ['Ball', Utils.escapeHTML(mon.ball ? mon.ball.replace('ball', ' Ball').replace(/^\w/, c => c.toUpperCase()) : 'Poké Ball')],
+    ];
+    for (const [label, val] of memoFields) {
+        buf += `<div><span style="color:#5a5068;">${label}:</span> <b style="color:#1c1c28;" class="dark-invert">${val}</b></div>`;
+    }
+
+    buf += `</div></div>`;
+
+    // ── Navigation dots (team slots) ──────────────────────────────────────
+    if (state.team.length > 1) {
+        buf += `<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;">`;
+        for (let i = 0; i < state.team.length; i++) {
+            const m    = state.team[i];
+            const spN  = Dex.species.get(toID(m.species));
+            const isMe = i === slot;
+            buf += renderBtn(
+                isMe ? null : `/pokerogue view stats ${i}`,
+                `${spN.name} <span style="font-size:9px;opacity:0.7">Lv.${m.level}</span>`,
+                'pr-shop-buy',
+                `padding:4px 8px;font-size:10px;${isMe ? 'border-color:#5b50c8;background:#e8e4ff;font-weight:700;' : ''}`,
+                isMe,
+            );
+        }
+        buf += `</div>`;
+    }
 
     return buf;
 }
