@@ -495,9 +495,8 @@ function renderConsumable(state: PokeRogueState): string {
 			disabled = !mon.status || hp <= 0;
 			reason = hp <= 0 ? 'fainted' : !mon.status ? 'no status' : '';
 			break;
-		}
 
-		case 'vitamin': {
+		case 'vitamin':
 			const evStat = (consumableItem as any)?.evStat as string | undefined;
 			if (!evStat) { disabled = true; reason = 'invalid'; break; }
 			if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } as any;
