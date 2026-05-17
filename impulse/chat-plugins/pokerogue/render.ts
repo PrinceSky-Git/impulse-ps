@@ -193,8 +193,11 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 	if (view === 'main' && !hasGameOver) {
 		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
 		buf += `${renderBtn('/pokerogue view save', 'Save', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
+		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view load', 'Load', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
+		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view top', 'Ladder', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
+		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome' && !hasGameOver) {
