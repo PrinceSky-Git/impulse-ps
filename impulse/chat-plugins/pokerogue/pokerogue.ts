@@ -917,6 +917,7 @@ export const commands: Chat.ChatCommands = {
 					delete state.purchasedItem;
 					delete state.pendingItemIsEvo;
 					delete state.pendingConsumableType;
+					delete (state as any).bagItem;
 				} else {
 					const slot = parseInt(rest) - 1;
 					if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
@@ -941,10 +942,15 @@ export const commands: Chat.ChatCommands = {
 					}
 
 					if (state.purchasedItem) {
-						const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-						const item = activeShop[state.purchasedItem];
-						if (item) {
-							state.battlePoints -= item.cost;
+						// Check if we are deducting from the bag or from BP
+						if ((state as any).bagItem) {
+							state.inventory![state.purchasedItem] = (state.inventory![state.purchasedItem] || 1) - 1;
+						} else {
+							const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+							const item = activeShop[state.purchasedItem];
+							if (item) {
+								state.battlePoints -= item.cost;
+							}
 						}
 					}
 
@@ -961,6 +967,10 @@ export const commands: Chat.ChatCommands = {
 							if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
 								mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
 							}
+							
+							// If they already hold an item, return the old item to the bag!
+							state.inventory = state.inventory || {};
+							state.inventory[mon.heldItem] = (state.inventory[mon.heldItem] || 0) + 1;
 						}
 						mon.heldItem = toID(state.pendingItemName);
 						state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
@@ -969,6 +979,7 @@ export const commands: Chat.ChatCommands = {
 					delete state.pendingItemName;
 					delete state.purchasedItem;
 					delete state.pendingItemIsEvo;
+					delete (state as any).bagItem;
 				}
 				break;
 			}
@@ -1262,14 +1273,32 @@ export const commands: Chat.ChatCommands = {
 
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 			const key = toID(target);
-			const item = activeShop[key];
+			let item = activeShop[key];
+			
+			// Fallback: If it's not in the shop, check if it's a standard Dex item (Held Item)
+			if (!item) {
+				const dexItem = Dex.items.get(key);
+				if (dexItem.exists) {
+					item = { name: dexItem.name, type: 'item', category: 'Held Items' } as any;
+				}
+			}
+
 			if (!item) return this.errorReply("Unknown item.");
 
 			state.inventory = state.inventory || {};
 			if ((state.inventory[key] || 0) <= 0) return this.errorReply(`You don't have any ${item.name} left!`);
 
-			if (!['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type)) {
+			if (!['vitamin', 'healHP', 'revive', 'cureStatus', 'item'].includes(item.type)) {
 				return this.errorReply("This item cannot be used from the bag.");
+			}
+
+			if (item.type === 'item') {
+				state.pendingItemName = item.name;
+				(state as any).bagItem = true;
+				state.purchasedItem = key;
+				setState(user.id, state);
+				refreshGamePage(user);
+				return;
 			}
 
 			state.purchasedItem = key;
@@ -1606,7 +1635,12 @@ export const commands: Chat.ChatCommands = {
 			const mon = state.team[slot];
 			if (!mon.heldItem) return this.errorReply("That Pokémon isn't holding an item.");
 			const dexItem = Dex.items.get(mon.heldItem);
-			state.notification = `Took <b>${Utils.escapeHTML(dexItem.name || mon.heldItem)}</b> from ${Dex.species.get(toID(mon.species)).name}. (Item removed — no bag storage.)`;
+			
+			// Store the unequipped item into the bag
+			state.inventory = state.inventory || {};
+			state.inventory[mon.heldItem] = (state.inventory[mon.heldItem] || 0) + 1;
+			state.notification = `Took <b>${Utils.escapeHTML(dexItem.name || mon.heldItem)}</b> from ${Dex.species.get(toID(mon.species)).name} and put it in your Bag.`;
+			
 			delete mon.heldItem;
 			setState(user.id, state);
 			refreshGamePage(user);
