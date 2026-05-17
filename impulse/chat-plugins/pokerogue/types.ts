@@ -180,10 +180,25 @@ export interface PokeRogueState {
 	pendingTrainer?: string;
 	firstGymLeaderWave?: number;
 	pendingTrainerKey?: string;
+
+	// UI specific state
 	shopCategory?: string;
 	bagCategory?: string;
 	bagItem?: boolean;
 	pendingStatsSlot?: number;
 	statsTab?: number;
 	lastThrowTime?: number;
+}
+
+export interface GlobalStatEntry {
+	highestFloor: number;
+	displayName: string;
+	recordTeam: PokemonEntry[];
+}
+
+export interface UserSaveData {
+	displayName: string;
+	activeMode: GameMode;
+	starters: Record<string, PokemonEntry>;
+	runs: Partial<Record<GameMode, PokeRogueState>>;
 }
