@@ -11,7 +11,8 @@ export type ItemType =
 	'cureStatus' |
 	'itemPack' |
 	'item' |
-	'evolveItem';
+	'evolveItem' |
+	'vitamin';
 
 export interface ShopItem {
 	name: string;
@@ -24,6 +25,7 @@ export interface ShopItem {
 	healAmount?: number;
 	reviveAmount?: number;
 	isMax?: boolean;
+	evStat?: string;
 }
 
 export const SHOP_ITEMS: Record<string, ShopItem> =
