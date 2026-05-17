@@ -126,21 +126,19 @@ export const BIOMES: Record<string, BiomePool> = {
 			{ species: 'ditto', weight: 10 }, { species: 'latias', weight: 10 },
 			{ species: 'latios', weight: 10 },
 		],
-		'Boss': [
-			{ species: 'dodrio', weight: 10 }, { species: 'furret', weight: 10 },
-			{ species: 'gumshoos', weight: 10 }, { species: 'greedent', weight: 10 },
-			{ species: 'persian', weight: 10 }, { species: 'mightyena', weight: 10 },
-			{ species: 'linoone', weight: 10 }, { species: 'bibarel', weight: 10 },
-			{ species: 'lopunny', weight: 10 }, { species: 'oinkologne', weight: 10 },
+		'Boss': [			
+			{ species: 'sentret', weight: 10 }, { species: 'yungoos', weight: 10 },
+			{ species: 'skwovet', weight: 10 }, { species: 'zigzagoon', weight: 10 },
+			{ species: 'bidoof', weight: 10 }, { species: 'lechonk', weight: 10 },
+			{ species: 'zubat', weight: 10 }, { species: 'meowth', weight: 10 },
+			{ species: 'poochyena', weight: 10 },
 		],
 		'Boss Rare': [
-			{ species: 'dodrio', weight: 10 }, { species: 'furret', weight: 10 },
-			{ species: 'gumshoos', weight: 10 }, { species: 'greedent', weight: 10 },
-			{ species: 'persian', weight: 10 }, { species: 'mightyena', weight: 10 },
-			{ species: 'linoone', weight: 10 }, { species: 'bibarel', weight: 10 },
-			{ species: 'lopunny', weight: 10 }, { species: 'oinkologne', weight: 10 },
-		],
-		
+			{ species: 'abra', weight: 10 }, { species: 'cleffa', weight: 10 },
+			{ species: 'igglybuff', weight: 10 }, { species: 'surskit', weight: 10 },
+			{ species: 'happiny', weight: 10 }, { species: 'rookidee', weight: 10 },
+			{ species: 'tandemaus', weight: 10 },
+		],		
 		'Boss Super Rare': [
 			{ species: 'latias', weight: 10 }, { species: 'latios', weight: 10 },
 		],
