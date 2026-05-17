@@ -201,4 +201,5 @@ export interface UserSaveData {
 	activeMode: GameMode;
 	starters: Record<string, PokemonEntry>;
 	runs: Partial<Record<GameMode, PokeRogueState>>;
+	saveSlots: Partial<Record<number, PokeRogueState>>; // <-- ADD THIS
 }
