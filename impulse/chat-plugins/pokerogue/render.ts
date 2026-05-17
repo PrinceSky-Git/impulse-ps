@@ -1,5 +1,5 @@
 import { Utils } from '../../../lib';
-import { Table } from '../../utils';
+//import { Table } from '../../utils';
 import { nameColor } from '../customization/custom-color';
 import { LEGENDARY_TAGS, type PokemonEntry, type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
@@ -131,7 +131,7 @@ function renderStatBar(state: PokeRogueState, cols2 = false): string {
 }
 
 function renderHeader(view: string, hasGameOver: boolean): string {
-	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', guide: 'PokèRogue Guide', trainer: 'Encounter!', welcome: 'Welcome', victory: 'Victory', };
+	const titles: Record<string, string> = { main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', resetconfirm: 'Reset run', guide: 'PokèRogue Guide', trainer: 'Encounter!', welcome: 'Welcome', victory: 'Victory', stats: 'Pokémon Summary' };
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
 
 	if (view === 'main' && !hasGameOver) {
@@ -146,6 +146,117 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += renderBtn('/pokerogue view main', '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	}
 	return buf + `</div>`;
+}
+
+function renderStatsView(state: PokeRogueState): string {
+	const slot = (state as any).pendingStatsSlot;
+	if (slot === undefined || slot < 0 || slot >= state.team.length) return `<div class="pr-warning-box">Error loading stats.</div>`;
+	
+	const mon = state.team[slot];
+	const spData = Dex.species.get(toID(mon.species));
+	
+	// Format Dates and Sprites
+	const dateStr = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
+	const spriteType = mon.shiny ? 'gen5-shiny' : 'gen5';
+	const spriteId = spData.spriteid || spData.id;
+	const spriteUrl = `https://play.pokemonshowdown.com/sprites/${spriteType}/${spriteId}.png`;
+
+	// Calculate Actual Stats (Base + IV + EV + Nature)
+	const nature = Dex.natures.get(mon.nature || 'Hardy');
+	const stats = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+	const bs = spData.baseStats;
+	const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+	const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+
+	for (const stat of ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const) {
+		if (stat === 'hp') {
+			stats.hp = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
+		} else {
+			let val = Math.floor((2 * bs[stat] + ivs[stat] + Math.floor(evs[stat] / 4)) * mon.level / 100) + 5;
+			if (nature.plus === stat) val = Math.floor(val * 1.1);
+			if (nature.minus === stat) val = Math.floor(val * 0.9);
+			stats[stat] = val;
+		}
+	}
+	if (spData.id === 'shedinja') stats.hp = 1;
+
+	let buf = ``;
+
+	// --- CARD 1: Identity & Overview ---
+	buf += `<div class="pr-card" style="display:flex; gap:14px; align-items:center;">`;
+	buf += `<div style="width:80px; height:80px; flex-shrink:0; background:rgba(0,0,0,0.1); border-radius:12px; display:flex; align-items:center; justify-content:center;">`;
+	buf += `<img src="${spriteUrl}" style="image-rendering:pixelated; max-width:100%; max-height:100%;" onerror="this.src='https://play.pokemonshowdown.com/sprites/gen5/substitute.png'" />`;
+	buf += `</div>`;
+	buf += `<div style="flex-grow:1;">`;
+	buf += `<div style="font-size:18px; font-weight:600; display:flex; align-items:center; gap:6px;">${mon.nickname || spData.name} ${mon.shiny ? '✨' : ''} ${mon.gender === 'M' ? '<span style="color:#3b82f6">♂</span>' : mon.gender === 'F' ? '<span style="color:#ec4899">♀</span>' : ''}</div>`;
+	buf += `<div style="margin-top:4px; margin-bottom:6px;">Lv. <b>${mon.level}</b> &nbsp;|&nbsp; ${renderTypeBadge(spData.types)}</div>`;
+	if (mon.teraType) {
+		buf += `<div style="font-size:11px; color:#5a5068;">Tera Type: <b>${mon.teraType}</b></div>`;
+	}
+	buf += `</div></div>`;
+
+	// --- CARD 2: Stats & Details ---
+	buf += `<div class="pr-section-title">Attributes</div>`;
+	buf += `<div class="pr-card">`;
+	
+	const abilityName = Dex.abilities.get(mon.ability || '').name || 'Unknown';
+	const itemName = mon.heldItem ? Dex.items.get(mon.heldItem).name : 'None';
+	
+	buf += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px; font-size:12px;">`;
+	buf += `<div><span style="color:#5a5068; font-size:10px; text-transform:uppercase;">Ability</span><br><b>${abilityName}</b></div>`;
+	buf += `<div><span style="color:#5a5068; font-size:10px; text-transform:uppercase;">Held Item</span><br><b>${itemName}</b></div>`;
+	buf += `<div><span style="color:#5a5068; font-size:10px; text-transform:uppercase;">Nature</span><br><b>${nature.name}</b></div>`;
+	buf += `<div><span style="color:#5a5068; font-size:10px; text-transform:uppercase;">Happiness</span><br><b>${mon.happiness || 0} / 255</b></div>`;
+	buf += `</div>`;
+
+	// Stat Grid
+	buf += `<div style="background:rgba(0,0,0,0.05); border-radius:8px; padding:10px;">`;
+	buf += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:x-8px; font-size:11px; line-height:1.6;">`;
+	
+	const statLabels: Record<string, string> = { hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed' };
+	for (const stat of ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const) {
+		let color = '';
+		if (nature.plus === stat) color = 'color:#16a34a; font-weight:bold;'; // Green for boosted
+		if (nature.minus === stat) color = 'color:#dc2626; font-weight:bold;'; // Red for hindered
+		
+		buf += `<div style="display:flex; justify-content:space-between; padding-right:15px; border-bottom:1px solid rgba(0,0,0,0.05);">`;
+		buf += `<span style="color:#5a5068; width:45px;">${statLabels[stat]}</span>`;
+		buf += `<span style="${color} width:30px; text-align:right;">${stats[stat]}</span>`;
+		buf += `<span style="color:#888; font-size:9px; text-align:right;">(IV: ${ivs[stat]})</span>`;
+		buf += `</div>`;
+	}
+	buf += `</div></div></div>`;
+
+	// --- CARD 3: Moves ---
+	buf += `<div class="pr-section-title">Known Moves</div>`;
+	buf += `<div class="pr-table-container"><table class="pr-table">`;
+	buf += `<thead><tr><th>Move</th><th>Type</th><th style="text-align:center">Pwr</th><th style="text-align:center">Acc</th><th style="text-align:right">PP</th></tr></thead><tbody>`;
+	
+	for (let i = 0; i < (mon.moves || []).length; i++) {
+		const move = Dex.moves.get(mon.moves[i]);
+		const maxPp = Math.floor((move.pp || 5) * (8 / 5));
+		const currentPp = mon.ppLeft ? mon.ppLeft[i] : maxPp;
+		
+		buf += `<tr>`;
+		buf += `<td class="pr-td-name" style="font-size:12px;">${move.name}</td>`;
+		buf += `<td>${renderTypeBadge([move.type])}</td>`;
+		buf += `<td style="text-align:center; color:#5a5068;">${move.basePower || '—'}</td>`;
+		buf += `<td style="text-align:center; color:#5a5068;">${move.accuracy === true ? '—' : move.accuracy}</td>`;
+		buf += `<td style="text-align:right; font-weight:500;">${currentPp}/${maxPp}</td>`;
+		buf += `</tr>`;
+	}
+	buf += `</tbody></table></div>`;
+
+	// --- CARD 4: Trainer Memo ---
+	buf += `<div class="pr-section-title">Trainer Memo</div>`;
+	buf += `<div class="pr-card" style="font-size:11px; line-height:1.6; color:#3e3850;">`;
+	buf += `Original Trainer: <b>${mon.originalTrainer || 'Unknown'}</b> (ID: ${mon.otId || '000000'})<br>`;
+	buf += `Met Location: <b>${mon.metLocation || 'Unknown'}</b><br>`;
+	buf += `Met Level: <b>${mon.metLevel || '?'}</b><br>`;
+	buf += `Date Met: <b>${dateStr}</b>`;
+	buf += `</div>`;
+
+	return buf;
 }
 
 function renderMoveList(moves: string[]): string {
@@ -776,8 +887,8 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (state.gameOver) return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderGameOverView(state)}</div></div>`;
 	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderResetConfirmView(state)}</div></div>`;
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderTopView()}</div></div>`;
-
 	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderWelcomeView()}</div></div>`;
+	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderStatsView(state)}</div></div>`;
 
 	buf += renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 
