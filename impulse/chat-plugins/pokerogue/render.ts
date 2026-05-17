@@ -704,7 +704,7 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `</div></div>`;
 
 		// Nature
-		let natureSuffix = `<span class="pr-sv-subdesc"> Neutral — no stat change</span>`;
+		let natureSuffix = `<span class="pr-sv-subdesc"></span>`;
 		if (naturePlus && natureMinus) {
 			natureSuffix = ` <span style="color:#16a34a;font-size:10px;font-weight:600">▲${statLabels[naturePlus]}</span>`
 				+ ` <span style="color:#dc2626;font-size:10px;font-weight:600">▼${statLabels[natureMinus]}</span>`;
