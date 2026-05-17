@@ -992,62 +992,98 @@ function renderBagView(state: PokeRogueState): string {
 	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 	const inv = state.inventory || {};
 	const keyItems = state.keyItems || [];
-	const bp = state.battlePoints ?? 0;
 
-	let buf = `<div class="pr-section-title">Bag</div><div class="pr-table-container"><table class="pr-table">`;
-	buf += `<thead><tr><th colspan="2">Item</th><th>Description</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Action</th></tr></thead><tbody>`;
-
-	// Poké Balls from inventory
-	for (const [key, item] of Object.entries(activeShop)) {
-		if ((item as any).type !== 'pokeball') continue;
-		const qty = inv[key] || 0;
-		buf += `<tr>`;
-		buf += `<td class="pr-td-icon">${getShopItemIcon((item as any).icon, 20)}</td>`;
-		buf += `<td class="pr-td-name">${Utils.escapeHTML((item as any).name)}</td>`;
-		buf += `<td class="pr-td-desc" style="color:#aaa;">${Utils.escapeHTML((item as any).desc)}</td>`;
-		buf += `<td class="pr-td-action" style="text-align:right;font-weight:bold;font-size:13px;">x${qty}</td>`;
-		buf += `<td class="pr-td-action" style="text-align:right;"></td>`;
-		buf += `</tr>`;
+	// 1. Collect all possessed items
+	const possessedItems: { key: string, item: any, qty: number }[] = [];
+	
+	// Add inventory items (Pokéballs, Medicine, Vitamins)
+	for (const [key, qty] of Object.entries(inv)) {
+		if (qty > 0 && activeShop[key]) {
+			possessedItems.push({ key, item: activeShop[key], qty });
+		}
+	}
+	
+	// Add key items (Exp. All, Exp. Charm, etc.)
+	const keyItemCounts = new Map<string, number>();
+	for (const ki of keyItems) {
+		keyItemCounts.set(ki, (keyItemCounts.get(ki) || 0) + 1);
+	}
+	
+	for (const [name, qty] of keyItemCounts.entries()) {
+		// Key items are stored by name in state.keyItems, so we find them by name
+		const entry = Object.entries(activeShop).find(([, i]) => i.name === name);
+		if (entry) {
+			possessedItems.push({ key: entry[0], item: entry[1], qty });
+		}
 	}
 
-	// Key items
-	const keyItemNames = new Set<string>();
-	for (const [, item] of Object.entries(activeShop)) {
-		if ((item as any).type !== 'key') continue;
-		keyItemNames.add((item as any).name);
+	// 2. Dynamically compute categories from possessed items
+	const categories = new Set<string>();
+	for (const { item } of possessedItems) {
+		categories.add(item.category || 'Misc');
+	}
+	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
+
+	let buf = `<div class="pr-section-title">Bag</div>`;
+
+	if (categoryList.length === 0) {
+		return buf + `<div style="text-align:center;padding:16px;color:#888;">Your bag is empty.</div>`;
 	}
 
-	for (const [key, item] of Object.entries(activeShop)) {
-		if ((item as any).type !== 'key') continue;
-		const name = (item as any).name as string;
-		const count = keyItems.filter(k => k === name).length;
-		if (count === 0) continue;
-		buf += `<tr>`;
-		buf += `<td class="pr-td-icon">${getShopItemIcon((item as any).icon, 20)}</td>`;
-		buf += `<td class="pr-td-name">${Utils.escapeHTML(name)}</td>`;
-		buf += `<td class="pr-td-desc" style="color:#aaa;">${Utils.escapeHTML((item as any).desc)}</td>`;
-		buf += `<td class="pr-td-action" style="text-align:right;font-weight:bold;font-size:13px;color:#8ab4f8;">x${count}</td>`;
-		buf += `<td class="pr-td-action" style="text-align:right;"></td>`;
-		buf += `</tr>`;
+	// 3. Determine active category
+	let activeCategory = (state as any).bagCategory as string;
+	if (!activeCategory || !categoryList.includes(activeCategory)) {
+		activeCategory = categoryList[0];
 	}
 
-	// Vitamins from inventory
-	for (const [key, item] of Object.entries(activeShop)) {
-		if ((item as any).type !== 'vitamin') continue;
-		const qty = inv[key] || 0;
-		if (qty === 0) continue;
-		const canUse = !state.battleRoomId && !state.pendingChoice?.length && !state.pendingMoves?.length &&
-			!state.pendingSwap && !state.moveToLearn && !state.pendingItemName &&
-			!state.itemOptions?.length && !state.pendingConsumableType;
-		buf += `<tr>`;
-		buf += `<td class="pr-td-icon">${getShopItemIcon((item as any).icon, 20)}</td>`;
-		buf += `<td class="pr-td-name">${Utils.escapeHTML((item as any).name)}</td>`;
-		buf += `<td class="pr-td-desc" style="color:#aaa;">${Utils.escapeHTML((item as any).desc)}</td>`;
-		buf += `<td class="pr-td-action" style="text-align:right;font-weight:bold;font-size:13px;">x${qty}</td>`;
-		buf += `<td class="pr-td-action" style="text-align:right;">`;
-		if (canUse) buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px;font-size:10px;');
-		buf += `</td>`;
-		buf += `</tr>`;
+	// 4. Render the Tab Navigation (Pill-style buttons)
+	buf += `<div class="pr-sv-nav" style="margin-bottom: 12px; justify-content: center; gap: 6px; display: flex; flex-wrap: wrap;">`;
+	for (const cat of categoryList) {
+		const isBtnActive = cat === activeCategory;
+		buf += renderBtn(
+			isBtnActive ? null : `/pokerogue bagtab ${cat}`,
+			cat,
+			`pr-btn${isBtnActive ? ' primary' : ''}`,
+			'padding: 4px 12px; font-size: 11px; border-radius: 12px;'
+		);
+	}
+	buf += `</div>`;
+
+	// 5. Filter items for active category
+	const tabItems = possessedItems.filter(({ item }) => (item.category || 'Misc') === activeCategory);
+
+	// 6. Render the Compact Table
+	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
+	buf += `<thead><tr style="border-bottom:1px solid rgba(150,150,150,0.2);">`;
+	buf += `<th colspan="2" style="padding:3px 4px; text-align:left;">Item</th>`;
+	buf += `<th style="padding:3px 4px; text-align:left;">Description</th>`;
+	buf += `<th style="text-align:right; padding:3px 4px;">Qty</th>`;
+	buf += `<th style="text-align:right; padding:3px 4px;">Action</th>`;
+	buf += `</tr></thead><tbody>`;
+
+	// Check if the player is currently allowed to use items
+	const canUse = !state.battleRoomId && !state.pendingChoice?.length && !state.pendingMoves?.length &&
+		!state.pendingSwap && !state.moveToLearn && !state.pendingItemName &&
+		!state.itemOptions?.length && !state.pendingConsumableType;
+
+	for (const { key, item, qty } of tabItems) {
+		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
+		buf += `<td class="pr-td-icon" style="padding:3px 4px; width:18px;">${getShopItemIcon(item.icon, 16)}</td>`;
+		buf += `<td class="pr-td-name" style="padding:3px 4px; font-weight:500; white-space:nowrap;">${Utils.escapeHTML(item.name)}</td>`;
+		buf += `<td class="pr-td-desc" style="padding:3px 4px; font-size:10px; color:#aaa;">${Utils.escapeHTML(item.desc)}</td>`;
+		
+		// Highlight Key Items with a blue quantity color just like the original logic did
+		const qtyColor = item.type === 'key' ? '#8ab4f8' : 'inherit';
+		buf += `<td class="pr-td-qty" style="padding:3px 4px; text-align:right; font-weight:bold; font-size:13px; color:${qtyColor};">x${qty}</td>`;
+		
+		buf += `<td class="pr-td-action" style="padding:3px 4px; text-align:right;">`;
+		
+		// Render "Use" button only for usable items (Vitamins, Heals)
+		if (['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type) && canUse) {
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
+		}
+		
+		buf += `</td></tr>`;
 	}
 
 	buf += `</tbody></table></div>`;
