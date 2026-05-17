@@ -3,7 +3,10 @@ import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem } from './items';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
-import { getState, setState, deleteState, savedData, saveAllData } from './state';
+import { 
+	getState, setState, deleteState, saveAllData, 
+	getUserData, saveUserData, globalStats, saveGlobalStats, setActiveMode 
+} from './state';
 import {
 	pickStarterOptions,
 	expForLevel,
@@ -361,7 +364,8 @@ function processBattleExperience(
 function processFloorRewards(
 	state: PokeRogueState,
 	clearedFloor: number,
-	config: ModeConfig
+	config: ModeConfig,
+	userId: string
 ): { bpGained: number, extraNotifs: string[] } {
 	let bpGained = (config.economy.doubleBpFloor && clearedFloor >= config.economy.doubleBpFloor) ? config.economy.bpPerWin * 2 : config.economy.bpPerWin;
 	const extraNotifs: string[] = [];
@@ -369,6 +373,14 @@ function processFloorRewards(
 	if (clearedFloor > (state.highestFloor ?? 0)) {
 		state.highestFloor = clearedFloor;
 		state.recordTeam = state.team.map(m => ({ ...m }));
+		
+		// Update global ladder
+		globalStats[userId] = {
+			highestFloor: clearedFloor,
+			displayName: state.displayName || userId,
+			recordTeam: state.recordTeam
+		};
+		saveGlobalStats();
 	}
 
 	if (config.milestoneRewards) {
@@ -411,7 +423,7 @@ function processFloorRewards(
 	return { bpGained, extraNotifs };
 }
 
-function handleBattleLoss(state: PokeRogueState, floor: number): void {
+function handleBattleLoss(state: PokeRogueState, floor: number, userId: string): void {
 	delete state.pendingMoves;
 	delete state.pendingSwap;
 	delete state.moveToLearn;
@@ -430,6 +442,14 @@ function handleBattleLoss(state: PokeRogueState, floor: number): void {
 		if (floor > (state.highestFloor ?? 0)) {
 			state.highestFloor = floor;
 			state.recordTeam = state.team.map(m => ({ ...m }));
+			
+			// Update global ladder
+			globalStats[userId] = {
+				highestFloor: floor,
+				displayName: state.displayName || userId,
+				recordTeam: state.recordTeam
+			};
+			saveGlobalStats();
 		}
 		state.gameOver = true;
 		state.lastRunFloor = floor;
@@ -521,36 +541,39 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		newgame(target, room, user) {
-			const existing = getState(user.id);
-
-			if (existing?.gameOver) {
-				delete existing.gameOver;
-				delete existing.lastRunFloor;
-				setState(user.id, existing);
-			}
-
-			const hasProgress = existing && (existing.team?.length > 0 || (existing.floor ?? 1) > 1);
-
 			const targetParts = target.trim().toLowerCase().split(' ');
 			const isConfirm = targetParts.includes('confirm');
 			let modeStr = targetParts[0];
 			if (isConfirm && targetParts.length > 1) {
 				modeStr = targetParts.find(p => p !== 'confirm') || 'classic';
 			}
-			if (hasProgress && !isConfirm) {
-				return this.sendReplyBox(`<b>Warning: Run in progress!</b><br><button name="send" value="/pokerogue newgame ${modeStr || 'classic'} confirm" class="button">Yes, start fresh</button>`);
-			}
 
 			const requestedMode = (modeStr || 'classic') as GameMode;
 			const finalMode = MODE_CONFIGS[requestedMode] ? requestedMode : 'classic';
+
+			// Pull the user's specific slot for the mode they requested
+			const userData = getUserData(user.id);
+			const existingInMode = userData.runs[finalMode];
+
+			if (existingInMode?.gameOver) {
+				delete existingInMode.gameOver;
+				delete existingInMode.lastRunFloor;
+				setState(user.id, existingInMode);
+			}
+
+			const hasProgress = existingInMode && (existingInMode.team?.length > 0 || (existingInMode.floor ?? 1) > 1);
+
+			if (hasProgress && !isConfirm) {
+				return this.sendReplyBox(`<b>Warning: Run in progress for ${finalMode}!</b><br><button name="send" value="/pokerogue newgame ${finalMode} confirm" class="button">Yes, start fresh</button>`);
+			}
 
 			const config = MODE_CONFIGS[finalMode];
 			const modeData = MODE_REGISTRY[finalMode] || MODE_REGISTRY['classic'];
 			const modeStarters = modeData.starters;
 
-			const highestFloor = existing?.highestFloor || 0;
-			const displayName = existing?.displayName || user.name;
-			const recordTeam = existing?.recordTeam || [];
+			const highestFloor = existingInMode?.highestFloor || 0;
+			const displayName = existingInMode?.displayName || user.name;
+			const recordTeam = existingInMode?.recordTeam || [];
 
 			const newState: PokeRogueState = {
 				floor: 1,
@@ -609,7 +632,6 @@ export const commands: Chat.ChatCommands = {
 				if (v !== 'shop') {
 					delete (state as any).shopCategory;
 				}
-
 				if (v !== 'bag') {
 					delete (state as any).bagCategory;
 				}
@@ -1541,6 +1563,16 @@ export const commands: Chat.ChatCommands = {
 				state.caughtPokemon = caught;
 				setState(user.id, state);
 
+				// --- STARTER UNLOCK LOGIC ---
+				const userData = getUserData(user.id);
+				
+				if (state.gameMode === 'classic' && !userData.starters[p2Species]) {
+					userData.starters[p2Species] = caught;
+					saveUserData(user.id);
+					room.add(`|c|~|✨ **${Dex.species.get(p2Species).name}** has been permanently unlocked as a Starter! ✨`).update();
+				}
+				// ----------------------------
+
 				const match = activeMatches.get(room.roomid);
 				if (match) {
 					const botUser = Users.get(match.botUserId);
@@ -1636,7 +1668,6 @@ export const commands: Chat.ChatCommands = {
 			if (!mon.heldItem) return this.errorReply("That Pokémon isn't holding an item.");
 			const dexItem = Dex.items.get(mon.heldItem);
 			
-			// Store the unequipped item into the bag
 			state.inventory = state.inventory || {};
 			state.inventory[mon.heldItem] = (state.inventory[mon.heldItem] || 0) + 1;
 			state.notification = `Took <b>${Utils.escapeHTML(dexItem.name || mon.heldItem)}</b> from ${Dex.species.get(toID(mon.species)).name} and put it in your Bag.`;
@@ -1773,6 +1804,13 @@ export const handlers: Chat.Handlers = {
 				if (prevFloor > (state.highestFloor ?? 0)) {
 					state.highestFloor = prevFloor;
 					state.recordTeam = state.team.map(m => ({ ...m }));
+					
+					globalStats[match.userId] = {
+						highestFloor: prevFloor,
+						displayName: state.displayName || match.userId,
+						recordTeam: state.recordTeam
+					};
+					saveGlobalStats();
 				}
 
 				setState(match.userId, state);
@@ -1802,7 +1840,7 @@ export const handlers: Chat.Handlers = {
 				state.currentBiome = config.startingBiome;
 			}
 
-			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor, config);
+			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor, config, match.userId);
 
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;
@@ -1830,7 +1868,7 @@ export const handlers: Chat.Handlers = {
 				`<div style="text-align: center;"><b>You've gained ${bpGained} battle points for clearing the floor!</b></div>`
 			);
 		} else {
-			handleBattleLoss(state, match.floor);
+			handleBattleLoss(state, match.floor, match.userId);
 		}
 
 		if (battleLogMsgs.length > 0 && room) {
