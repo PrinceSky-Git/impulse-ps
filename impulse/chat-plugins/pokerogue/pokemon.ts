@@ -645,7 +645,9 @@ export function genPokemon(
 		let forcedTeraType: string | undefined = undefined;
 		let forcedItem: string | undefined = undefined;
 
-		if (forcedSpeciesPool && forcedSpeciesPool.length > depth) {
+		const isForced = forcedSpeciesPool && forcedSpeciesPool.length > depth;
+
+		if (isForced) {
 			const forced = forcedSpeciesPool[depth];
 			if (typeof forced === 'string') {
 				finalSpeciesId = toID(forced);
@@ -723,21 +725,21 @@ export function genPokemon(
 				finalSpeciesId = sp.prevo ? sp.prevo : toID(sp.baseSpecies);
 				sp = Dex.species.get(finalSpeciesId);
 			}
-		}
 
-		while (true) {
-			const evo = getLevelUpEvo(finalSpeciesId);
-			if (!evo || chosenLevel < evo.evoLevel) break;
+			while (true) {
+				const evo = getLevelUpEvo(finalSpeciesId);
+				if (!evo || chosenLevel < evo.evoLevel) break;
 
-			if (isBossFloor) {
-				if (floor <= 20) break;
-				if (floor <= 40) {
-					const nextEvo = Dex.species.get(evo.evoTo);
-					if (!nextEvo.evos || nextEvo.evos.length === 0) break;
+				if (isBossFloor) {
+					if (floor <= 20) break;
+					if (floor <= 40) {
+						const nextEvo = Dex.species.get(evo.evoTo);
+						if (!nextEvo.evos || nextEvo.evos.length === 0) break;
+					}
 				}
-			}
 
-			finalSpeciesId = evo.evoTo;
+				finalSpeciesId = evo.evoTo;
+			}
 		}
 
 		const finalSpecie = Dex.species.get(finalSpeciesId);
