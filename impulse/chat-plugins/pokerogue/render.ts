@@ -656,10 +656,10 @@ function renderStatsView(state: PokeRogueState): string {
 	buf += `<img src="${spriteUrl}" class="pr-sv-sprite" onerror="this.src='https://play.pokemonshowdown.com/sprites/gen5/substitute.png'" />`;
 	buf += `</div>`;
 	buf += `<div class="pr-sv-info-col">`;
-	buf += `<div class="pr-sv-name">${Utils.escapeHTML(spData.name)} ${gender}${mon.shiny ? ' <span class="pr-sv-shiny">★</span>' : ''}</div>`;
+	buf += `<div class="pr-sv-name">${Utils.escapeHTML(spData.name)} ${gender}${mon.shiny ? ' <span class="pr-sv-shiny">★</span>' : ''}&nbsp;&nbps;`;
+	buf += `<span class="pr-level-badge">Lv.${mon.level}</span></div>`;
 	buf += `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px;">`;
 	buf += renderTypeBadge(spData.types ?? []);
-	buf += `<span class="pr-level-badge">Lv.${mon.level}</span>`;
 	buf += `</div>`;
 	buf += `<div class="pr-sv-hp-row">`;
 	buf += `<span class="pr-sv-hp-label">HP</span>`;
