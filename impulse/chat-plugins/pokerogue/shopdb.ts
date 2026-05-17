@@ -1,0 +1,187 @@
+import { type ShopItem } from './items';
+
+export const SHOP_DB: Record<string, ShopItem> = {
+	pokeball: {
+		name: "Poke Ball",
+		icon: "Poke Ball",
+		type: "pokeball",
+		category: "Pokéballs",
+		desc: "A standard ball for catching wild Pokemon.",
+		cost: 5,
+		minFloor: 1
+	},
+	greatball: {
+		name: "Great Ball",
+		icon: "Great Ball",
+		type: "pokeball",
+		category: "Pokéballs",
+		desc: "A good ball with a higher catch rate.",
+		cost: 10,
+		minFloor: 11
+	},
+	ultraball: {
+		name: "Ultra Ball",
+		icon: "Ultra Ball",
+		type: "pokeball",
+		category: "Pokéballs",
+		desc: "An excellent ball with a very high catch rate.",
+		cost: 15,
+		minFloor: 31
+	},
+	masterball: {
+		name: "Master Ball",
+		icon: "Master Ball",
+		type: "pokeball",
+		category: "Pokéballs",
+		desc: "Catches any wild Pokemon without fail.",
+		cost: 1000,
+		minFloor: 51
+	},
+	helditempack: {
+		name: "Held Item Pack",
+		icon: "Leftovers",
+		type: "itemPack",
+		category: "Held Items",
+		desc: "Pick 1 of 3 held items to put on a Pokemon",
+		cost: 3,
+		minFloor: 1
+	},
+	superpotion: {
+		name: "Super Potion",
+		icon: "Super Potion",
+		type: "healHP",
+		category: "Medicine",
+		desc: "Heals 60% HP for a Pokemon.",
+		cost: 1,
+		minFloor: 1,
+		healAmount: 60
+	},
+	maxpotion: {
+		name: "Max Potion",
+		icon: "Max Potion",
+		type: "healHP",
+		category: "Medicine",
+		desc: "Heals a pokemon's HP fully.",
+		cost: 2,
+		minFloor: 1,
+		healAmount: 100,
+		isMax: true
+	},
+	fullheal: {
+		name: "Full Heal",
+		icon: "Full Heal",
+		type: "cureStatus",
+		category: "Medicine",
+		desc: "Cures a pokemon's status.",
+		cost: 2,
+		minFloor: 1
+	},
+	lure: {
+		name: "Lure",
+		icon: "Chipped Pot",
+		type: "key",
+		category: "Key Items",
+		desc: "50% chance to encounter 2 wild Pokémon instead of 1.",
+		cost: 15,
+		minFloor: 1
+	},
+	revive: {
+		name: "Revive",
+		icon: "Revive",
+		type: "revive",
+		category: "Medicine",
+		desc: "Revives a Pokemon to half its maximum HP.",
+		cost: 3,
+		minFloor: 1,
+		reviveAmount: 50
+	},
+	maxrevive: {
+		name: "Max Revive",
+		icon: "Revive",
+		type: "revive",
+		category: "Medicine",
+		desc: "Revives a Pokemon to its maximum HP.",
+		cost: 5,
+		minFloor: 1,
+		reviveAmount: 100,
+		isMax: true
+	},
+	expall: {
+		name: "Exp. All",
+		icon: "Exp Share",
+		type: "key",
+		category: "Key Items",
+		desc: "Gives 20% Exp. to all non-fainted Pokemon not in the battle. Stacks up to 5 times.",
+		cost: 10,
+		minFloor: 1
+	},
+	expcharm: {
+		name: "Exp. Charm",
+		icon: "Exp. Share",
+		type: "key",
+		category: "Key Items",
+		desc: "Boosts total EXP gained by the entire party by 25%. Stacks up to 99 times.",
+		cost: 15,
+		minFloor: 1
+	},
+	hpup: {
+		name: "HP Up",
+		icon: "HP Up",
+		type: "vitamin",
+		category: "Vitamins",
+		desc: "Raises the HP EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+		cost: 5,
+		minFloor: 1,
+		evStat: "hp"
+	},
+	protein: {
+		name: "Protein",
+		icon: "Protein",
+		type: "vitamin",
+		category: "Vitamins",
+		desc: "Raises the Attack EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+		cost: 5,
+		minFloor: 1,
+		evStat: "atk"
+	},
+	iron: {
+		name: "Iron",
+		icon: "Iron",
+		type: "vitamin",
+		category: "Vitamins",
+		desc: "Raises the Defense EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+		cost: 5,
+		minFloor: 1,
+		evStat: "def"
+	},
+	calcium: {
+		name: "Calcium",
+		icon: "Calcium",
+		type: "vitamin",
+		category: "Vitamins",
+		desc: "Raises the Sp. Atk EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+		cost: 5,
+		minFloor: 1,
+		evStat: "spa"
+	},
+	zinc: {
+		name: "Zinc",
+		icon: "Zinc",
+		type: "vitamin",
+		category: "Vitamins",
+		desc: "Raises the Sp. Def EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+		cost: 5,
+		minFloor: 1,
+		evStat: "spd"
+	},
+	carbos: {
+		name: "Carbos",
+		icon: "Carbos",
+		type: "vitamin",
+		category: "Vitamins",
+		desc: "Raises the Speed EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
+		cost: 5,
+		minFloor: 1,
+		evStat: "spe"
+	}
+};
