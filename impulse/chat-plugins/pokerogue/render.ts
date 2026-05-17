@@ -497,9 +497,27 @@ function renderConsumable(state: PokeRogueState): string {
 			break;
 		}
 
+		case 'vitamin': {
+			const evStat = (consumableItem as any)?.evStat as string | undefined;
+			if (!evStat) { disabled = true; reason = 'invalid'; break; }
+			if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } as any;
+			const totalEvs = Object.values(mon.evs as Record<string, number>).reduce((a, b) => a + b, 0);
+			const statEv = (mon.evs as any)[evStat] ?? 0;
+			disabled = hp <= 0 || totalEvs >= 508 || statEv >= 252;
+			reason = hp <= 0 ? 'fainted' : totalEvs >= 508 ? 'EVs full' : statEv >= 252 ? `${evStat} maxed` : '';
+			break;
+		}
+
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${Dex.species.get(toID(mon.species)).name}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` (${reason})` : ''}</span>`;
 		if (mon.status) flexHtml += `<div style="font-size:9px;color:#ff9800">${mon.status.toUpperCase()}</div>`;
 		if (hp < 100 && hp > 0) flexHtml += `<div style="font-size:9px;color:#aaa">${hp}% HP</div>`;
+
+		if (consumableType === 'vitamin' && mon.evs) {
+			const evStat = (consumableItem as any)?.evStat as string;
+			const statLabel: Record<string, string> = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
+			const totalEvs = Object.values(mon.evs as Record<string, number>).reduce((a, b) => a + b, 0);
+			flexHtml += `<div style="font-size:9px;">${statLabel[evStat] ?? evStat} EVs: ${(mon.evs as any)[evStat] ?? 0}/252 &nbsp;·&nbsp; Total: ${totalEvs}/508</div>`;
+		}
 
 		const btnHtml = disabled ? '' : renderBtn(`/pokerogue resolve useshopitem ${i + 1}`, 'Use', 'pr-pick-btn');
 		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, disabled ? 'opacity:.45' : '');
@@ -923,34 +941,69 @@ function renderShopView(state: PokeRogueState): string {
 }
 
 function renderBagView(state: PokeRogueState): string {
-	let buf = `<div class="pr-section-title">Bag</div><div class="pr-table-container"><table class="pr-table">`;
-	buf += `<thead><tr><th colspan="2">Item</th><th>Description</th><th style="text-align:right;">Quantity</th></tr></thead><tbody>`;
-
+	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 	const inv = state.inventory || {};
-	const ballTypes = [
-		{ id: 'pokeball', name: 'Poké Ball', icon: 'Poke Ball', desc: 'A standard ball for catching wild Pokémon.' },
-		{ id: 'greatball', name: 'Great Ball', icon: 'Great Ball', desc: 'A good ball with a higher catch rate.' },
-		{ id: 'ultraball', name: 'Ultra Ball', icon: 'Ultra Ball', desc: 'An excellent ball with a very high catch rate.' },
-		{ id: 'masterball', name: 'Master Ball', icon: 'Master Ball', desc: 'Catches any wild Pokémon without fail.' },
-	];
-
-	for (const ball of ballTypes) {
-		buf += `<tr><td class="pr-td-icon">${getShopItemIcon(ball.icon, 20)}</td><td class="pr-td-name">${ball.name}</td>`;
-		buf += `<td class="pr-td-desc" style="color:#aaa;">${ball.desc}</td><td class="pr-td-action" style="text-align:right; font-weight:bold; font-size:13px;">x${inv[ball.id] || 0}</td></tr>`;
-	}
-
 	const keyItems = state.keyItems || [];
-	const expItems = [
-		{ name: 'Exp. All', count: keyItems.filter(k => k === 'Exp. All').length, icon: 'Exp. Share', desc: 'Non-participating Pokémon receive +20% EXP per stack.' },
-		{ name: 'Exp. Charm', count: keyItems.filter(k => k === 'Exp. Charm').length, icon: 'Exp. Share', desc: 'Total EXP gained increased by 25% per stack.' },
-	];
+	const bp = state.battlePoints ?? 0;
 
-	for (const item of expItems) {
-		buf += `<tr><td class="pr-td-icon">${getShopItemIcon(item.icon, 20)}</td><td class="pr-td-name">${item.name}</td>`;
-		buf += `<td class="pr-td-desc" style="color:#aaa;">${item.desc}</td><td class="pr-td-action" style="text-align:right; font-weight:bold; font-size:13px; color:#8ab4f8;">x${item.count}</td></tr>`;
+	let buf = `<div class="pr-section-title">Bag</div><div class="pr-table-container"><table class="pr-table">`;
+	buf += `<thead><tr><th colspan="2">Item</th><th>Description</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Action</th></tr></thead><tbody>`;
+
+	// Poké Balls from inventory
+	for (const [key, item] of Object.entries(activeShop)) {
+		if ((item as any).type !== 'pokeball') continue;
+		const qty = inv[key] || 0;
+		buf += `<tr>`;
+		buf += `<td class="pr-td-icon">${getShopItemIcon((item as any).icon, 20)}</td>`;
+		buf += `<td class="pr-td-name">${Utils.escapeHTML((item as any).name)}</td>`;
+		buf += `<td class="pr-td-desc" style="color:#aaa;">${Utils.escapeHTML((item as any).desc)}</td>`;
+		buf += `<td class="pr-td-action" style="text-align:right;font-weight:bold;font-size:13px;">x${qty}</td>`;
+		buf += `<td class="pr-td-action" style="text-align:right;"></td>`;
+		buf += `</tr>`;
 	}
 
-	return buf + `</tbody></table></div>`;
+	// Key items
+	const keyItemNames = new Set<string>();
+	for (const [, item] of Object.entries(activeShop)) {
+		if ((item as any).type !== 'key') continue;
+		keyItemNames.add((item as any).name);
+	}
+
+	for (const [key, item] of Object.entries(activeShop)) {
+		if ((item as any).type !== 'key') continue;
+		const name = (item as any).name as string;
+		const count = keyItems.filter(k => k === name).length;
+		if (count === 0) continue;
+		buf += `<tr>`;
+		buf += `<td class="pr-td-icon">${getShopItemIcon((item as any).icon, 20)}</td>`;
+		buf += `<td class="pr-td-name">${Utils.escapeHTML(name)}</td>`;
+		buf += `<td class="pr-td-desc" style="color:#aaa;">${Utils.escapeHTML((item as any).desc)}</td>`;
+		buf += `<td class="pr-td-action" style="text-align:right;font-weight:bold;font-size:13px;color:#8ab4f8;">x${count}</td>`;
+		buf += `<td class="pr-td-action" style="text-align:right;"></td>`;
+		buf += `</tr>`;
+	}
+
+	// Vitamins from inventory
+	for (const [key, item] of Object.entries(activeShop)) {
+		if ((item as any).type !== 'vitamin') continue;
+		const qty = inv[key] || 0;
+		if (qty === 0) continue;
+		const canUse = !state.battleRoomId && !state.pendingChoice?.length && !state.pendingMoves?.length &&
+			!state.pendingSwap && !state.moveToLearn && !state.pendingItemName &&
+			!state.itemOptions?.length && !state.pendingConsumableType;
+		buf += `<tr>`;
+		buf += `<td class="pr-td-icon">${getShopItemIcon((item as any).icon, 20)}</td>`;
+		buf += `<td class="pr-td-name">${Utils.escapeHTML((item as any).name)}</td>`;
+		buf += `<td class="pr-td-desc" style="color:#aaa;">${Utils.escapeHTML((item as any).desc)}</td>`;
+		buf += `<td class="pr-td-action" style="text-align:right;font-weight:bold;font-size:13px;">x${qty}</td>`;
+		buf += `<td class="pr-td-action" style="text-align:right;">`;
+		if (canUse) buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px;font-size:10px;');
+		buf += `</td>`;
+		buf += `</tr>`;
+	}
+
+	buf += `</tbody></table></div>`;
+	return buf;
 }
 
 function renderTopView(): string {
