@@ -759,8 +759,6 @@ function renderStatsView(state: PokeRogueState): string {
 				const move    = Dex.moves.get(moves[i]);
 				const maxPp   = Math.floor((move.pp || 5) * (8 / 5));
 				const curPp   = mon.ppLeft?.[i] ?? maxPp;
-				const ppPct   = Math.round((curPp / maxPp) * 100);
-				const ppColor = ppPct > 50 ? '#4caf50' : ppPct > 25 ? '#ff9800' : '#f44336';
 				const mColor  = '#' + typeColor(move.type);
 				const catIcon = move.category === 'Physical' ? '⚔' : move.category === 'Special' ? '◆' : '●';
 
@@ -769,11 +767,7 @@ function renderStatsView(state: PokeRogueState): string {
 				buf += `<b class="pr-sv-move-name">${Utils.escapeHTML(move.name)}</b>`;
 				buf += `<span class="pr-type" style="background:${mColor};color:#fff;font-size:9px">${move.type}</span>`;
 				buf += `</div>`;
-				buf += `<div class="pr-sv-move-meta">${catIcon} ${move.category} &nbsp;·&nbsp; Pwr: <b>${move.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${move.accuracy === true ? '—' : (move.accuracy || '—')}</b></div>`;
-				buf += `<div class="pr-sv-move-pp-row">`;
-				buf += `<div class="pr-bar-track" style="flex:1"><div class="pr-bar-fill" style="width:${ppPct}%;background:${ppColor}"></div></div>`;
-				buf += `<span style="font-size:9px;color:#5a5068;white-space:nowrap">PP ${curPp}/${maxPp}</span>`;
-				buf += `</div>`;
+				buf += `<div class="pr-sv-move-meta">${catIcon} ${move.category} &nbsp;·&nbsp; Pwr: <b>${move.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${move.accuracy === true ? '—' : (move.accuracy || '—')}</b> &nbsp;·&nbsp; PP: <b>${curPp}/${maxPp}</b></div>`;
 				buf += `</div>`;
 			} else {
 				buf += `<div class="pr-sv-move pr-sv-move-empty">— empty —</div>`;
