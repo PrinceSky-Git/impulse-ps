@@ -57,11 +57,19 @@ export function saveAllData(): void {
 	}
 }
 
-// Smart Wrapper: Returns the run for the user's currently active mode
 export function getState(userid: string): PokeRogueState | null {
 	const user = getUserData(userid);
-	if (!user.activeMode) return null;
-	return user.runs[user.activeMode] || null;
+	// If activeMode is set, use it
+	if (user.activeMode && user.runs[user.activeMode]) {
+		return user.runs[user.activeMode]!;
+	}
+	// Fallback: find any existing run (handles missing activeMode after hotpatch)
+	const existingMode = Object.keys(user.runs)[0] as GameMode | undefined;
+	if (existingMode) {
+		user.activeMode = existingMode; // repair it
+		return user.runs[existingMode]!;
+	}
+	return null;
 }
 
 // Smart Wrapper: Saves the state directly into the correct mode slot
