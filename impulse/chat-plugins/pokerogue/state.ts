@@ -38,7 +38,8 @@ export function getUserData(userid: string): UserSaveData {
 		displayName: userid, 
 		activeMode: 'classic', 
 		starters: {}, 
-		runs: {} 
+		runs: {},
+		saveSlots: {}
 	};
 	userCache[userid] = newData;
 	return newData;
