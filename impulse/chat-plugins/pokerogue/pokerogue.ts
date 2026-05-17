@@ -580,16 +580,39 @@ export const commands: Chat.ChatCommands = {
 					const slot = parseInt(args[1]);
 					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
 						(state as any).pendingStatsSlot = slot;
+						(state as any).statsTab = (state as any).statsTab ?? 0; // preserve tab if slot unchanged
 					} else {
 						return;
 					}
 				} else {
 					delete (state as any).pendingStatsSlot;
+					delete (state as any).statsTab;
 				}
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
+		},
+
+		statstab(target, room, user) {
+			const state = getState(user.id);
+			if (!state) return;
+			const args = target.trim().split(' ');
+			const dir = args[0]; // 'prev', 'next', or '0'/'1'/'2'
+			const TAB_COUNT = 3;
+			let current = (state as any).statsTab ?? 0;
+			if (dir === 'next') {
+				current = (current + 1) % TAB_COUNT;
+			} else if (dir === 'prev') {
+				current = (current - 1 + TAB_COUNT) % TAB_COUNT;
+			} else {
+				const n = parseInt(dir);
+				if (!isNaN(n) && n >= 0 && n < TAB_COUNT) current = n;
+			}
+
+			(state as any).statsTab = current;
+			setState(user.id, state);
+			refreshGamePage(user);
 		},
 
 		prebattle(target, room, user) {
