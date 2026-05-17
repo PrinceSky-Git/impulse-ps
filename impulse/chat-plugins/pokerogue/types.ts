@@ -180,4 +180,10 @@ export interface PokeRogueState {
 	pendingTrainer?: string;
 	firstGymLeaderWave?: number;
 	pendingTrainerKey?: string;
+	shopCategory?: string;
+	bagCategory?: string;
+	bagItem?: boolean;
+	pendingStatsSlot?: number;
+	statsTab?: number;
+	lastThrowTime?: number;
 }
