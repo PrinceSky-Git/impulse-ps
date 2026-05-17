@@ -459,6 +459,15 @@ function pickNextBiome(
 	return fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)] || startingBiome;
 }
 
+function clearStaleBattleRoom(state: PokeRogueState, userId: string): void {
+	if (!state.battleRoomId) return;
+	const bRoom = Rooms.get(state.battleRoomId as RoomID);
+	if (!bRoom?.battle || bRoom.battle.ended) {
+		delete state.battleRoomId;
+		setState(userId, state);
+	}
+}
+
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
 
@@ -580,7 +589,7 @@ export const commands: Chat.ChatCommands = {
 					const slot = parseInt(args[1]);
 					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
 						(state as any).pendingStatsSlot = slot;
-						(state as any).statsTab = (state as any).statsTab ?? 0; // preserve tab if slot unchanged
+						(state as any).statsTab = (state as any).statsTab ?? 0;
 					} else {
 						return;
 					}
@@ -598,7 +607,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state) return;
 			const args = target.trim().split(' ');
-			const dir = args[0]; // 'prev', 'next', or '0'/'1'/'2'
+			const dir = args[0];
 			const TAB_COUNT = 3;
 			let current = (state as any).statsTab ?? 0;
 			if (dir === 'next') {
@@ -619,6 +628,9 @@ export const commands: Chat.ChatCommands = {
 			if (!user.named) return this.errorReply("Login required.");
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+
+			// clear stale battle room before checking if already in battle
+			clearStaleBattleRoom(state, user.id);
 
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
@@ -670,6 +682,10 @@ export const commands: Chat.ChatCommands = {
 		battle(target, room, user) {
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+
+			// clear stale battle room before checking if already in battle
+			clearStaleBattleRoom(state, user.id);
+
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
 				return this.errorReply("Resolve all pending choices before starting a battle.");
