@@ -953,11 +953,12 @@ function renderShopView(state: PokeRogueState): string {
 	// 1. Dynamically compute categories
 	const categories = new Set<string>();
 	for (const [, item] of permItems) {
-		// Fallback to 'Misc' just in case an item in shopdb.json is missing the category field
 		categories.add((item as any).category || 'Misc'); 
 	}
-	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
 	
+	// Sort categories alphabetically A to Z
+	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
+
 	if (categoryList.length === 0) {
 		return buf + `<div style="text-align:center;padding:16px;color:#888;">No items available yet.</div>`;
 	}
@@ -968,16 +969,23 @@ function renderShopView(state: PokeRogueState): string {
 		activeCategory = categoryList[0];
 	}
 
-	// 3. Render the Tab Navigation (Pill-style buttons)
-	buf += `<div class="pr-sv-nav" style="margin-bottom: 12px; justify-content: center; gap: 6px; display: flex; flex-wrap: wrap;">`;
-	for (const cat of categoryList) {
+	// 3. Render the Tab Navigation (Centered exactly like Main Menu)
+	buf += `<div style="text-align:center;margin-bottom:12px">`;
+	for (let i = 0; i < categoryList.length; i++) {
+		const cat = categoryList[i];
 		const isBtnActive = cat === activeCategory;
+		
 		buf += renderBtn(
 			isBtnActive ? null : `/pokerogue shoptab ${cat}`,
 			cat,
 			`pr-btn${isBtnActive ? ' primary' : ''}`,
-			'padding: 4px 12px; font-size: 11px; border-radius: 12px;'
+			'font-size:11px;padding:5px 10px'
 		);
+		
+		// Add non-breaking spaces between buttons, except after the last one
+		if (i < categoryList.length - 1) {
+			buf += `&nbsp;&nbsp;`;
+		}
 	}
 	buf += `</div>`;
 
@@ -996,21 +1004,18 @@ function renderBagView(state: PokeRogueState): string {
 	// 1. Collect all possessed items
 	const possessedItems: { key: string, item: any, qty: number }[] = [];
 	
-	// Add inventory items (Pokéballs, Medicine, Vitamins)
 	for (const [key, qty] of Object.entries(inv)) {
 		if (qty > 0 && activeShop[key]) {
 			possessedItems.push({ key, item: activeShop[key], qty });
 		}
 	}
 	
-	// Add key items (Exp. All, Exp. Charm, etc.)
 	const keyItemCounts = new Map<string, number>();
 	for (const ki of keyItems) {
 		keyItemCounts.set(ki, (keyItemCounts.get(ki) || 0) + 1);
 	}
 	
 	for (const [name, qty] of keyItemCounts.entries()) {
-		// Key items are stored by name in state.keyItems, so we find them by name
 		const entry = Object.entries(activeShop).find(([, i]) => i.name === name);
 		if (entry) {
 			possessedItems.push({ key: entry[0], item: entry[1], qty });
@@ -1036,16 +1041,23 @@ function renderBagView(state: PokeRogueState): string {
 		activeCategory = categoryList[0];
 	}
 
-	// 4. Render the Tab Navigation (Pill-style buttons)
-	buf += `<div class="pr-sv-nav" style="margin-bottom: 12px; justify-content: center; gap: 6px; display: flex; flex-wrap: wrap;">`;
-	for (const cat of categoryList) {
+	// 4. Render the Tab Navigation (Centered exactly like Main Menu)
+	buf += `<div style="text-align:center;margin-bottom:12px">`;
+	for (let i = 0; i < categoryList.length; i++) {
+		const cat = categoryList[i];
 		const isBtnActive = cat === activeCategory;
+		
 		buf += renderBtn(
 			isBtnActive ? null : `/pokerogue bagtab ${cat}`,
 			cat,
 			`pr-btn${isBtnActive ? ' primary' : ''}`,
-			'padding: 4px 12px; font-size: 11px; border-radius: 12px;'
+			'font-size:11px;padding:5px 10px'
 		);
+		
+		// Add non-breaking spaces between buttons, except after the last one
+		if (i < categoryList.length - 1) {
+			buf += `&nbsp;&nbsp;`;
+		}
 	}
 	buf += `</div>`;
 
@@ -1061,7 +1073,6 @@ function renderBagView(state: PokeRogueState): string {
 	buf += `<th style="text-align:right; padding:3px 4px;">Action</th>`;
 	buf += `</tr></thead><tbody>`;
 
-	// Check if the player is currently allowed to use items
 	const canUse = !state.battleRoomId && !state.pendingChoice?.length && !state.pendingMoves?.length &&
 		!state.pendingSwap && !state.moveToLearn && !state.pendingItemName &&
 		!state.itemOptions?.length && !state.pendingConsumableType;
@@ -1072,13 +1083,11 @@ function renderBagView(state: PokeRogueState): string {
 		buf += `<td class="pr-td-name" style="padding:3px 4px; font-weight:500; white-space:nowrap;">${Utils.escapeHTML(item.name)}</td>`;
 		buf += `<td class="pr-td-desc" style="padding:3px 4px; font-size:10px; color:#aaa;">${Utils.escapeHTML(item.desc)}</td>`;
 		
-		// Highlight Key Items with a blue quantity color just like the original logic did
 		const qtyColor = item.type === 'key' ? '#8ab4f8' : 'inherit';
 		buf += `<td class="pr-td-qty" style="padding:3px 4px; text-align:right; font-weight:bold; font-size:13px; color:${qtyColor};">x${qty}</td>`;
 		
 		buf += `<td class="pr-td-action" style="padding:3px 4px; text-align:right;">`;
 		
-		// Render "Use" button only for usable items (Vitamins, Heals)
 		if (['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type) && canUse) {
 			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
 		}
