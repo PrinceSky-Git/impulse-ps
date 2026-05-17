@@ -917,9 +917,20 @@ export function packPokemon(mon: PokemonEntry): string {
 	const ability = mon.ability || (sp.abilities as any)['0'] || '';
 	const nature = mon.nature || 'Hardy';
 	if (!mon.moves) mon.moves = getLevelUpMoves(toID(mon.species), mon.level);
+	
+	const evs = mon.evs ? `${mon.evs.hp},${mon.evs.atk},${mon.evs.def},${mon.evs.spa},${mon.evs.spd},${mon.evs.spe}` : '';
+	const ivs = mon.ivs ? `${mon.ivs.hp},${mon.ivs.atk},${mon.ivs.def},${mon.ivs.spa},${mon.ivs.spd},${mon.ivs.spe}` : '';
+	const gender = mon.gender || 'M';
+	const shiny = mon.shiny ? 'S' : '';
+	const item = mon.heldItem ?? '';
+	const moves = mon.moves.join(',');
+	
+	let base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
+	
 	if ((mon.currentHp ?? 100) <= 0) {
-		return `${name}||${mon.heldItem ?? ''}|${ability}|${mon.moves.join(',')}|${nature}||M|||${mon.level}|`;
+		return base;
 	}
+	
 	const hp = mon.currentHp ?? 100;
 	const status = mon.status ?? '';
 	let tail = '';
@@ -927,7 +938,7 @@ export function packPokemon(mon: PokemonEntry): string {
 		tail = `,,,,,,${hp !== 100 ? hp : ''},${status}`;
 		if (!status) tail = tail.replace(/,$/, '');
 	}
-	return `${name}||${mon.heldItem ?? ''}|${ability}|${mon.moves.join(',')}|${nature}||M|||${mon.level}|${tail}`;
+	return base + tail;
 }
 
 export function packAIPokemon(set: AIPokemonSet): string {

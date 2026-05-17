@@ -442,7 +442,6 @@ function pickNextBiome(
 	data: { transitions: Record<string, { biome: string, weight: number }[]>, excludedBiomes?: string[], biomes: Record<string, any> },
 	startingBiome: string
 ): string {
-	// Weighted transitions preserve each mode's intended route while avoiding excluded or terminal biome pools.
 	const excluded = new Set(data.excludedBiomes ?? []);
 	const options = (data.transitions[currentBiome] ?? []).filter(t => !excluded.has(t.biome));
 
@@ -562,8 +561,9 @@ export const commands: Chat.ChatCommands = {
 		view(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return;
-			const v = target.trim() as any;
-			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome'].includes(v)) {
+			const args = target.trim().split(' ');
+			const v = args[0] as any;
+			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats'].includes(v)) {
 				if (v === 'welcome' && state.gameOver) {
 					delete state.gameOver;
 					delete state.lastRunFloor;
@@ -575,6 +575,16 @@ export const commands: Chat.ChatCommands = {
 					delete state.lastRunFloor;
 					state.team = [];
 					state.floor = 1;
+				}
+				if (v === 'stats') {
+					const slot = parseInt(args[1]);
+					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
+						(state as any).pendingStatsSlot = slot;
+					} else {
+						return;
+					}
+				} else {
+					delete (state as any).pendingStatsSlot;
 				}
 				(state as any).view = v;
 				setState(user.id, state);
@@ -601,7 +611,6 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			if (state.pendingTrainer && state.pendingTrainerKey) {
-				// Pending trainers are persisted so a page refresh cannot reroll the encounter before the player starts battle.
 				(state as any).view = 'trainer';
 				setState(user.id, state);
 				refreshGamePage(user);
@@ -688,6 +697,34 @@ export const commands: Chat.ChatCommands = {
 
 			let newMon: PokemonEntry;
 
+			const randomIvs = {
+				hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+				def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+				spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+			};
+			const shiny = Math.floor(Math.random() * 4096) === 0;
+			const gender = Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
+			const allTypes = Dex.types.all().map(t => t.name);
+			const teraType = Math.floor(Math.random() * 20) === 0 ?
+				allTypes[Math.floor(Math.random() * allTypes.length)] :
+				Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)];
+
+			const commonProps = {
+				ivs: randomIvs,
+				evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+				shiny: shiny,
+				gender: gender as any,
+				teraType: teraType,
+				happiness: 120,
+				originalTrainer: state.displayName || user.name,
+				otId: user.id.substring(0, 6),
+				metLocation: "Professor Oak's Lab",
+				metLevel: addedLevel,
+				metDate: Date.now(),
+				marks: [],
+				ball: 'pokeball'
+			};
+
 			if (config.randomizeMoves || config.randomizeAbilities) {
 				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
 				const g = generated[0];
@@ -700,6 +737,7 @@ export const commands: Chat.ChatCommands = {
 					ppLeft: g.moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					nature: g.nature,
 					ability: g.ability,
+					...commonProps
 				} as PokemonEntry;
 			} else {
 				const finalExpType = getExpType(finalSpecies);
@@ -716,6 +754,7 @@ export const commands: Chat.ChatCommands = {
 					moves: initialMoves,
 					ppLeft: initialMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					nature: displayNature,
+					...commonProps
 				} as PokemonEntry;
 			}
 
@@ -1272,12 +1311,24 @@ export const commands: Chat.ChatCommands = {
 				let caughtAbility = (Dex.species.get(p2Species).abilities as any)['0'] || '';
 				let caughtItem = '';
 
+				const freshCaughtIvs = {
+					hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+					def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+					spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+				};
+				let caughtShiny = false;
+				let caughtGender = Dex.species.get(p2Species).gender || (Math.random() < 0.5 ? 'M' : 'F');
+				let caughtTera = Dex.species.get(p2Species).types[0];
+
 				if (catchMatch.botTeam) {
 					const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
 					if (botMon) {
 						if (botMon.moves && botMon.moves.length > 0) caughtMoves = botMon.moves;
 						if (botMon.ability) caughtAbility = botMon.ability;
 						if (botMon.item) caughtItem = botMon.item;
+						if (botMon.shiny) caughtShiny = botMon.shiny;
+						if (botMon.gender) caughtGender = botMon.gender;
+						if (botMon.teraType) caughtTera = botMon.teraType;
 					}
 				}
 
@@ -1290,14 +1341,20 @@ export const commands: Chat.ChatCommands = {
 					nature: randomNature,
 					ppLeft: caughtMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					currentHp: hpPct,
-					evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-					ivs: {
-						hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
-						def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
-						spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
-					},
 					ability: caughtAbility,
 					ball: ballType,
+					ivs: freshCaughtIvs,
+					evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+					shiny: caughtShiny,
+					gender: caughtGender as any,
+					teraType: caughtTera,
+					happiness: 70,
+					originalTrainer: state.displayName || user.name,
+					otId: user.id.substring(0, 6),
+					metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
+					metLevel: p2Level,
+					metDate: Date.now(),
+					marks: []
 				};
 
 				if (caughtItem) caught.heldItem = caughtItem;
@@ -1528,7 +1585,6 @@ export const handlers: Chat.Handlers = {
 			state.floor++;
 
 			if (config.maxFloor && prevFloor >= config.maxFloor) {
-				// Victory is finalized before floor advancement so max-floor modes cannot roll post-win choices or biomes.
 				state.gameWon = true;
 				state.lastRunFloor = prevFloor;
 				if (prevFloor > (state.highestFloor ?? 0)) {
@@ -1543,7 +1599,6 @@ export const handlers: Chat.Handlers = {
 			}
 
 			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.biomeRotationInterval) {
-				// Mode hooks take precedence over generic weighted biome rotation for story-specific final areas.
 				if (config.lastBiome && !data.resolveBiome) {
 					const range = parseFloorRange(config.lastBiome.floor);
 					if (range && state.floor >= range.start && state.floor <= range.end) {

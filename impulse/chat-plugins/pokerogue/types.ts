@@ -103,7 +103,6 @@ export interface ModeData {
 
 	shop?: Record<string, any>;
 
-	// Mode hooks override generic engine routing; keep them deterministic because state is persisted between page refreshes.
 	resolveBiome?: (floor: number, currentBiome: string, config: ModeConfig) => string;
 
 	resolveTrainer?: (floor: number, state: PokeRogueState, config: ModeConfig) => { key: string, name: string } | null;
@@ -125,6 +124,18 @@ export interface PokemonEntry {
 	nature?: string;
 	evs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
 	ability?: string;
+	ivs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
+	teraType?: string;
+	gender?: 'M' | 'F' | 'N';
+	shiny?: boolean;
+	happiness?: number;
+	nickname?: string;
+	originalTrainer?: string;
+	otId?: string;
+	metLocation?: string;
+	metLevel?: number;
+	metDate?: number;
+	marks?: string[];
 }
 
 export interface PokeRogueState {
@@ -170,5 +181,3 @@ export interface PokeRogueState {
 	firstGymLeaderWave?: number;
 	pendingTrainerKey?: string;
 }
-
-export type SavedData = Record<string, PokeRogueState>;

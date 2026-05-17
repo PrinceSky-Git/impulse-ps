@@ -143,7 +143,6 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome' && !hasGameOver) {
-		// Trainer and welcome screens intentionally omit Back to prevent rerolling committed encounter state.
 		buf += renderBtn('/pokerogue view main', '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	}
 	return buf + `</div>`;
@@ -183,7 +182,7 @@ function renderHpBar(mon: PokemonEntry): string {
 		`</div>`;
 }
 
-function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber = 9): string {
+function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber = 9, statsButton?: string): string {
 	const spData = Dex.species.get(toID(mon.species));
 	const expNeeded = mon.level < 9999 ? expForLevel(mon.level + 1) - mon.exp : 0;
 
@@ -201,7 +200,12 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 	const moves: string[] = mon.moves?.length ? mon.moves : getLevelUpMoves(toID(mon.species), mon.level, genNumber);
 
 	let buf = `<tr class="pr-team-row">`;
-	buf += `<td class="pr-td-icon" style="vertical-align:top;padding-top:10px">${getSpriteWithBall(mon.species, 44, mon.ball)}</td>`;
+	
+	buf += `<td class="pr-td-icon" style="vertical-align:top;padding-top:10px">`;
+	buf += getSpriteWithBall(mon.species, 44, mon.ball);
+	if (statsButton) buf += statsButton;
+	buf += `</td>`;
+	
 	buf += `<td class="pr-td-team-main">`;
 
 	buf += `<div class="pr-td-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">`;
@@ -479,7 +483,6 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 	const trainerName = state.pendingTrainer!;
 	const lookupKey = state.pendingTrainerKey || state.floor.toString();
 	const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
-	// The intro view reads persisted trainer keys rather than rolling again, keeping battle generation deterministic.
 	const trainerData = modeData.trainers?.[lookupKey]?.[trainerName];
 
 	let buf = `<div style="text-align:center; padding: 40px 10px;">`;
@@ -609,7 +612,6 @@ function renderMainView(state: PokeRogueState, user: User): string {
 		else if (hp >= 100) qHealLabel = "Full HP";
 		else if (!healItems.length) qHealLabel = "No Items";
 		else {
-			// Quick actions use the cheapest affordable mode-specific shop item so custom modes inherit correct economy rules.
 			const affordableHeal = healItems.find((item: any) => bp >= item.cost);
 			if (affordableHeal) qHealDisabled = false;
 			else qHealLabel = "Need BP";
@@ -631,7 +633,10 @@ function renderMainView(state: PokeRogueState, user: User): string {
 			actionBtn += renderBtn(`/pokerogue releasemon ${i + 1}`, 'Release', 'pr-shop-buy', "display:block;width:100%;box-sizing:border-box;");
 		}
 
-		buf += renderTeamTableRow(mon, actionBtn, genNumber);
+		const statsBtnStyle = "display:block;width:100%;margin-top:8px;box-sizing:border-box;text-align:center;padding:3px 0;";
+		const statsBtn = renderBtn(`/pokerogue view stats ${i}`, 'Stats', 'pr-shop-buy', statsBtnStyle);
+
+		buf += renderTeamTableRow(mon, actionBtn, genNumber, statsBtn);
 	}
 
 	buf += `</tbody></table></div>`;
