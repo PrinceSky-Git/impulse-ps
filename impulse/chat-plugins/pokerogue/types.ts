@@ -42,6 +42,7 @@ export interface ModeConfig {
 	hasTrainers: boolean;
 	randomizeMoves: boolean;
 	randomizeAbilities: boolean;
+	randomizeTypes: boolean;
 	startingBiome: string;
 	starterLevel?: number;
 	generation: number;
@@ -117,6 +118,7 @@ export interface PokemonEntry {
 	expType?: string;
 	heldItem?: string;
 	moves: string[];
+	types?: string[];
 	currentHp?: number;
 	ppLeft?: number[];
 	status?: StatusCondition;
