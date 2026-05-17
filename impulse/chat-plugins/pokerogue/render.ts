@@ -240,6 +240,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 
 	const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 	const moves: string[] = mon.moves?.length ? mon.moves : getLevelUpMoves(toID(mon.species), mon.level, genNumber);
+	const displayTypes = mon.types ?? spData.types ?? [];
 
 	let buf = `<tr class="pr-team-row">`;
 	
@@ -252,7 +253,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 
 	buf += `<div class="pr-td-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">`;
 	buf += `${spData.name} &nbsp;&nbsp;&nbsp;<span class="pr-mon-lv">Lv. ${mon.level}</span></div>`;
-	buf += `<div class="pr-types">${renderTypeBadge(spData.types ?? [])}</div>`;
+	buf += `<div class="pr-types">${renderTypeBadge(displayTypes)}</div>`;
 
 	if (mon.heldItem) {
 		const dexHeld = Dex.items.get(mon.heldItem);
