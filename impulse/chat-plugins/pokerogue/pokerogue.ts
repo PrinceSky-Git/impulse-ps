@@ -973,6 +973,19 @@ export const commands: Chat.ChatCommands = {
 						mon.currentHp = (item.isMax || mon.species === 'shedinja') ? 100 : revAmt;
 						delete mon.status;
 						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
+					} else if (item.type === 'vitamin') {
+						if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+						const evStat = (item as any).evStat as keyof typeof mon.evs;
+						if (!evStat) return this.errorReply("Invalid vitamin.");
+						if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+						const totalEvs = Object.values(mon.evs).reduce((a, b) => a + b, 0);
+						if (totalEvs >= 508) return this.errorReply("This Pokémon's EVs are maxed out (508 total).");
+						if (mon.evs[evStat] >= 252) return this.errorReply(`This Pokémon's ${evStat.toUpperCase()} EVs are already at max (252).`);
+						state.battlePoints -= item.cost;
+						const gain = Math.min(10, 252 - mon.evs[evStat], 508 - totalEvs);
+						mon.evs[evStat] += gain;
+						const statLabel: Record<string, string> = { hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed' };
+						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${statLabel[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/252)`;
 					}
 
 					delete state.purchasedItem;
@@ -1158,7 +1171,7 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
-			if (['healHP', 'revive', 'cureStatus'].includes(item.type)) {
+			if (['healHP', 'revive', 'cureStatus', 'vitamin'].includes(item.type)) {
 				state.purchasedItem = key;
 				state.pendingConsumableType = item.type;
 				setState(user.id, state);
