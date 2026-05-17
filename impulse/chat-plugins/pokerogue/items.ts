@@ -1,4 +1,4 @@
-import { FS } from '../../../lib';
+import { SHOP_DB } from './shopdb';
 
 const ROGUELIKE_DATA_PATH = 'impulse/chat-plugins/pokerogue';
 
@@ -29,8 +29,7 @@ export interface ShopItem {
 	evStat?: string;
 }
 
-export const SHOP_ITEMS: Record<string, ShopItem> =
-        JSON.parse(FS(`${ROGUELIKE_DATA_PATH}/shopdb.json`).readSync());
+export const SHOP_ITEMS: Record<string, ShopItem> = SHOP_DB;
 
 export function genItem(quantity: number, extraArg?: PokemonSet[] | string): string[] {
 	let all = Dex.items.all().filter(s => (s.isGem || s.itemUser || s.zMove) || !s.isNonstandard);
