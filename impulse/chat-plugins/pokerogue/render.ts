@@ -639,7 +639,7 @@ function renderStatsView(state: PokeRogueState): string {
 	buf += `<div class="pr-sv-name">${Utils.escapeHTML(spData.name)} ${gender}${mon.shiny ? ' <span class="pr-sv-shiny">★</span>' : ''}&nbsp;&nbsp;`;
 	buf += `<span class="pr-level-badge">Lv.${mon.level}</span></div>`;
 	buf += `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px;">`;
-	buf += renderTypeBadge(spData.types ?? []);
+	buf += renderTypeBadge(mon.types ?? spData.types ?? []);
 	buf += `</div>`;
 	buf += `<div class="pr-sv-hp-row">`;
 	buf += `<span class="pr-sv-hp-label">HP</span>`;
