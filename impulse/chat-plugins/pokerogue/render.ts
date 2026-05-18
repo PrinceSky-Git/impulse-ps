@@ -390,7 +390,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
 	buf += `</div>`;
 
-	buf += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;">`;
+	buf += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">`;
 
 	for (let i = 0; i < pending.length; i++) {
 		const sid = toID(pending[i]);
@@ -399,9 +399,11 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 		const saved = userData.starters[sid];
 		const isShiny = !!saved?.shiny;
 
-		buf += `<div class="pr-card" style="padding:5px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;">`;
-		buf += getSpriteWithBall(sp.id, 32, saved?.ball, isShiny);
-		buf += renderBtn(`/pokerogue choose ${i + 1}`, 'Select', 'pr-pick-btn', 'width:100%;text-align:center;padding:3px 0;font-size:10px;');
+		buf += `<div class="pr-card" style="padding:5px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;box-sizing:border-box;">`;
+		buf += `<div style="width:32px;height:32px;flex-shrink:0;position:relative;margin:0 auto;">`;
+		buf += getSprite(sp.id, 32, isShiny);
+		buf += `</div>`;
+		buf += `<button name="send" value="/pokerogue choose ${i + 1}" class="pr-pick-btn" style="width:100%;text-align:center;padding:3px 0;font-size:10px;box-sizing:border-box;display:block;">Select</button>`;
 		buf += `</div>`;
 	}
 
