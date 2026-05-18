@@ -815,85 +815,85 @@ export const commands: Chat.ChatCommands = {
 			}
 		},
 
-			choose(target, room, user) {
-				const state = getState(user.id);
-				if (!state) return this.parse('/pokerogue start');
-				const userData = getUserData(user.id);
-				const n = parseInt(target) - 1;
-				if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
-				const choice = state.pendingChoice[n];
+		choose(target, room, user) {
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			const userData = getUserData(user.id);
+			const n = parseInt(target) - 1;
+			if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
+			const choice = state.pendingChoice[n];
 
-				const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
-				const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-				const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+			const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
-				let addedLevel = config.starterLevel ?? 5;
-				if (!isStarterChoice) {
-					const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
-					if (state.floor <= 30) {
-						addedLevel = Math.max(1, maxPlayerLevel - 1);
-					} else if (state.floor <= 50) {
-						addedLevel = Math.max(1, maxPlayerLevel - 2);
-					} else {
-						const levelDrop = Math.floor(Math.random() * 2) + 2;
-						addedLevel = Math.max(1, maxPlayerLevel - levelDrop);
-					}
+			let addedLevel = config.starterLevel ?? 5;
+			if (!isStarterChoice) {
+				const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
+				if (state.floor <= 30) {
+					addedLevel = Math.max(1, maxPlayerLevel - 1);
+				} else if (state.floor <= 50) {
+					addedLevel = Math.max(1, maxPlayerLevel - 2);
+				} else {
+					const levelDrop = Math.floor(Math.random() * 2) + 2;
+					addedLevel = Math.max(1, maxPlayerLevel - levelDrop);
 				}
+			}
 
-				let finalSpecies = choice;
-				if (!isStarterChoice) {
-					while (true) {
-						const evo = getLevelUpEvo(finalSpecies, 70);
-						if (!evo || addedLevel < evo.evoLevel) break;
-						finalSpecies = evo.evoTo;
-					}
+			let finalSpecies = choice;
+			if (!isStarterChoice) {
+				while (true) {
+					const evo = getLevelUpEvo(finalSpecies, 70);
+					if (!evo || addedLevel < evo.evoLevel) break;
+					finalSpecies = evo.evoTo;
 				}
-				
-				let newMon: PokemonEntry;
-				const savedStarter = isStarterChoice ? userData.starters[toID(finalSpecies)] : null;
+			}
 
-				const randomIvs = {
-					hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
-					def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
-					spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
-				};
-				const shiny = savedStarter ? !!savedStarter.shiny : (Math.floor(Math.random() * 4096) === 0);
-				const gender = savedStarter?.gender || Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
-				const allTypes = Dex.types.all().map(t => t.name);
-				const teraType = savedStarter?.teraType || (Math.floor(Math.random() * 20) === 0 ?
-					allTypes[Math.floor(Math.random() * allTypes.length)] :
-					Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)]);
+			let newMon: PokemonEntry;
+			const savedStarter = isStarterChoice ? userData.starters[toID(finalSpecies)] : null;
 
-				const commonProps = {
-					ivs: savedStarter?.ivs ? { ...savedStarter.ivs } : randomIvs,
-					evs: savedStarter?.evs ? { ...savedStarter.evs } : { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-					shiny,
-					gender: gender as any,
-					teraType,
-					happiness: 120,
-					originalTrainer: state.displayName || user.name,
-					otId: user.id.substring(0, 6),
-					metLocation: "Professor Oak's Lab",
-					metLevel: addedLevel,
-					metDate: Date.now(),
-					marks: [],
-					ball: 'pokeball',
-				};
+			const randomIvs = {
+				hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+				def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+				spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+			};
+			const shiny = savedStarter ? !!savedStarter.shiny : (Math.floor(Math.random() * 4096) === 0);
+			const gender = savedStarter?.gender || Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
+			const allTypes = Dex.types.all().map(t => t.name);
+			const teraType = savedStarter?.teraType || (Math.floor(Math.random() * 20) === 0 ?
+				allTypes[Math.floor(Math.random() * allTypes.length)] :
+				Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)]);
+
+			const commonProps = {
+				ivs: savedStarter?.ivs ? { ...savedStarter.ivs } : randomIvs,
+				evs: savedStarter?.evs ? { ...savedStarter.evs } : { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+				shiny,
+				gender: gender as any,
+				teraType,
+				happiness: 120,
+				originalTrainer: state.displayName || user.name,
+				otId: user.id.substring(0, 6),
+				metLocation: "Professor Oak's Lab",
+				metLevel: addedLevel,
+				metDate: Date.now(),
+				marks: savedStarter?.marks ? [...savedStarter.marks] : [],
+				ball: savedStarter?.ball || 'pokeball',
+			};
 
 			if (config.randomizeMoves || config.randomizeAbilities) {
 				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
 				const g = generated[0];
 				newMon = {
-						species: g.species,
-						level: g.level,
-						exp: expForLevel(g.level, getExpType(g.species)),
-						expType: getExpType(g.species),
-						moves: g.moves,
-						nature: savedStarter?.nature || g.nature,
-						ability: savedStarter?.ability || g.ability,
-						...commonProps,
-					} as PokemonEntry;
-				} else {
+					species: g.species,
+					level: g.level,
+					exp: expForLevel(g.level, getExpType(g.species)),
+					expType: getExpType(g.species),
+					moves: g.moves,
+					nature: savedStarter?.selectedNature || savedStarter?.nature || g.nature,
+					ability: savedStarter?.selectedAbility || savedStarter?.ability || g.ability,
+					...commonProps,
+				} as PokemonEntry;
+			} else {
 				const finalExpType = getExpType(finalSpecies);
 				const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
 				const natures = Dex.natures.all().map(n => n.name);
@@ -901,19 +901,22 @@ export const commands: Chat.ChatCommands = {
 				const displayNature = natures[hash % natures.length] ?? 'Hardy';
 
 				newMon = {
-						species: finalSpecies,
-						level: addedLevel,
-						exp: expForLevel(addedLevel, finalExpType),
-						expType: finalExpType,
-						moves: initialMoves,
-						nature: savedStarter?.nature || displayNature,
-						ability: savedStarter?.ability || (Dex.species.get(finalSpecies).abilities as any)['0'] || '',
-						...commonProps,
-					} as PokemonEntry;
-				}
+					species: finalSpecies,
+					level: addedLevel,
+					exp: expForLevel(addedLevel, finalExpType),
+					expType: finalExpType,
+					moves: initialMoves,
+					nature: savedStarter?.selectedNature || savedStarter?.nature || displayNature,
+					ability: savedStarter?.selectedAbility || savedStarter?.ability || (Dex.species.get(finalSpecies).abilities as any)['0'] || '',
+					...commonProps,
+				} as PokemonEntry;
+			}
 
 			if (isStarterChoice) {
 				state.team = [newMon];
+				(state as any).view = 'stats';
+				(state as any).pendingStatsSlot = 0;
+				state.isConfiguringStarter = true;
 			} else if (state.team.length < 6) {
 				state.team.push(newMon);
 			} else {
@@ -923,11 +926,6 @@ export const commands: Chat.ChatCommands = {
 			delete state.pendingChoice;
 			delete state.pendingChoiceType;
 			delete state.pendingChoiceFloor;
-
-			if ((state as any).view === 'starterselect') {
-				(state as any).view = 'main';
-			}
-				
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
@@ -1154,6 +1152,52 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("Unknown resolve action.");
 			}
 
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		cyclestarter(target, room, user) {
+			const state = getState(user.id);
+			if (!state || !state.isConfiguringStarter) return;
+			const userData = getUserData(user.id);
+
+			const [trait, direction] = target.trim().split(' ');
+			const mon = state.team[0];
+			const baseSpecies = mon.species;
+			const starterData = userData.starters[baseSpecies];
+			if (!starterData) return;
+
+			if (trait === 'nature') {
+				const pool = starterData.unlockedNatures || [mon.nature];
+				let idx = pool.indexOf(mon.nature!);
+				if (direction === 'next') idx = (idx + 1) % pool.length;
+				if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+				
+				mon.nature = pool[idx];
+				starterData.selectedNature = pool[idx];
+				starterData.nature = pool[idx];
+			} else if (trait === 'ability') {
+				const pool = starterData.unlockedAbilities || [mon.ability];
+				let idx = pool.indexOf(mon.ability!);
+				if (direction === 'next') idx = (idx + 1) % pool.length;
+				if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+				
+				mon.ability = pool[idx];
+				starterData.selectedAbility = pool[idx];
+				starterData.ability = pool[idx];
+			}
+
+			saveUserData(user.id);
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		confirmstarter(target, room, user) {
+			const state = getState(user.id);
+			if (!state || !state.isConfiguringStarter) return;
+			
+			delete state.isConfiguringStarter;
+			(state as any).view = 'main';
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
@@ -1443,8 +1487,6 @@ export const commands: Chat.ChatCommands = {
 			const p2State = new Map<string, { species: string, level: number, hp: number, maxHp: number, status: string, fainted: boolean }>();
 			let p1Fainted = false;
 
-			// Rebuild a lightweight snapshot from protocol lines so catch decisions
-			// match the current visible battle state for both singles and doubles.
 			for (const line of log) {
 				if (/^\|faint\|p1[a-z]:/.test(line)) p1Fainted = true;
 				else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) p1Fainted = false;
@@ -1585,8 +1627,6 @@ export const commands: Chat.ChatCommands = {
 				const p1Participants = new Set<string>();
 				let p2SwitchIdx = 0;
 
-				// Find the latest opposing switch point and then infer participants
-				// around it for EXP distribution metadata.
 				for (let i = log.length - 1; i >= 0; i--) {
 					if (/^\|(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
 						p2SwitchIdx = i;
@@ -1682,32 +1722,66 @@ export const commands: Chat.ChatCommands = {
 						baseSpecies = toID(prevo);
 					}
 
-						if (!userData.starters[baseSpecies]) {
-							const baseDex = Dex.species.get(baseSpecies);
-							const starterIvs = { ...caught.ivs };
-							const starterEvs = { ...caught.evs };
-							const baseCaught = {
-								...caught,
-								species: baseSpecies,
-								level: 5,
-								exp: expForLevel(5, getExpType(baseSpecies)),
-								expType: getExpType(baseSpecies),
-								moves: getLevelUpMoves(baseSpecies, 5, config.generation),
-								ability: caught.ability,
-								nature: caught.nature,
-								shiny: !!caught.shiny,
-								ivs: starterIvs,
-								evs: starterEvs,
-								metLevel: 5,
-								metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
-								currentHp: 100,
-							};
-						delete baseCaught.status;
-						delete baseCaught.heldItem;
+					const existingStarter = userData.starters[baseSpecies];
+					const baseDex = Dex.species.get(baseSpecies);
 
-						userData.starters[baseSpecies] = baseCaught;
-						saveUserData(user.id);
+					const bestIvs = existingStarter?.ivs ? {
+						hp: Math.max(existingStarter.ivs.hp, caught.ivs.hp),
+						atk: Math.max(existingStarter.ivs.atk, caught.ivs.atk),
+						def: Math.max(existingStarter.ivs.def, caught.ivs.def),
+						spa: Math.max(existingStarter.ivs.spa, caught.ivs.spa),
+						spd: Math.max(existingStarter.ivs.spd, caught.ivs.spd),
+						spe: Math.max(existingStarter.ivs.spe, caught.ivs.spe),
+					} : { ...caught.ivs };
+
+					const isShiny = existingStarter?.shiny || caught.shiny;
+
+					const unlockedNatures = new Set(existingStarter?.unlockedNatures || []);
+					if (caught.nature) unlockedNatures.add(caught.nature);
+
+					const unlockedAbilities = new Set(existingStarter?.unlockedAbilities || []);
+					if (caught.ability) unlockedAbilities.add(caught.ability);
+
+					const selectedNature = existingStarter?.selectedNature || caught.nature;
+					const selectedAbility = existingStarter?.selectedAbility || caught.ability;
+
+					const baseCaught = {
+						...caught,
+						species: baseSpecies,
+						level: 5,
+						exp: expForLevel(5, getExpType(baseSpecies)),
+						expType: getExpType(baseSpecies),
+						moves: getLevelUpMoves(baseSpecies, 5, config.generation),
+						ability: selectedAbility,
+						nature: selectedNature,
+						shiny: !!isShiny,
+						ivs: bestIvs,
+						evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+						metLevel: 5,
+						metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
+						currentHp: 100,
+						ball: caught.ball,
+						gender: caught.gender,
+						teraType: caught.teraType,
+						marks: caught.marks ? [...caught.marks] : [],
+						unlockedNatures: Array.from(unlockedNatures),
+						unlockedAbilities: Array.from(unlockedAbilities),
+						selectedNature: selectedNature,
+						selectedAbility: selectedAbility,
+					};
+					
+					delete baseCaught.status;
+					delete baseCaught.heldItem;
+
+					userData.starters[baseSpecies] = baseCaught;
+					saveUserData(user.id);
+
+					if (!existingStarter) {
 						room.add(`|c|~|${baseDex.name} has been permanently unlocked as a Starter!`).update();
+					} else {
+						let upgradeMsg = " upgraded its Starter data!";
+						if (!existingStarter.shiny && caught.shiny) upgradeMsg = " unlocked its Shiny form!";
+						room.add(`|c|~|${baseDex.name}${upgradeMsg}`).update();
 					}
 				}
 
