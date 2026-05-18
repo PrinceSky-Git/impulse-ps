@@ -1302,6 +1302,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 
 	buf += renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 
+	if (view === 'starterselect') return buf + renderStarterSelectionView(state, user) + `</div></div>`;
 	if (state.pendingChoice?.length) return buf + renderPendingChoice(state) + `</div></div>`;
 	if (state.pendingSwap) return buf + renderPendingSwap(state) + `</div></div>`;
 	if (state.pendingMoves?.length) return buf + renderPendingMoves(state) + `</div></div>`;
