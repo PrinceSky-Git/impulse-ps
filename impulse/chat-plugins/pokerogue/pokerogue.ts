@@ -1701,7 +1701,9 @@ export const commands: Chat.ChatCommands = {
 				if (shakes === 1) escapeMsg = `|c|~|Aww! It appeared to be caught!`;
 				if (shakes === 2) escapeMsg = `|c|~|Aargh! Almost had it!`;
 				room.add(escapeMsg).update();
-				void room.battle.stream.write(`>p1 pass`);
+				const numActive = room.battle.sides[0]?.active?.length ?? 1;
+				const passChoice = Array(numActive).fill('pass').join(', ');
+				void room.battle.stream.write(`>p1 ${passChoice}`);
 			}
 		},
 
