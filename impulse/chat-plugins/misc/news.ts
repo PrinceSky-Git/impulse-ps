@@ -38,9 +38,9 @@ const NewsManager = {
 	},
 
 	save() {
-		FS(DATA_FILE).safeWriteSync(JSON.stringify(data));
+		FS(DATA_FILE).writeUpdate(() => JSON.stringify(data));
 	},
-
+	
 	formatDate(date = new Date()) {
 		const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 		return `${months[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
