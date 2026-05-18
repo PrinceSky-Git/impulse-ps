@@ -46,6 +46,7 @@ export interface ModeConfig {
 	starterLevel?: number;
 	generation: number;
 	baseFormat: string;
+	doublesFormat?: string;
 	milestoneRewards?: { floor: number, interval: boolean, itemType: string, itemName: string, amount: number }[];
 
 	levelScalingFn?: (floor: number) => { cap: number, min: number, max: number };

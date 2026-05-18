@@ -28,7 +28,6 @@ export function destroyBotUser(botUser: User): void {
 	}
 }
 
-// Synthetic users must behave like real Showdown connections so rejected AI choices can be retried.
 function createBotUser(playerId: string): User {
 	const uid = ++botCounter;
 	const connId = `pokerogue-bot-${uid}`;
@@ -210,7 +209,6 @@ function scoreMove(
 	turn: number,
 	battleContext: BattleContext,
 ): number {
-	// Battle requests omit hidden state, so move scores stay heuristic instead of pretending to simulate a full battle.
 	const moveData = Dex.moves.get(move.id);
 	if (!moveData.exists) return 0;
 
@@ -431,7 +429,6 @@ function shouldSwitch(
 	room: AnyObject | null | undefined,
 	alreadyChosen: number[],
 ): number {
-	// Keep switching conservative; a bad forced switch can trap the bot in repeated switch decisions.
 	const pokemon = request.side?.pokemon ?? [];
 	const currentPokemon = pokemon[activeIdx];
 	if (!currentPokemon) return 0;
@@ -674,7 +671,6 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 			if (active.canMegaEvo && config.mechanicUnlocks?.mega && currentFloor >= config.mechanicUnlocks.mega) {
 				chosen += ' mega';
 			} else if (active.canTerastallize && config.mechanicUnlocks?.terastallize && currentFloor >= config.mechanicUnlocks.terastallize) {
-				// Spend Terastallization only when it avoids obvious defensive penalties or adds meaningful STAB.
 				const targetDex = Dex.species.get(targetSpecies);
 				const userDex = Dex.species.get(userSpecies);
 
@@ -726,6 +722,7 @@ interface ActiveRougeMatch {
 	lastPanelTurn?: number;
 	isTrainerBattle?: boolean;
 	botTeam?: AIPokemonSet[];
+	isDoubles?: boolean;
 }
 
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
@@ -781,6 +778,12 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	const isTrainer = botTeamData.isTrainer;
 	const trainerName = botTeamData.trainerName;
 
+	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+	const isBoss = state.floor % config.bossInterval === 0;
+
+	const hasLure = (state.keyItems ?? []).includes('Lure');
+	const isDoubles = !isTrainer && !isBoss && hasLure && botTeamData.team.length > 1 && livingTeam.length > 1;
+
 	if (state.pendingTrainer) {
 		delete state.pendingTrainer;
 	}
@@ -788,8 +791,6 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		delete state.pendingTrainerKey;
 	}
 
-	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-	const isBoss = state.floor % config.bossInterval === 0;
 	const botUser = createBotUser(user.id);
 
 	let opponentTitle = isTrainer && trainerName ? trainerName : (isTrainer ? TRAINER_NAME : 'Wild Encounter');
@@ -800,7 +801,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	}
 
 	const botSlot = 'p2' as const;
-	const format = config.baseFormat;
+	const format = (isDoubles && config.doublesFormat) ? config.doublesFormat : config.baseFormat;
 
 	let battleRoom: AnyObject | null = null;
 	try {
@@ -882,6 +883,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		floor: state.floor,
 		isTrainerBattle: isTrainer,
 		botTeam: botTeamData.team,
+		isDoubles,
 	});
 
 	clearMoveHistory(battleRoom.roomid);

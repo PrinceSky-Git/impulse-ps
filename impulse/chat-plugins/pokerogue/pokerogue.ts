@@ -1425,7 +1425,7 @@ export const commands: Chat.ChatCommands = {
 			(state as any).lastThrowTime = now;
 
 			const log = room.log?.log || [];
-			
+
 			const p2State = new Map<string, { species: string, level: number, hp: number, maxHp: number, status: string, fainted: boolean }>();
 			let p1Fainted = false;
 
@@ -1480,6 +1480,15 @@ export const commands: Chat.ChatCommands = {
 					}
 					continue;
 				}
+			}
+
+			let aliveOpponents = 0;
+			for (const [, data] of p2State.entries()) {
+				if (!data.fainted && data.hp > 0) aliveOpponents++;
+			}
+
+			if (aliveOpponents > 1) {
+				return this.errorReply("It's no good! It's impossible to aim when there are multiple Pokémon!");
 			}
 
 			if (p1Fainted) {
