@@ -137,6 +137,12 @@ export interface PokemonEntry {
 	metLevel?: number;
 	metDate?: number;
 	marks?: string[];
+
+	// Permanent Progression Unlocks for Starters
+	unlockedNatures?: string[];
+	unlockedAbilities?: string[];
+	selectedNature?: string;
+	selectedAbility?: string;
 }
 
 export interface PokeRogueState {
@@ -188,6 +194,9 @@ export interface PokeRogueState {
 	pendingStatsSlot?: number;
 	statsTab?: number;
 	lastThrowTime?: number;
+
+	// UI State Flags
+	isConfiguringStarter?: boolean;
 }
 
 export interface GlobalStatEntry {
