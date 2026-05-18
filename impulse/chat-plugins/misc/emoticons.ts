@@ -52,7 +52,7 @@ const EmoteManager = {
 	},
 
 	save() {
-		FS(DATA_FILE).safeWriteSync(JSON.stringify(data));
+		FS(DATA_FILE).safeWrite(JSON.stringify(data));
 	},
 
 	buildRegex() {
