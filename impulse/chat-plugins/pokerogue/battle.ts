@@ -619,6 +619,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 				continue;
 			}
 
+			const userSpecies = toID(pokemon.details?.split(',')[0] ?? '');
 			const targetSpecies = getOpponentSpecies(room, i) || getOpponentSpecies(room, oppActiveSlots[0]);
 			const targetAbility = getOpponentAbility(room, i) || getOpponentAbility(room, oppActiveSlots[0]);
 
