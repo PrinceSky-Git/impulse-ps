@@ -8,7 +8,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Pokéballs",
 		desc: "A standard ball for catching wild Pokemon.",
 		cost: 5,
-		minFloor: 1
+		minFloor: 1,
 	},
 	greatball: {
 		name: "Great Ball",
@@ -17,7 +17,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Pokéballs",
 		desc: "A good ball with a higher catch rate.",
 		cost: 10,
-		minFloor: 11
+		minFloor: 11,
 	},
 	ultraball: {
 		name: "Ultra Ball",
@@ -26,7 +26,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Pokéballs",
 		desc: "An excellent ball with a very high catch rate.",
 		cost: 15,
-		minFloor: 31
+		minFloor: 31,
 	},
 	masterball: {
 		name: "Master Ball",
@@ -35,7 +35,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Pokéballs",
 		desc: "Catches any wild Pokemon without fail.",
 		cost: 1000,
-		minFloor: 51
+		minFloor: 51,
 	},
 	helditempack: {
 		name: "Held Item Pack",
@@ -44,7 +44,233 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Held Items",
 		desc: "Pick 1 of 3 held items to put on a Pokemon",
 		cost: 3,
-		minFloor: 1
+		minFloor: 1,
+	},
+
+	firestone: {
+		name: "Fire Stone",
+		icon: "Fire Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Fire Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	waterstone: {
+		name: "Water Stone",
+		icon: "Water Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Water Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	thunderstone: {
+		name: "Thunder Stone",
+		icon: "Thunder Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Thunder Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	leafstone: {
+		name: "Leaf Stone",
+		icon: "Leaf Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Leaf Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	moonstone: {
+		name: "Moon Stone",
+		icon: "Moon Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Moon Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	sunstone: {
+		name: "Sun Stone",
+		icon: "Sun Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Sun Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	shinystone: {
+		name: "Shiny Stone",
+		icon: "Shiny Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Shiny Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	duskstone: {
+		name: "Dusk Stone",
+		icon: "Dusk Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Dusk Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	dawnstone: {
+		name: "Dawn Stone",
+		icon: "Dawn Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Dawn Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	icestone: {
+		name: "Ice Stone",
+		icon: "Ice Stone",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Ice Stone-compatible Pokémon.",
+		cost: 8,
+		minFloor: 1,
+	},
+	linkingcord: {
+		name: "Linking Cord",
+		icon: "Linking Cord",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally evolve by trade.",
+		cost: 8,
+		minFloor: 1,
+	},
+	kingsrock: {
+		name: "King's Rock",
+		icon: "King's Rock",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding King's Rock.",
+		cost: 8,
+		minFloor: 1,
+	},
+	metalcoat: {
+		name: "Metal Coat",
+		icon: "Metal Coat",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Metal Coat.",
+		cost: 8,
+		minFloor: 1,
+	},
+	dragonscale: {
+		name: "Dragon Scale",
+		icon: "Dragon Scale",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Dragon Scale.",
+		cost: 8,
+		minFloor: 1,
+	},
+	upgrade: {
+		name: "Up-Grade",
+		icon: "Up-Grade",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Up-Grade.",
+		cost: 8,
+		minFloor: 1,
+	},
+	prismscale: {
+		name: "Prism Scale",
+		icon: "Prism Scale",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Prism Scale.",
+		cost: 8,
+		minFloor: 1,
+	},
+	deepseatooth: {
+		name: "Deep Sea Tooth",
+		icon: "Deep Sea Tooth",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Deep Sea Tooth.",
+		cost: 8,
+		minFloor: 1,
+	},
+	deepseascale: {
+		name: "Deep Sea Scale",
+		icon: "Deep Sea Scale",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Deep Sea Scale.",
+		cost: 8,
+		minFloor: 1,
+	},
+	protector: {
+		name: "Protector",
+		icon: "Protector",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Protector.",
+		cost: 8,
+		minFloor: 1,
+	},
+	electirizer: {
+		name: "Electirizer",
+		icon: "Electirizer",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Electirizer.",
+		cost: 8,
+		minFloor: 1,
+	},
+	magmarizer: {
+		name: "Magmarizer",
+		icon: "Magmarizer",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Magmarizer.",
+		cost: 8,
+		minFloor: 1,
+	},
+	dubiousdisc: {
+		name: "Dubious Disc",
+		icon: "Dubious Disc",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Dubious Disc.",
+		cost: 8,
+		minFloor: 1,
+	},
+	reapercloth: {
+		name: "Reaper Cloth",
+		icon: "Reaper Cloth",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Reaper Cloth.",
+		cost: 8,
+		minFloor: 1,
+	},
+	sachet: {
+		name: "Sachet",
+		icon: "Sachet",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Sachet.",
+		cost: 8,
+		minFloor: 1,
+	},
+	whippeddream: {
+		name: "Whipped Dream",
+		icon: "Whipped Dream",
+		type: "evolveItem",
+		category: "Evolutions",
+		desc: "Evolves certain Pokémon that normally trade holding Whipped Dream.",
+		cost: 8,
+		minFloor: 1,
 	},
 	superpotion: {
 		name: "Super Potion",
@@ -54,7 +280,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Heals 60% HP for a Pokemon.",
 		cost: 1,
 		minFloor: 1,
-		healAmount: 60
+		healAmount: 60,
 	},
 	maxpotion: {
 		name: "Max Potion",
@@ -65,7 +291,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		cost: 2,
 		minFloor: 1,
 		healAmount: 100,
-		isMax: true
+		isMax: true,
 	},
 	fullheal: {
 		name: "Full Heal",
@@ -74,7 +300,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Medicine",
 		desc: "Cures a pokemon's status.",
 		cost: 2,
-		minFloor: 1
+		minFloor: 1,
 	},
 	lure: {
 		name: "Lure",
@@ -83,7 +309,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Key Items",
 		desc: "50% chance to encounter 2 wild Pokémon instead of 1.",
 		cost: 15,
-		minFloor: 1
+		minFloor: 1,
 	},
 	revive: {
 		name: "Revive",
@@ -93,7 +319,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Revives a Pokemon to half its maximum HP.",
 		cost: 3,
 		minFloor: 1,
-		reviveAmount: 50
+		reviveAmount: 50,
 	},
 	maxrevive: {
 		name: "Max Revive",
@@ -104,7 +330,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		cost: 5,
 		minFloor: 1,
 		reviveAmount: 100,
-		isMax: true
+		isMax: true,
 	},
 	expall: {
 		name: "Exp. All",
@@ -113,7 +339,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Key Items",
 		desc: "Gives 20% Exp. to all non-fainted Pokemon not in the battle. Stacks up to 5 times.",
 		cost: 10,
-		minFloor: 1
+		minFloor: 1,
 	},
 	expcharm: {
 		name: "Exp. Charm",
@@ -122,7 +348,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 25%. Stacks up to 99 times.",
 		cost: 15,
-		minFloor: 1
+		minFloor: 1,
 	},
 	hpup: {
 		name: "HP Up",
@@ -132,7 +358,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Raises the HP EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
 		cost: 5,
 		minFloor: 1,
-		evStat: "hp"
+		evStat: "hp",
 	},
 	protein: {
 		name: "Protein",
@@ -142,7 +368,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Raises the Attack EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
 		cost: 5,
 		minFloor: 1,
-		evStat: "atk"
+		evStat: "atk",
 	},
 	iron: {
 		name: "Iron",
@@ -152,7 +378,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Raises the Defense EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
 		cost: 5,
 		minFloor: 1,
-		evStat: "def"
+		evStat: "def",
 	},
 	calcium: {
 		name: "Calcium",
@@ -162,7 +388,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Raises the Sp. Atk EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
 		cost: 5,
 		minFloor: 1,
-		evStat: "spa"
+		evStat: "spa",
 	},
 	zinc: {
 		name: "Zinc",
@@ -172,7 +398,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Raises the Sp. Def EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
 		cost: 5,
 		minFloor: 1,
-		evStat: "spd"
+		evStat: "spd",
 	},
 	carbos: {
 		name: "Carbos",
@@ -182,6 +408,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Raises the Speed EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
 		cost: 5,
 		minFloor: 1,
-		evStat: "spe"
-	}
+		evStat: "spe",
+	},
 };

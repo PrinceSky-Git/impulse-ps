@@ -3,9 +3,9 @@ import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem } from './items';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
-import { 
-	getState, setState, deleteState, saveAllData, 
-	getUserData, saveUserData, globalStats, saveGlobalStats, setActiveMode 
+import {
+	getState, setState, deleteState, saveAllData,
+	getUserData, saveUserData, globalStats, saveGlobalStats, setActiveMode,
 } from './state';
 import {
 	pickStarterOptions,
@@ -13,7 +13,7 @@ import {
 	applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween,
 	calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon, type AIPokemonSet
+	packTeam, genPokemon, type AIPokemonSet,
 } from './pokemon';
 import { renderGamePage, refreshGamePage } from './render';
 import {
@@ -33,7 +33,7 @@ function repairEmptyPendingChoice(state: PokeRogueState, userId: string): void {
 	setState(userId, state);
 }
 
-function isBossFloorBoundary(floor: number, bossInterval: number = 10): boolean {
+function isBossFloorBoundary(floor: number, bossInterval = 10): boolean {
 	return floor % bossInterval === 0;
 }
 
@@ -373,12 +373,11 @@ function processFloorRewards(
 	if (clearedFloor > (state.highestFloor ?? 0)) {
 		state.highestFloor = clearedFloor;
 		state.recordTeam = state.team.map(m => ({ ...m }));
-		
-		// Update global ladder
+
 		globalStats[userId] = {
 			highestFloor: clearedFloor,
 			displayName: state.displayName || userId,
-			recordTeam: state.recordTeam
+			recordTeam: state.recordTeam,
 		};
 		saveGlobalStats();
 	}
@@ -442,12 +441,11 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 		if (floor > (state.highestFloor ?? 0)) {
 			state.highestFloor = floor;
 			state.recordTeam = state.team.map(m => ({ ...m }));
-			
-			// Update global ladder
+
 			globalStats[userId] = {
 				highestFloor: floor,
 				displayName: state.displayName || userId,
-				recordTeam: state.recordTeam
+				recordTeam: state.recordTeam,
 			};
 			saveGlobalStats();
 		}
@@ -503,16 +501,12 @@ export const commands: Chat.ChatCommands = {
 			if (!user.named) return this.errorReply("Login required.");
 			let state = getState(user.id);
 
-			// Repair stale battle room reference
 			if (state?.battleRoomId) {
 				const bRoom = Rooms.get(state.battleRoomId as RoomID);
 				if (!bRoom?.battle || bRoom.battle.ended) delete state.battleRoomId;
 			}
 
-			// Only create a brand-new state if there is genuinely no existing run.
-			// A run is considered "active" if it has a team, is past floor 1, or has
-			// a pending starter choice. This prevents hotpatch / cache wipes from
-			// wiping progress by treating a recovered-from-disk state as "new".
+			// Hotpatches can leave disk-backed runs without activeMode; only rebuild when no progress is recoverable.
 			const hasActiveRun = state && (
 				(state.team?.length > 0) ||
 				((state.floor ?? 1) > 1) ||
@@ -612,7 +606,7 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		view(target, room, user) {
-			let state = getState(user.id);
+			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
 
 			const args = target.trim().split(' ');
@@ -630,7 +624,7 @@ export const commands: Chat.ChatCommands = {
 					delete (state as any).pendingStatsSlot;
 					delete (state as any).statsTab;
 				}
-        
+
 				if (v !== 'shop') {
 					delete (state as any).shopCategory;
 				}
@@ -643,24 +637,23 @@ export const commands: Chat.ChatCommands = {
 				refreshGamePage(user);
 			}
 		},
-		
+
 		saveslot(target, room, user) {
 			const state = getState(user.id);
 			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot save right now.");
 
-			// Prevent save-scumming mid-decision
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
 				return this.errorReply("You must resolve your pending choices before saving.");
 			}
-			
+
 			const slot = parseInt(target.trim());
 			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
 
 			const userData = getUserData(user.id);
 			if (!userData.saveSlots) userData.saveSlots = {};
 
-			// Deep copy the state so the save slot is completely independent of the active run
+			// Save slots need a detached snapshot so later active-run mutations cannot bleed into stored saves.
 			userData.saveSlots[slot] = JSON.parse(JSON.stringify(state));
 			saveUserData(user.id);
 
@@ -679,30 +672,28 @@ export const commands: Chat.ChatCommands = {
 
 			if (!slotData) return this.errorReply("That save slot is empty.");
 
-			// Check if they are abandoning an active battle
 			const currentState = getState(user.id);
 			if (currentState?.battleRoomId) {
 				const bRoom = Rooms.get(currentState.battleRoomId as RoomID);
-				if (bRoom && bRoom.battle && !bRoom.battle.ended) {
+				if (bRoom?.battle && !bRoom.battle.ended) {
 					return this.errorReply("You cannot load a game while currently in a battle!");
 				}
 			}
 
-			// Deep copy the save data back into the active run
+			// Loading also clones the slot to keep future run mutations from editing saved slot data by reference.
 			const restoredState = JSON.parse(JSON.stringify(slotData));
 			userData.runs[restoredState.gameMode] = restoredState;
 			userData.activeMode = restoredState.gameMode;
-			
+
 			saveUserData(user.id);
 
-			// Return to main menu with a notification
 			const newState = getState(user.id);
 			if (newState) {
 				newState.notification = `Game loaded successfully from <b>Slot ${slot}</b>!`;
 				(newState as any).view = 'main';
 				setState(user.id, newState);
 			}
-			
+
 			refreshGamePage(user);
 		},
 
@@ -877,9 +868,9 @@ export const commands: Chat.ChatCommands = {
 			const commonProps = {
 				ivs: randomIvs,
 				evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-				shiny: shiny,
+				shiny,
 				gender: gender as any,
-				teraType: teraType,
+				teraType,
 				happiness: 120,
 				originalTrainer: state.displayName || user.name,
 				otId: user.id.substring(0, 6),
@@ -887,7 +878,7 @@ export const commands: Chat.ChatCommands = {
 				metLevel: addedLevel,
 				metDate: Date.now(),
 				marks: [],
-				ball: 'pokeball'
+				ball: 'pokeball',
 			};
 
 			if (config.randomizeMoves || config.randomizeAbilities) {
@@ -902,7 +893,7 @@ export const commands: Chat.ChatCommands = {
 					ppLeft: g.moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					nature: g.nature,
 					ability: g.ability,
-					...commonProps
+					...commonProps,
 				} as PokemonEntry;
 			} else {
 				const finalExpType = getExpType(finalSpecies);
@@ -919,7 +910,7 @@ export const commands: Chat.ChatCommands = {
 					moves: initialMoves,
 					ppLeft: initialMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					nature: displayNature,
-					...commonProps
+					...commonProps,
 				} as PokemonEntry;
 			}
 
@@ -1018,10 +1009,16 @@ export const commands: Chat.ChatCommands = {
 					let evoTarget = '';
 					if (state.pendingItemIsEvo) {
 						const evoList = dexSpecies.evos;
+						const pendingItemId = toID(dexNewItem.name);
 						if (evoList) {
 							for (const newEvo of evoList) {
 								const evoData = Dex.species.get(newEvo);
-								if (evoData.evoType === 'useItem' && toID(evoData.evoItem) === toID(dexNewItem.name)) {
+								const evoItemId = toID(evoData.evoItem);
+								const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
+								const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
+								const isPlainTradeEvolution =
+									evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
+								if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
 									evoTarget = evoData.id;
 									break;
 								}
@@ -1031,7 +1028,6 @@ export const commands: Chat.ChatCommands = {
 					}
 
 					if (state.purchasedItem) {
-						// Check if we are deducting from the bag or from BP
 						if ((state as any).bagItem) {
 							state.inventory![state.purchasedItem] = (state.inventory![state.purchasedItem] || 1) - 1;
 						} else {
@@ -1056,8 +1052,7 @@ export const commands: Chat.ChatCommands = {
 							if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
 								mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
 							}
-							
-							// If they already hold an item, return the old item to the bag!
+
 							state.inventory = state.inventory || {};
 							state.inventory[mon.heldItem] = (state.inventory[mon.heldItem] || 0) + 1;
 						}
@@ -1079,7 +1074,6 @@ export const commands: Chat.ChatCommands = {
 				const fromBag = !!(state as any).bagItem;
 
 				if (rest === 'skip') {
-					// Refund BP only if purchased from shop (not from bag)
 					delete state.purchasedItem;
 					delete state.pendingConsumableType;
 					delete (state as any).bagItem;
@@ -1130,7 +1124,7 @@ export const commands: Chat.ChatCommands = {
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
 				} else if (item.type === 'vitamin') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
-					const evStat = (item as any).evStat as keyof NonNullable<PokemonEntry['evs']>;
+					const evStat = (item).evStat as keyof NonNullable<PokemonEntry['evs']>;
 					if (!evStat) return this.errorReply("Invalid vitamin.");
 					if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 					const totalEvs = Object.values(mon.evs).reduce((a, b) => a + b, 0);
@@ -1333,7 +1327,6 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			if (['healHP', 'revive', 'cureStatus', 'vitamin'].includes(item.type)) {
-				// Vitamins bought from shop go to inventory
 				if (item.type === 'vitamin') {
 					state.battlePoints -= item.cost;
 					state.inventory = state.inventory || {};
@@ -1344,7 +1337,7 @@ export const commands: Chat.ChatCommands = {
 					return;
 				}
 				state.purchasedItem = key;
-				state.pendingConsumableType = item.type as any;
+				state.pendingConsumableType = item.type;
 				setState(user.id, state);
 				refreshGamePage(user);
 				return;
@@ -1367,8 +1360,7 @@ export const commands: Chat.ChatCommands = {
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 			const key = toID(target);
 			let item = activeShop[key];
-			
-			// Fallback: If it's not in the shop, check if it's a standard Dex item (Held Item)
+
 			if (!item) {
 				const dexItem = Dex.items.get(key);
 				if (dexItem.exists) {
@@ -1381,12 +1373,13 @@ export const commands: Chat.ChatCommands = {
 			state.inventory = state.inventory || {};
 			if ((state.inventory[key] || 0) <= 0) return this.errorReply(`You don't have any ${item.name} left!`);
 
-			if (!['vitamin', 'healHP', 'revive', 'cureStatus', 'item'].includes(item.type)) {
+			if (!['vitamin', 'healHP', 'revive', 'cureStatus', 'item', 'evolveItem'].includes(item.type)) {
 				return this.errorReply("This item cannot be used from the bag.");
 			}
 
-			if (item.type === 'item') {
+			if (item.type === 'item' || item.type === 'evolveItem') {
 				state.pendingItemName = item.name;
+				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).bagItem = true;
 				state.purchasedItem = key;
 				setState(user.id, state);
@@ -1395,7 +1388,7 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			state.purchasedItem = key;
-			state.pendingConsumableType = item.type as any;
+			state.pendingConsumableType = item.type;
 			(state as any).bagItem = true;
 			(state as any).view = 'bag';
 			setState(user.id, state);
@@ -1625,7 +1618,7 @@ export const commands: Chat.ChatCommands = {
 					metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
 					metLevel: p2Level,
 					metDate: Date.now(),
-					marks: []
+					marks: [],
 				};
 
 				if (caughtItem) caught.heldItem = caughtItem;
@@ -1634,11 +1627,9 @@ export const commands: Chat.ChatCommands = {
 				state.caughtPokemon = caught;
 				setState(user.id, state);
 
-				// --- STARTER UNLOCK LOGIC ---
 				const userData = getUserData(user.id);
 
 				if (state.gameMode === 'classic') {
-					// Walk back to the base (unevolved) form
 					let baseSpecies = p2Species;
 					while (true) {
 						const sp = Dex.species.get(baseSpecies);
@@ -1665,13 +1656,12 @@ export const commands: Chat.ChatCommands = {
 						};
 						delete baseCaught.status;
 						delete baseCaught.heldItem;
-						
+
 						userData.starters[baseSpecies] = baseCaught;
 						saveUserData(user.id);
 						room.add(`|c|~|${baseDex.name} has been permanently unlocked as a Starter!`).update();
 					}
 				}
-				// ----------------------------
 
 				const match = activeMatches.get(room.roomid);
 				if (match) {
@@ -1718,7 +1708,7 @@ export const commands: Chat.ChatCommands = {
 				let bestAffordable = null;
 				const missingHp = 100 - hp;
 
-				for (const i of healItems as any[]) {
+				for (const i of healItems) {
 					if (bp >= i.cost) {
 						bestAffordable = i;
 						if ((i.healAmount || 20) >= missingHp || i.isMax) {
@@ -1735,11 +1725,10 @@ export const commands: Chat.ChatCommands = {
 				const healAmt = usedItem.healAmount || 20;
 				mon.currentHp = usedItem.isMax ? 100 : Math.min(100, hp + healAmt);
 				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was Q-Healed using a ${usedItem.name}! (${hp}% → ${mon.currentHp}%)`;
-
 			} else if (type === 'cure') {
 				if (hp <= 0 || !mon.status) return this.errorReply("Pokémon cannot be Q Cured.");
 
-				const cureItem = Object.values(activeShop).find((i: any) => i.type === 'cureStatus') as any;
+				const cureItem = Object.values(activeShop).find((i: any) => i.type === 'cureStatus');
 				if (!cureItem) return this.errorReply("No cure item found in shop.");
 				if (bp < cureItem.cost) return this.errorReply("Not enough BP for Q Cure.");
 
@@ -1768,11 +1757,11 @@ export const commands: Chat.ChatCommands = {
 			const mon = state.team[slot];
 			if (!mon.heldItem) return this.errorReply("That Pokémon isn't holding an item.");
 			const dexItem = Dex.items.get(mon.heldItem);
-			
+
 			state.inventory = state.inventory || {};
 			state.inventory[mon.heldItem] = (state.inventory[mon.heldItem] || 0) + 1;
 			state.notification = `Took <b>${Utils.escapeHTML(dexItem.name || mon.heldItem)}</b> from ${Dex.species.get(toID(mon.species)).name} and put it in your Bag.`;
-			
+
 			delete mon.heldItem;
 			setState(user.id, state);
 			refreshGamePage(user);
@@ -1906,11 +1895,11 @@ export const handlers: Chat.Handlers = {
 				if (prevFloor > (state.highestFloor ?? 0)) {
 					state.highestFloor = prevFloor;
 					state.recordTeam = state.team.map(m => ({ ...m }));
-					
+
 					globalStats[match.userId] = {
 						highestFloor: prevFloor,
 						displayName: state.displayName || match.userId,
-						recordTeam: state.recordTeam
+						recordTeam: state.recordTeam,
 					};
 					saveGlobalStats();
 				}

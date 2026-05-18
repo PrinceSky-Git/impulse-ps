@@ -563,7 +563,7 @@ export function genAIPokemon(
 	let trainerName: string | undefined = undefined;
 	const lookupKey = trainerKey || floor.toString();
 
-	if (config?.hasTrainers && data?.trainers && data.trainers[lookupKey]?.[forcedTrainer!]) {
+	if (config?.hasTrainers && data?.trainers?.[lookupKey]?.[forcedTrainer!]) {
 		isTrainerBattle = true;
 		trainerName = forcedTrainer;
 		const trainerData = data.trainers[lookupKey][forcedTrainer!];
@@ -702,7 +702,7 @@ export function genPokemon(
 				}
 			}
 
-			// single stage filter — biome pool only
+			// Biome pools are normalized to base forms before the shared level-based evolution pass below.
 			if (config?.poolFilterFn) {
 				pool = config.poolFilterFn(pool, floor, !!isBossFloor);
 			} else if (floor < 100) {
@@ -721,7 +721,6 @@ export function genPokemon(
 
 			finalSpeciesId = weightedPick(pool);
 
-			// devolution to base form — biome pool only
 			let sp = Dex.species.get(finalSpeciesId);
 			while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
 				finalSpeciesId = sp.prevo ? sp.prevo : toID(sp.baseSpecies);
@@ -729,7 +728,6 @@ export function genPokemon(
 			}
 		}
 
-		// evolution loop runs for both forced and biome pool mons
 		while (true) {
 			const evo = getLevelUpEvo(finalSpeciesId);
 			if (!evo || chosenLevel < evo.evoLevel) break;
@@ -779,9 +777,9 @@ export function genPokemon(
 		const evs = forcedEvs ? { ...forcedEvs } : calcEVSpread(finalSpecie, floor);
 		const nature = pickNatureForSpecies(finalSpecie, floor);
 
-		const ability = config?.randomizeAbilities
-			? pickBestAbility(finalSpecie, floor, config)
-			: (forcedAbility ?? pickBestAbility(finalSpecie, floor, config));
+		const ability = config?.randomizeAbilities ?
+			pickBestAbility(finalSpecie, floor, config) :
+			(forcedAbility ?? pickBestAbility(finalSpecie, floor, config));
 
 		const shiny = Math.floor(Math.random() * 1024) === 69;
 		const item = forcedItem ?? pickRandomHeldItem(finalSpecie.name);
@@ -923,20 +921,20 @@ export function packPokemon(mon: PokemonEntry): string {
 	const ability = mon.ability || (sp.abilities as any)['0'] || '';
 	const nature = mon.nature || 'Hardy';
 	if (!mon.moves) mon.moves = getLevelUpMoves(toID(mon.species), mon.level);
-	
+
 	const evs = mon.evs ? `${mon.evs.hp},${mon.evs.atk},${mon.evs.def},${mon.evs.spa},${mon.evs.spd},${mon.evs.spe}` : '';
 	const ivs = mon.ivs ? `${mon.ivs.hp},${mon.ivs.atk},${mon.ivs.def},${mon.ivs.spa},${mon.ivs.spd},${mon.ivs.spe}` : '';
 	const gender = mon.gender || 'M';
 	const shiny = mon.shiny ? 'S' : '';
 	const item = mon.heldItem ?? '';
 	const moves = mon.moves.join(',');
-	
-	let base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
-	
+
+	const base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
+
 	if ((mon.currentHp ?? 100) <= 0) {
 		return base;
 	}
-	
+
 	const hp = mon.currentHp ?? 100;
 	const status = mon.status ?? '';
 	let tail = '';

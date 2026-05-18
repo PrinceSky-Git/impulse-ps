@@ -78,9 +78,7 @@ export const classicData: ModeData = {
 
 		if (routing?.fixedTrainerWaves?.includes(floor)) {
 			trainerKey = `fixed_${floor}`;
-		}
-
-		else if (floor % config.bossInterval === 0 && routing?.gymLeaderInterval) {
+		} else if (floor % config.bossInterval === 0 && routing?.gymLeaderInterval) {
 			const firstWaves = routing.firstGymLeaderWaves || [];
 
 			if (!state.firstGymLeaderWave && firstWaves.includes(floor)) {
@@ -93,9 +91,7 @@ export const classicData: ModeData = {
 				const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / routing.gymLeaderInterval);
 				trainerKey = `gym_leader_tier_${Math.min(routing.maxGymLeaderTier || 5, encounterNum)}`;
 			}
-		}
-
-		else if (state.currentBiome !== config.startingBiome && Math.random() < 0.15) {
+		} else if (state.currentBiome !== config.startingBiome && Math.random() < 0.15) {
 			const lastTrainer = state.lastTrainerFloor || -99;
 
 			if (floor - lastTrainer >= 3) {
@@ -129,5 +125,5 @@ export const classicData: ModeData = {
 		}
 
 		return null;
-	}
+	},
 };

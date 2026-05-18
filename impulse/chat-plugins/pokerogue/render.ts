@@ -13,7 +13,7 @@ const TYPE_COLORS: Record<string, string> = {
 	Dark: '624d4e', Steel: '60a1b8', Fairy: 'ef70ef',
 };
 
-const BALL_MAP: Record<string, { srcSuffix: string; alt: string }> = {
+const BALL_MAP: Record<string, { srcSuffix: string, alt: string }> = {
 	masterball: { srcSuffix: 'i1.png', alt: 'Master Ball' },
 	ultraball: { srcSuffix: 'i2.png', alt: 'Ultra Ball' },
 	greatball: { srcSuffix: 'i3.png', alt: 'Great Ball' },
@@ -182,12 +182,12 @@ function renderStatBar(state: PokeRogueState, cols2 = false): string {
 }
 
 function renderHeader(view: string, hasGameOver: boolean): string {
-	const titles: Record<string, string> = { 
-		main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder', 
-		resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome', 
-		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game' 
+	const titles: Record<string, string> = {
+		main: 'PokéRogue', shop: 'Shop', bag: 'Bag', top: 'Ladder',
+		resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome',
+		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game',
 	};
-	
+
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
 
 	if (view === 'main' && !hasGameOver) {
@@ -251,12 +251,12 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 	const moves: string[] = mon.moves?.length ? mon.moves : getLevelUpMoves(toID(mon.species), mon.level, genNumber);
 
 	let buf = `<tr class="pr-team-row">`;
-	
+
 	buf += `<td class="pr-td-icon" style="vertical-align:top;padding-top:10px">`;
 	buf += getSpriteWithBall(mon.species, 44, mon.ball, mon.shiny);
 	if (statsButton) buf += statsButton;
 	buf += `</td>`;
-	
+
 	buf += `<td class="pr-td-team-main">`;
 
 	buf += `<div class="pr-td-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">`;
@@ -310,7 +310,7 @@ function renderShopTable(
 	buf += `</tr></thead><tbody>`;
 
 	for (const [key, item] of items) {
-		const isKey = (item as any).type === 'key';
+		const isKey = (item).type === 'key';
 		let alreadyHas = false;
 		let disabledText = "Owned";
 		let currentStacks = 0;
@@ -476,7 +476,6 @@ function renderGiveItem(state: PokeRogueState): string {
 }
 
 function renderConsumable(state: PokeRogueState): string {
-
 	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 	const consumableItem = activeShop[state.purchasedItem!];
 	const consumableType = state.pendingConsumableType!;
@@ -504,7 +503,7 @@ function renderConsumable(state: PokeRogueState): string {
 			break;
 
 		case 'vitamin':
-			const evStat = (consumableItem as any)?.evStat as string | undefined;
+			const evStat = (consumableItem)?.evStat as string | undefined;
 			if (!evStat) { disabled = true; reason = 'invalid'; break; }
 			if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } as any;
 			const totalEvs = Object.values(mon.evs as Record<string, number>).reduce((a, b) => a + b, 0);
@@ -519,7 +518,7 @@ function renderConsumable(state: PokeRogueState): string {
 		if (hp < 100 && hp > 0) flexHtml += `<div style="font-size:9px;color:#aaa">${hp}% HP</div>`;
 
 		if (consumableType === 'vitamin' && mon.evs) {
-			const evStat = (consumableItem as any)?.evStat as string;
+			const evStat = (consumableItem)?.evStat as string;
 			const statLabel: Record<string, string> = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
 			const totalEvs = Object.values(mon.evs as Record<string, number>).reduce((a, b) => a + b, 0);
 			flexHtml += `<div style="font-size:9px;">${statLabel[evStat] ?? evStat} EVs: ${(mon.evs as any)[evStat] ?? 0}/252 &nbsp;·&nbsp; Total: ${totalEvs}/508</div>`;
@@ -584,7 +583,7 @@ function renderTrainerIntroView(state: PokeRogueState): string {
 		title: trainerName,
 		spriteUrl: trainerData?.spriteUrl,
 		dialog: trainerData?.dialog,
-		actionsHtml: renderBtn('/pokerogue battle', 'Start Battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px')
+		actionsHtml: renderBtn('/pokerogue battle', 'Start Battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px'),
 	});
 }
 
@@ -606,24 +605,24 @@ function renderWelcomeView(): string {
 		title: 'Drunk Professor Oak',
 		spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/oak.png',
 		dialog: 'PokèRogue is currently in Beta. Features may change, bugs may occur, and balancing updates will happen frequently. Your feedback helps shape the future of the game!',
-		actionsHtml
+		actionsHtml,
 	});
 }
 
 function renderVictoryView(state: PokeRogueState): string {
-    const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-    const vc = config.victoryConfig ?? {};
+	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+	const vc = config.victoryConfig ?? {};
 
-    const name = vc.name ?? 'Professor Oak';
-    const spriteUrl = vc.spriteUrl ?? 'https://play.pokemonshowdown.com/sprites/trainers/oak.png';
-    const dialog = vc.dialog ?? `Congratulations! You've completed the run and cleared Floor ${state.lastRunFloor ?? config.maxFloor}! Your journey was truly remarkable. The Pokémon world thanks you!`;
+	const name = vc.name ?? 'Professor Oak';
+	const spriteUrl = vc.spriteUrl ?? 'https://play.pokemonshowdown.com/sprites/trainers/oak.png';
+	const dialog = vc.dialog ?? `Congratulations! You've completed the run and cleared Floor ${state.lastRunFloor ?? config.maxFloor}! Your journey was truly remarkable. The Pokémon world thanks you!`;
 
 	return renderCharacterDialogView({
 		title: name,
 		spriteUrl,
 		dialog,
 		borderColor: '#fac000',
-		actionsHtml: renderBtn('/pokerogue view welcome', 'Continue', 'pr-btn primary', 'font-size:11px;padding:5px 10px')
+		actionsHtml: renderBtn('/pokerogue view welcome', 'Continue', 'pr-btn primary', 'font-size:11px;padding:5px 10px'),
 	});
 }
 
@@ -641,9 +640,9 @@ function renderShopView(state: PokeRogueState): string {
 
 	const categories = new Set<string>();
 	for (const [, item] of permItems) {
-		categories.add((item as any).category || 'Misc'); 
+		categories.add((item).category || 'Misc');
 	}
-	
+
 	const categoryList = Array.from(categories).sort((a, b) => a.localeCompare(b));
 
 	if (categoryList.length === 0) {
@@ -659,21 +658,21 @@ function renderShopView(state: PokeRogueState): string {
 	for (let i = 0; i < categoryList.length; i++) {
 		const cat = categoryList[i];
 		const isBtnActive = cat === activeCategory;
-		
+
 		buf += renderBtn(
 			isBtnActive ? null : `/pokerogue shoptab ${cat}`,
 			cat,
 			`pr-btn${isBtnActive ? ' primary' : ''}`,
 			'font-size:11px;padding:5px 10px'
 		);
-		
+
 		if (i < categoryList.length - 1) {
 			buf += `&nbsp;&nbsp;`;
 		}
 	}
 	buf += `</div>`;
 
-	const tabItems = permItems.filter(([, item]) => ((item as any).category || 'Misc') === activeCategory);
+	const tabItems = permItems.filter(([, item]) => ((item).category || 'Misc') === activeCategory);
 	buf += renderShopTable(tabItems as any, bp, state.keyItems ?? [], 'pokerogue buy');
 
 	return buf;
@@ -685,7 +684,7 @@ function renderBagView(state: PokeRogueState): string {
 	const keyItems = state.keyItems || [];
 
 	const possessedItems: { key: string, item: any, qty: number }[] = [];
-	
+
 	for (const [key, qty] of Object.entries(inv)) {
 		if (qty > 0) {
 			if (activeShop[key]) {
@@ -697,23 +696,23 @@ function renderBagView(state: PokeRogueState): string {
 						key,
 						item: {
 							name: dexItem.name,
-							icon: dexItem.name, 
+							icon: dexItem.name,
 							type: 'item',
 							category: 'Held Items',
 							desc: dexItem.shortDesc || dexItem.desc || 'A held item.',
 						},
-						qty
+						qty,
 					});
 				}
 			}
 		}
 	}
-	
+
 	const keyItemCounts = new Map<string, number>();
 	for (const ki of keyItems) {
 		keyItemCounts.set(ki, (keyItemCounts.get(ki) || 0) + 1);
 	}
-	
+
 	for (const [name, qty] of keyItemCounts.entries()) {
 		const entry = Object.entries(activeShop).find(([, i]) => i.name === name);
 		if (entry) {
@@ -742,14 +741,14 @@ function renderBagView(state: PokeRogueState): string {
 	for (let i = 0; i < categoryList.length; i++) {
 		const cat = categoryList[i];
 		const isBtnActive = cat === activeCategory;
-		
+
 		buf += renderBtn(
 			isBtnActive ? null : `/pokerogue bagtab ${cat}`,
 			cat,
 			`pr-btn${isBtnActive ? ' primary' : ''}`,
 			'font-size:11px;padding:5px 10px'
 		);
-		
+
 		if (i < categoryList.length - 1) buf += `&nbsp;&nbsp;`;
 	}
 	buf += `</div>`;
@@ -773,18 +772,21 @@ function renderBagView(state: PokeRogueState): string {
 		buf += `<td class="pr-td-icon" style="padding:3px 4px; width:18px;">${getShopItemIcon(item.icon, 16)}</td>`;
 		buf += `<td class="pr-td-name" style="padding:3px 4px; font-weight:500; white-space:nowrap;">${Utils.escapeHTML(item.name)}</td>`;
 		buf += `<td class="pr-td-desc" style="padding:3px 4px; font-size:10px; color:#aaa;">${Utils.escapeHTML(item.desc)}</td>`;
-		
+
 		const qtyColor = item.type === 'key' ? '#8ab4f8' : 'inherit';
 		buf += `<td class="pr-td-qty" style="padding:3px 4px; text-align:right; font-weight:bold; font-size:13px; color:${qtyColor};">x${qty}</td>`;
-		
+
 		buf += `<td class="pr-td-action" style="padding:3px 4px; text-align:right;">`;
-		
+
+		const itemActionStyle = 'padding:2px 6px; font-size:10px; min-width:40px;';
 		if (['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type) && canUse) {
-			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', itemActionStyle);
 		} else if (item.type === 'item' && canUse) {
-			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Give', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Give', 'pr-shop-buy', itemActionStyle);
+		} else if (item.type === 'evolveItem' && canUse) {
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', itemActionStyle);
 		}
-		
+
 		buf += `</td></tr>`;
 	}
 
@@ -803,17 +805,17 @@ function renderStatsView(state: PokeRogueState): string {
 	const spData = Dex.species.get(toID(mon.species));
 
 	const natureName = mon.nature || 'Hardy';
-	const nature = Dex.natures.get(natureName) ?? Dex.natures.get('Hardy')!;
-	const naturePlus  = nature?.plus  ?? null;
+	const nature = Dex.natures.get(natureName) ?? Dex.natures.get('Hardy');
+	const naturePlus = nature?.plus ?? null;
 	const natureMinus = nature?.minus ?? null;
 
 	const abilities = spData.abilities as Record<string, string>;
-	const rawAbility  = mon.ability || abilities['0'] || '';
-	const abilityDex  = rawAbility ? Dex.abilities.get(rawAbility) : null;
+	const rawAbility = mon.ability || abilities['0'] || '';
+	const abilityDex = rawAbility ? Dex.abilities.get(rawAbility) : null;
 	const abilityName = abilityDex?.name || rawAbility || 'Unknown';
 	const abilityDesc = abilityDex?.shortDesc || abilityDex?.desc || '';
 
-	const bs  = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+	const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 	const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
 	const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 	const statKeys: (keyof typeof bs)[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
@@ -831,7 +833,7 @@ function renderStatsView(state: PokeRogueState): string {
 			stats.hp = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
 		} else {
 			let val = Math.floor((2 * bs[stat] + ivs[stat] + Math.floor(evs[stat] / 4)) * mon.level / 100) + 5;
-			if (naturePlus  === stat) val = Math.floor(val * 1.1);
+			if (naturePlus === stat) val = Math.floor(val * 1.1);
 			if (natureMinus === stat) val = Math.floor(val * 0.9);
 			stats[stat] = val;
 		}
@@ -839,13 +841,13 @@ function renderStatsView(state: PokeRogueState): string {
 	if (spData.id === 'shedinja') stats.hp = 1;
 	const bst = statKeys.reduce((s, k) => s + (bs[k] ?? 0), 0);
 
-	const hpPct    = mon.currentHp ?? 100;
-	const hpColor  = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
-	const dateStr  = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
+	const hpPct = mon.currentHp ?? 100;
+	const hpColor = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
+	const dateStr = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
 	const heldItem = mon.heldItem ? Dex.items.get(mon.heldItem) : null;
-	const gender   = mon.gender === 'M'
-		? `<span style="color:#4f8ef7">♂</span>`
-		: mon.gender === 'F' ? `<span style="color:#f74f8e">♀</span>` : '';
+	const gender = mon.gender === 'M' ?
+		`<span style="color:#4f8ef7">♂</span>` :
+		mon.gender === 'F' ? `<span style="color:#f74f8e">♀</span>` : '';
 	const statusColors: Record<string, string> = {
 		brn: '#e8603c', psn: '#b563ce', tox: '#b563ce',
 		par: '#d4b800', slp: '#7a7a7a', frz: '#6aaed6',
@@ -902,8 +904,8 @@ function renderStatsView(state: PokeRogueState): string {
 
 		let natureSuffix = `<span class="pr-sv-subdesc"></span>`;
 		if (naturePlus && natureMinus) {
-			natureSuffix = ` <span style="color:#16a34a;font-size:10px;font-weight:600">▲${statLabels[naturePlus]}</span>`
-				+ ` <span style="color:#dc2626;font-size:10px;font-weight:600">▼${statLabels[natureMinus]}</span>`;
+			natureSuffix = ` <span style="color:#16a34a;font-size:10px;font-weight:600">▲${statLabels[naturePlus]}</span>` +
+				` <span style="color:#dc2626;font-size:10px;font-weight:600">▼${statLabels[natureMinus]}</span>`;
 		}
 		buf += `<div class="pr-sv-row">`;
 		buf += `<span class="pr-sv-row-label">Nature</span>`;
@@ -942,9 +944,9 @@ function renderStatsView(state: PokeRogueState): string {
 			['Met Lv.', String(mon.metLevel ?? '?')],
 			['Date', dateStr],
 			['Ball', Utils.escapeHTML(
-				mon.ball
-					? mon.ball.replace('ball', ' Ball').replace(/^./, c => c.toUpperCase())
-					: 'Poké Ball'
+				mon.ball ?
+					mon.ball.replace('ball', ' Ball').replace(/^./, c => c.toUpperCase()) :
+					'Poké Ball'
 			)],
 		];
 		for (const [label, val] of memo) {
@@ -966,16 +968,16 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `</div>`;
 
 		for (const stat of statKeys) {
-			const base   = bs[stat] ?? 0;
-			const iv     = ivs[stat] ?? 31;
-			const ev     = evs[stat] ?? 0;
+			const base = bs[stat] ?? 0;
+			const iv = ivs[stat] ?? 31;
+			const ev = evs[stat] ?? 0;
 			const actual = stats[stat] ?? 0;
 			const barPct = Math.min(100, Math.round((base / 255) * 100));
-			const isPlus  = naturePlus  === stat;
+			const isPlus = naturePlus === stat;
 			const isMinus = natureMinus === stat;
-			const valStyle = isPlus
-				? 'color:#16a34a;font-weight:700'
-				: isMinus ? 'color:#dc2626;font-weight:700' : '';
+			const valStyle = isPlus ?
+				'color:#16a34a;font-weight:700' :
+				isMinus ? 'color:#dc2626;font-weight:700' : '';
 			const evStyle = ev > 0 ? 'color:#c4a8ff;font-weight:600' : 'color:#555';
 
 			buf += `<div class="pr-sv-stat-row">`;
@@ -998,10 +1000,10 @@ function renderStatsView(state: PokeRogueState): string {
 		const moves = mon.moves || [];
 		for (let i = 0; i < 4; i++) {
 			if (i < moves.length) {
-				const move    = Dex.moves.get(moves[i]);
-				const maxPp   = Math.floor((move.pp || 5) * (8 / 5));
-				const curPp   = mon.ppLeft?.[i] ?? maxPp;
-				const mColor  = '#' + typeColor(move.type);
+				const move = Dex.moves.get(moves[i]);
+				const maxPp = Math.floor((move.pp || 5) * (8 / 5));
+				const curPp = mon.ppLeft?.[i] ?? maxPp;
+				const mColor = '#' + typeColor(move.type);
 				const catIcon = move.category === 'Physical' ? '⚔' : move.category === 'Special' ? '◆' : '●';
 				const moveDesc = move.shortDesc || move.desc || '';
 
@@ -1024,7 +1026,7 @@ function renderStatsView(state: PokeRogueState): string {
 	if (state.team.length > 1) {
 		buf += `<div class="pr-sv-team-nav">`;
 		for (let i = 0; i < state.team.length; i++) {
-			const m   = state.team[i];
+			const m = state.team[i];
 			const spN = Dex.species.get(toID(m.species));
 			const isMe = i === slot;
 			if (isMe) {
@@ -1075,7 +1077,7 @@ function renderMainView(state: PokeRogueState, user: User): string {
 			.sort((a: any, b: any) => a.cost - b.cost);
 
 		const cureItem = Object.values(activeShop).find((item: any) => item.type === 'cureStatus');
-		const cureCost = cureItem ? (cureItem as any).cost : Infinity;
+		const cureCost = cureItem ? (cureItem).cost : Infinity;
 
 		let qHealDisabled = true, qHealLabel = "Q Heal";
 		if (hp <= 0) qHealLabel = "Fainted";
@@ -1148,59 +1150,14 @@ function renderGameOverView(state: PokeRogueState): string {
 		renderBtn('/pokerogue view welcome', 'Start new run', 'pr-newrun-btn') + `</div>`;
 }
 
-/*function renderSlotsView(user: User, action: 'save' | 'load'): string {
-	const userData = getUserData(user.id);
-	let buf = `<div class="pr-section-title">${action === 'save' ? 'Save to Slot' : 'Load from Slot'}</div>`;
-	buf += `<div style="text-align:center; color:#aaa; font-size:12px; margin-bottom:12px;">`;
-	buf += action === 'save' ? `Choose a slot to save your current progress.` : `Choose a saved game to load. This will overwrite your current active run.`;
-	buf += `</div>`;
-
-	for (let i = 1; i <= 3; i++) {
-		const slotData = userData.saveSlots?.[i];
-		
-		buf += `<div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">`;
-		
-		if (slotData) {
-			const mode = slotData.gameMode.charAt(0).toUpperCase() + slotData.gameMode.slice(1);
-			buf += `<div style="flex:1;">`;
-			buf += `<div style="font-weight:bold; font-size:13px; margin-bottom:6px;">Slot ${i} <span style="color:#888; font-weight:normal; font-size:11px; margin-left:6px;">${mode} Mode &nbsp;·&nbsp; Floor ${slotData.floor}</span></div>`;
-			buf += `<div style="display:flex; gap:2px;">`;
-			for (const mon of slotData.team || []) {
-				buf += getSprite(mon.species, 32);
-			}
-			buf += `</div></div>`;
-		} else {
-			buf += `<div style="flex:1; color:#888; font-style:italic; font-size:13px;">Slot ${i} - Empty</div>`;
-		}
-
-		if (action === 'save') {
-			buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
-			buf += renderBtn(`/pokerogue saveslot ${i}`, 'Save Here', 'pr-btn primary', 'padding:5px 10px; font-size: 11px; font-weight:bold;');
-			buf += `</div>`;
-		} else {
-			if (slotData) {
-				buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
-				buf += renderBtn(`/pokerogue loadslot ${i}`, 'Load', 'pr-btn primary', 'padding:5px 10px; font-size: 11px; font-weight:bold;');
-				buf += `</div>`;
-			} else {
-				buf += renderBtn(null, 'Empty', 'pr-btn', 'padding:8px 16px; opacity:0.5;', true);
-			}
-		}
-		
-		buf += `</div>`;
-	}
-
-	return buf;
-}*/
-
 function renderSlotsView(user: User, action: 'save' | 'load'): string {
 	const userData = getUserData(user.id);
-	
+
 	let buf = `<div class="pr-section-title">${action === 'save' ? 'Save Game' : 'Load Game'}</div>`;
 	buf += `<div style="text-align:center;color:#aaa;font-size:12px;margin-bottom:14px;">`;
-	buf += action === 'save' 
-		? `Choose a slot to save your current progress.` 
-		: `Choose a saved game to load. This will overwrite your current active run.`;
+	buf += action === 'save' ?
+		`Choose a slot to save your current progress.` :
+		`Choose a saved game to load. This will overwrite your current active run.`;
 	buf += `</div>`;
 
 	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%;border-collapse:collapse;">`;
@@ -1214,9 +1171,9 @@ function renderSlotsView(user: User, action: 'save' | 'load'): string {
 
 	for (let i = 1; i <= 3; i++) {
 		const slotData = userData.saveSlots?.[i];
-		const mode = slotData 
-			? slotData.gameMode.charAt(0).toUpperCase() + slotData.gameMode.slice(1) 
-			: '—';
+		const mode = slotData ?
+			slotData.gameMode.charAt(0).toUpperCase() + slotData.gameMode.slice(1) :
+			'—';
 
 		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
 

@@ -1,6 +1,6 @@
-import { BiomePool } from './types';
+import { type BiomePool } from './types';
 
-export const BIOME_TRANSITIONS: Record<string, { biome: string; weight: number }[]> = {
+export const BIOME_TRANSITIONS: Record<string, { biome: string, weight: number }[]> = {
 	'Town': [{ biome: 'Plains', weight: 1 }],
 	'Plains': [{ biome: 'Metropolis', weight: 1 }, { biome: 'Grass', weight: 1 }, { biome: 'Lake', weight: 1 }],
 	'Metropolis': [{ biome: 'Slum', weight: 1 }],
