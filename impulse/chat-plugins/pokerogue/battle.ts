@@ -782,8 +782,8 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	const isBoss = state.floor % config.bossInterval === 0;
 
 	const hasLure = (state.keyItems ?? []).includes('Lure');
-	const isDoubles = !isTrainer && !isBoss && hasLure && botTeamData.team.length > 1 && livingTeam.length > 1;
-
+	const isDoubles = !isTrainer && !isBoss && hasLure && botTeamData.team.length > 1;
+	
 	if (state.pendingTrainer) {
 		delete state.pendingTrainer;
 	}
