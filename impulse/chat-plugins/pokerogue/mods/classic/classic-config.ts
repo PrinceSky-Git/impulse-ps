@@ -24,6 +24,7 @@ export const classicConfig: ModeConfig = {
 
 	generation: 9,
 	baseFormat: '[Gen 9] PokeRogue',
+	doublesFormat: '[Gen 9] PokeRogue Doubles',
 
 	hasTrainers: true,
 	randomizeMoves: false,
