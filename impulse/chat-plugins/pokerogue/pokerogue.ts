@@ -1163,35 +1163,64 @@ export const commands: Chat.ChatCommands = {
 
 			const [trait, direction] = target.trim().split(' ');
 			const mon = state.team[0];
-			const baseSpecies = mon.species;
-			const starterData = userData.starters[baseSpecies];
-			if (!starterData) return;
+			
+			// Safely find the base species
+			let baseSpecies = toID(mon.species);
+			while (true) {
+				const sp = Dex.species.get(baseSpecies);
+				const prevo = sp.prevo;
+				if (!prevo) break;
+				baseSpecies = toID(prevo);
+			}
+
+			let starterData = userData.starters[baseSpecies];
+			
+			// If this is a base starter that hasn't been caught yet, initialize a profile for it
+			if (!starterData) {
+				starterData = {
+					unlockedNatures: [mon.nature!],
+					unlockedAbilities: [mon.ability!],
+					selectedNature: mon.nature!,
+					selectedAbility: mon.ability!,
+				} as PokemonEntry;
+				userData.starters[baseSpecies] = starterData;
+			}
 
 			if (trait === 'nature') {
-				const pool = starterData.unlockedNatures || [mon.nature];
-				let idx = pool.indexOf(mon.nature!);
-				if (direction === 'next') idx = (idx + 1) % pool.length;
-				if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+				const pool = starterData.unlockedNatures?.length ? starterData.unlockedNatures : [mon.nature!];
+				if (!pool.includes(mon.nature!)) pool.push(mon.nature!); // Safety catch
 				
-				mon.nature = pool[idx];
-				starterData.selectedNature = pool[idx];
-				starterData.nature = pool[idx];
+				if (pool.length <= 1) {
+					state.notification = `You haven't unlocked any other Natures for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
+				} else {
+					let idx = pool.indexOf(mon.nature!);
+					if (direction === 'next') idx = (idx + 1) % pool.length;
+					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+					
+					mon.nature = pool[idx];
+					starterData.selectedNature = pool[idx];
+				}
 			} else if (trait === 'ability') {
-				const pool = starterData.unlockedAbilities || [mon.ability];
-				let idx = pool.indexOf(mon.ability!);
-				if (direction === 'next') idx = (idx + 1) % pool.length;
-				if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+				const pool = starterData.unlockedAbilities?.length ? starterData.unlockedAbilities : [mon.ability!];
+				if (!pool.includes(mon.ability!)) pool.push(mon.ability!); // Safety catch
 				
-				mon.ability = pool[idx];
-				starterData.selectedAbility = pool[idx];
-				starterData.ability = pool[idx];
+				if (pool.length <= 1) {
+					state.notification = `You haven't unlocked any other Abilities for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
+				} else {
+					let idx = pool.indexOf(mon.ability!);
+					if (direction === 'next') idx = (idx + 1) % pool.length;
+					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+					
+					mon.ability = pool[idx];
+					starterData.selectedAbility = pool[idx];
+				}
 			}
 
 			saveUserData(user.id);
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		confirmstarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state || !state.isConfiguringStarter) return;
