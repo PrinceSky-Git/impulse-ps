@@ -100,6 +100,7 @@ export interface ModeData {
 	transitions: Record<string, BiomeTransition[]>;
 	trainers: Record<string, any>;
 	starters: string[];
+	useNewStarterSelectionUI?: boolean;
 	excludedBiomes?: string[];
 
 	shop?: Record<string, any>;
