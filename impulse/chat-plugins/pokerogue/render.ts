@@ -1148,7 +1148,7 @@ function renderGameOverView(state: PokeRogueState): string {
 		renderBtn('/pokerogue view welcome', 'Start new run', 'pr-newrun-btn') + `</div>`;
 }
 
-function renderSlotsView(user: User, action: 'save' | 'load'): string {
+/*function renderSlotsView(user: User, action: 'save' | 'load'): string {
 	const userData = getUserData(user.id);
 	let buf = `<div class="pr-section-title">${action === 'save' ? 'Save to Slot' : 'Load from Slot'}</div>`;
 	buf += `<div style="text-align:center; color:#aaa; font-size:12px; margin-bottom:12px;">`;
@@ -1190,6 +1190,68 @@ function renderSlotsView(user: User, action: 'save' | 'load'): string {
 		buf += `</div>`;
 	}
 
+	return buf;
+}*/
+
+function renderSlotsView(user: User, action: 'save' | 'load'): string {
+	const userData = getUserData(user.id);
+	
+	let buf = `<div class="pr-section-title">${action === 'save' ? 'Save Game' : 'Load Game'}</div>`;
+	buf += `<div style="text-align:center;color:#aaa;font-size:12px;margin-bottom:14px;">`;
+	buf += action === 'save' 
+		? `Choose a slot to save your current progress.` 
+		: `Choose a saved game to load. This will overwrite your current active run.`;
+	buf += `</div>`;
+
+	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%;border-collapse:collapse;">`;
+	buf += `<thead><tr>`;
+	buf += `<th style="padding:4px 6px;text-align:left;">Slot</th>`;
+	buf += `<th style="padding:4px 6px;text-align:left;">Mode</th>`;
+	buf += `<th style="padding:4px 6px;text-align:left;">Floor</th>`;
+	buf += `<th style="padding:4px 6px;text-align:left;">Team</th>`;
+	buf += `<th style="padding:4px 6px;text-align:right;">Action</th>`;
+	buf += `</tr></thead><tbody>`;
+
+	for (let i = 1; i <= 3; i++) {
+		const slotData = userData.saveSlots?.[i];
+		const mode = slotData 
+			? slotData.gameMode.charAt(0).toUpperCase() + slotData.gameMode.slice(1) 
+			: '—';
+
+		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
+
+		buf += `<td class="pr-td-name" style="padding:6px;font-weight:500;white-space:nowrap;">Slot ${i}</td>`;
+
+		if (slotData) {
+			buf += `<td class="pr-td-desc" style="padding:6px;white-space:nowrap;">${mode}</td>`;
+			buf += `<td class="pr-td-desc" style="padding:6px;white-space:nowrap;">Floor ${slotData.floor}</td>`;
+			buf += `<td style="padding:6px;"><div class="pr-lb-team">`;
+			for (const mon of slotData.team || []) {
+				buf += getSprite(mon.species, 28);
+			}
+			buf += `</div></td>`;
+			buf += `<td class="pr-td-action" style="padding:6px;text-align:right;">`;
+			if (action === 'save') {
+				buf += renderBtn(`/pokerogue saveslot ${i}`, 'Save Here', 'pr-shop-buy', 'padding:3px 8px;font-size:11px;');
+			} else {
+				buf += renderBtn(`/pokerogue loadslot ${i}`, 'Load', 'pr-shop-buy', 'padding:3px 8px;font-size:11px;');
+			}
+			buf += `</td>`;
+		} else {
+			buf += `<td class="pr-td-desc" style="padding:6px;color:#555;font-style:italic;" colspan="3">Empty</td>`;
+			buf += `<td class="pr-td-action" style="padding:6px;text-align:right;">`;
+			if (action === 'save') {
+				buf += renderBtn(`/pokerogue saveslot ${i}`, 'Save Here', 'pr-shop-buy', 'padding:3px 8px;font-size:11px;');
+			} else {
+				buf += renderBtn(null, 'Empty', 'pr-shop-buy', 'padding:3px 8px;font-size:11px;opacity:0.4;', true);
+			}
+			buf += `</td>`;
+		}
+
+		buf += `</tr>`;
+	}
+
+	buf += `</tbody></table></div>`;
 	return buf;
 }
 
