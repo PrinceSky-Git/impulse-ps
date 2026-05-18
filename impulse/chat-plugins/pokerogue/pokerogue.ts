@@ -1640,7 +1640,7 @@ export const commands: Chat.ChatCommands = {
 				if (state.gameMode === 'classic' && !userData.starters[p2Species]) {
 					userData.starters[p2Species] = caught;
 					saveUserData(user.id);
-					room.add(`|c|~|${Dex.species.get(p2Species).name} has been permanently unlocked as a Starter! ✨`).update();
+					room.add(`|c|~|${Dex.species.get(p2Species).name} has been permanently unlocked as a Starter!`).update();
 				}
 				// ----------------------------
 
