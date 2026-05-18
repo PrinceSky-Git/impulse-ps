@@ -565,12 +565,12 @@ export const commands: Chat.ChatCommands = {
 			const requestedMode = (modeStr || 'classic') as GameMode;
 			const finalMode = MODE_CONFIGS[requestedMode] ? requestedMode : 'classic';
 
-			// Pull the user's specific slot for the mode they requested
 			const userData = getUserData(user.id);
 			const existingInMode = userData.runs[finalMode];
 
-			if (existingInMode?.gameOver) {
+			if (existingInMode?.gameOver || existingInMode?.gameWon) {
 				delete existingInMode.gameOver;
+				delete existingInMode.gameWon;
 				delete existingInMode.lastRunFloor;
 				setState(user.id, existingInMode);
 			}
@@ -607,32 +607,17 @@ export const commands: Chat.ChatCommands = {
 			};
 
 			(newState as any).view = 'main';
-
 			setState(user.id, newState);
 			return this.parse('/pokerogue start');
 		},
 
 		view(target, room, user) {
 			let state = getState(user.id);
-			// FIX: If state is null after a hotpatch/cache wipe, recover via start
-			// instead of silently doing nothing (which leaves all buttons dead).
 			if (!state) return this.parse('/pokerogue start');
 
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load'].includes(v)) {
-				if (v === 'welcome' && state.gameOver) {
-					delete state.gameOver;
-					delete state.lastRunFloor;
-					state.team = [];
-					state.floor = 1;
-				}
-				if (v === 'welcome' && state.gameWon) {
-					delete state.gameWon;
-					delete state.lastRunFloor;
-					state.team = [];
-					state.floor = 1;
-				}
 				if (v === 'stats') {
 					const slot = parseInt(args[1]);
 					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
@@ -645,7 +630,7 @@ export const commands: Chat.ChatCommands = {
 					delete (state as any).pendingStatsSlot;
 					delete (state as any).statsTab;
 				}
-				
+        
 				if (v !== 'shop') {
 					delete (state as any).shopCategory;
 				}
@@ -658,7 +643,7 @@ export const commands: Chat.ChatCommands = {
 				refreshGamePage(user);
 			}
 		},
-
+		
 		saveslot(target, room, user) {
 			const state = getState(user.id);
 			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot save right now.");
