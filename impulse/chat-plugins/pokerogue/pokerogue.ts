@@ -571,6 +571,11 @@ export const commands: Chat.ChatCommands = {
 			const config = MODE_CONFIGS[finalMode];
 			const modeData = MODE_REGISTRY[finalMode] || MODE_REGISTRY['classic'];
 			const modeStarters = modeData.starters;
+			const useNewStarterSelectionUI = modeData.useNewStarterSelectionUI !== false;
+			const unlockedStarterIds = Object.keys(userData.starters || {});
+			const starterPool = useNewStarterSelectionUI ?
+				[...new Set([...modeStarters, ...unlockedStarterIds])] :
+				modeStarters;
 
 			const highestFloor = existingInMode?.highestFloor || 0;
 			const displayName = existingInMode?.displayName || user.name;
@@ -586,14 +591,14 @@ export const commands: Chat.ChatCommands = {
 				rotationalShop: [],
 				keyItems: [...(config.economy.startingKeyItems || [])],
 				inventory: { ...(config.economy.startingInventory || {}) },
-				pendingChoice: pickStarterOptions(modeStarters),
+				pendingChoice: useNewStarterSelectionUI ? starterPool : pickStarterOptions(starterPool),
 				pendingChoiceType: 'starter',
 				highestFloor,
 				displayName,
 				recordTeam,
 			};
 
-			(newState as any).view = 'main';
+			(newState as any).view = useNewStarterSelectionUI ? 'starterselect' : 'main';
 			setState(user.id, newState);
 			return this.parse('/pokerogue start');
 		},
@@ -604,7 +609,7 @@ export const commands: Chat.ChatCommands = {
 
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
-			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load'].includes(v)) {
+			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect'].includes(v)) {
 				if (v === 'stats') {
 					const slot = parseInt(args[1]);
 					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
@@ -810,12 +815,13 @@ export const commands: Chat.ChatCommands = {
 			}
 		},
 
-		choose(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			const n = parseInt(target) - 1;
-			if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
-			const choice = state.pendingChoice[n];
+			choose(target, room, user) {
+				const state = getState(user.id);
+				if (!state) return this.parse('/pokerogue start');
+				const userData = getUserData(user.id);
+				const n = parseInt(target) - 1;
+				if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
+				const choice = state.pendingChoice[n];
 
 			const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
@@ -843,26 +849,27 @@ export const commands: Chat.ChatCommands = {
 				}
 			}
 
-			let newMon: PokemonEntry;
+				let newMon: PokemonEntry;
+				const savedStarter = isStarterChoice ? userData.starters[toID(finalSpecies)] : null;
 
-			const randomIvs = {
-				hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
-				def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
-				spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
-			};
-			const shiny = Math.floor(Math.random() * 4096) === 0;
-			const gender = Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
-			const allTypes = Dex.types.all().map(t => t.name);
-			const teraType = Math.floor(Math.random() * 20) === 0 ?
-				allTypes[Math.floor(Math.random() * allTypes.length)] :
-				Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)];
+				const randomIvs = {
+					hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+					def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+					spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+				};
+				const shiny = savedStarter ? !!savedStarter.shiny : (Math.floor(Math.random() * 4096) === 0);
+				const gender = savedStarter?.gender || Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
+				const allTypes = Dex.types.all().map(t => t.name);
+				const teraType = savedStarter?.teraType || (Math.floor(Math.random() * 20) === 0 ?
+					allTypes[Math.floor(Math.random() * allTypes.length)] :
+					Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)]);
 
-			const commonProps = {
-				ivs: randomIvs,
-				evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-				shiny,
-				gender: gender as any,
-				teraType,
+				const commonProps = {
+					ivs: savedStarter?.ivs ? { ...savedStarter.ivs } : randomIvs,
+					evs: savedStarter?.evs ? { ...savedStarter.evs } : { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+					shiny,
+					gender: gender as any,
+					teraType,
 				happiness: 120,
 				originalTrainer: state.displayName || user.name,
 				otId: user.id.substring(0, 6),
@@ -877,16 +884,16 @@ export const commands: Chat.ChatCommands = {
 				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
 				const g = generated[0];
 				newMon = {
-					species: g.species,
-					level: g.level,
-					exp: expForLevel(g.level, getExpType(g.species)),
-					expType: getExpType(g.species),
-					moves: g.moves,
-					nature: g.nature,
-					ability: g.ability,
-					...commonProps,
-				} as PokemonEntry;
-			} else {
+						species: g.species,
+						level: g.level,
+						exp: expForLevel(g.level, getExpType(g.species)),
+						expType: getExpType(g.species),
+						moves: g.moves,
+						nature: savedStarter?.nature || g.nature,
+						ability: savedStarter?.ability || g.ability,
+						...commonProps,
+					} as PokemonEntry;
+				} else {
 				const finalExpType = getExpType(finalSpecies);
 				const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
 				const natures = Dex.natures.all().map(n => n.name);
@@ -894,15 +901,16 @@ export const commands: Chat.ChatCommands = {
 				const displayNature = natures[hash % natures.length] ?? 'Hardy';
 
 				newMon = {
-					species: finalSpecies,
-					level: addedLevel,
-					exp: expForLevel(addedLevel, finalExpType),
-					expType: finalExpType,
-					moves: initialMoves,
-					nature: displayNature,
-					...commonProps,
-				} as PokemonEntry;
-			}
+						species: finalSpecies,
+						level: addedLevel,
+						exp: expForLevel(addedLevel, finalExpType),
+						expType: finalExpType,
+						moves: initialMoves,
+						nature: savedStarter?.nature || displayNature,
+						ability: savedStarter?.ability || (Dex.species.get(finalSpecies).abilities as any)['0'] || '',
+						...commonProps,
+					} as PokemonEntry;
+				}
 
 			if (isStarterChoice) {
 				state.team = [newMon];
@@ -1430,6 +1438,8 @@ export const commands: Chat.ChatCommands = {
 			const p2State = new Map<string, { species: string, level: number, hp: number, maxHp: number, status: string, fainted: boolean }>();
 			let p1Fainted = false;
 
+			// Rebuild a lightweight snapshot from protocol lines so catch decisions
+			// match the current visible battle state for both singles and doubles.
 			for (const line of log) {
 				if (/^\|faint\|p1[a-z]:/.test(line)) p1Fainted = true;
 				else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) p1Fainted = false;
@@ -1570,8 +1580,10 @@ export const commands: Chat.ChatCommands = {
 				const p1Participants = new Set<string>();
 				let p2SwitchIdx = 0;
 
+				// Find the latest opposing switch point and then infer participants
+				// around it for EXP distribution metadata.
 				for (let i = log.length - 1; i >= 0; i--) {
-					if (/^(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
+					if (/^\|(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
 						p2SwitchIdx = i;
 						break;
 					}
@@ -1665,19 +1677,26 @@ export const commands: Chat.ChatCommands = {
 						baseSpecies = toID(prevo);
 					}
 
-					if (!userData.starters[baseSpecies]) {
-						const baseDex = Dex.species.get(baseSpecies);
-						const baseCaught = {
-							...caught,
-							species: baseSpecies,
-							level: 5,
-							exp: expForLevel(5, getExpType(baseSpecies)),
-							expType: getExpType(baseSpecies),
-							moves: getLevelUpMoves(baseSpecies, 5, config.generation),
-							metLevel: 5,
-							metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
-							currentHp: 100,
-						};
+						if (!userData.starters[baseSpecies]) {
+							const baseDex = Dex.species.get(baseSpecies);
+							const starterIvs = { ...caught.ivs };
+							const starterEvs = { ...caught.evs };
+							const baseCaught = {
+								...caught,
+								species: baseSpecies,
+								level: 5,
+								exp: expForLevel(5, getExpType(baseSpecies)),
+								expType: getExpType(baseSpecies),
+								moves: getLevelUpMoves(baseSpecies, 5, config.generation),
+								ability: caught.ability,
+								nature: caught.nature,
+								shiny: !!caught.shiny,
+								ivs: starterIvs,
+								evs: starterEvs,
+								metLevel: 5,
+								metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
+								currentHp: 100,
+							};
 						delete baseCaught.status;
 						delete baseCaught.heldItem;
 

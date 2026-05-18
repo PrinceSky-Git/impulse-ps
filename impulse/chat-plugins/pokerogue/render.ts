@@ -380,6 +380,30 @@ function renderPendingChoice(state: PokeRogueState): string {
 	return buf + `</div>`;
 }
 
+function renderStarterSelectionView(state: PokeRogueState, user: User): string {
+	const pending = state.pendingChoice || [];
+	const userData = getUserData(user.id);
+	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
+	buf += `<div style="text-align:center;color:#aaa;font-size:11px;margin:-6px 0 10px">`;
+	buf += `Unlocked starters: <b>${Object.keys(userData.starters || {}).length}</b>`;
+	buf += `</div><div class="pr-choice-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">`;
+
+	for (let i = 0; i < pending.length; i++) {
+		const sid = toID(pending[i]);
+		const sp = Dex.species.get(sid);
+		if (!sp.exists) continue;
+		const saved = userData.starters[sid];
+		const tags = saved?.shiny ? ` <span style="color:#facc15">★</span>` : '';
+		buf += `<div class="pr-choice-row" style="padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px">`;
+		buf += `<div class="pr-ct-name" style="font-size:11px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${Utils.escapeHTML(sp.name)}${tags}</div>`;
+		buf += `${getSpriteWithBall(sp.id, 32, saved?.ball)}`;
+		buf += renderBtn(`/dt ${sp.name}`, 'View Stats', 'pr-btn', 'width:100%;padding:5px 6px;font-size:10px');
+		buf += renderBtn(`/pokerogue choose ${i + 1}`, 'Select', 'pr-pick-btn', 'width:100%;padding:5px 6px;font-size:10px');
+		buf += `</div>`;
+	}
+	return buf + `</div>`;
+}
+
 function renderPendingSwap(state: PokeRogueState): string {
 	const sp = Dex.species.get(toID(state.pendingSwap!.species));
 	let buf = `<h2 class="pr-choice-heading">Team is full!</h2><div style="text-align:center;margin-bottom:10px">`;
@@ -1258,6 +1282,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderResetConfirmView(state)}</div></div>`;
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderTopView()}</div></div>`;
 	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderWelcomeView()}</div></div>`;
+	if (view === 'starterselect') return buf + renderHeader('main', false) + `<div style="padding:0 14px 14px">${renderStarterSelectionView(state, user)}</div></div>`;
 	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderStatsView(state)}</div></div>`;
 	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderSlotsView(user, 'save')}</div></div>`;
 	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderSlotsView(user, 'load')}</div></div>`;
