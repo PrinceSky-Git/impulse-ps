@@ -913,6 +913,18 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			if (isStarterChoice) {
+				const sid = toID(finalSpecies);
+				if (!userData.starters[sid]) {
+					userData.starters[sid] = {
+						...newMon,
+						unlockedNatures: [newMon.nature!],
+						unlockedAbilities: [newMon.ability!],
+						selectedNature: newMon.nature,
+						selectedAbility: newMon.ability,
+					};
+					saveUserData(user.id);
+				}
+
 				state.team = [newMon];
 				(state as any).view = 'stats';
 				(state as any).pendingStatsSlot = 0;
