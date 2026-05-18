@@ -823,32 +823,32 @@ export const commands: Chat.ChatCommands = {
 				if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
 				const choice = state.pendingChoice[n];
 
-			const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+				const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
+				const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+				const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
-			let addedLevel = config.starterLevel ?? 5;
-			if (!isStarterChoice) {
-				const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
-				if (state.floor <= 30) {
-					addedLevel = Math.max(1, maxPlayerLevel - 1);
-				} else if (state.floor <= 50) {
-					addedLevel = Math.max(1, maxPlayerLevel - 2);
-				} else {
-					const levelDrop = Math.floor(Math.random() * 2) + 2;
-					addedLevel = Math.max(1, maxPlayerLevel - levelDrop);
+				let addedLevel = config.starterLevel ?? 5;
+				if (!isStarterChoice) {
+					const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
+					if (state.floor <= 30) {
+						addedLevel = Math.max(1, maxPlayerLevel - 1);
+					} else if (state.floor <= 50) {
+						addedLevel = Math.max(1, maxPlayerLevel - 2);
+					} else {
+						const levelDrop = Math.floor(Math.random() * 2) + 2;
+						addedLevel = Math.max(1, maxPlayerLevel - levelDrop);
+					}
 				}
-			}
 
-			let finalSpecies = choice;
-			if (!isStarterChoice) {
-				while (true) {
-					const evo = getLevelUpEvo(finalSpecies, 70);
-					if (!evo || addedLevel < evo.evoLevel) break;
-					finalSpecies = evo.evoTo;
+				let finalSpecies = choice;
+				if (!isStarterChoice) {
+					while (true) {
+						const evo = getLevelUpEvo(finalSpecies, 70);
+						if (!evo || addedLevel < evo.evoLevel) break;
+						finalSpecies = evo.evoTo;
+					}
 				}
-			}
-
+				
 				let newMon: PokemonEntry;
 				const savedStarter = isStarterChoice ? userData.starters[toID(finalSpecies)] : null;
 
@@ -870,15 +870,15 @@ export const commands: Chat.ChatCommands = {
 					shiny,
 					gender: gender as any,
 					teraType,
-				happiness: 120,
-				originalTrainer: state.displayName || user.name,
-				otId: user.id.substring(0, 6),
-				metLocation: "Professor Oak's Lab",
-				metLevel: addedLevel,
-				metDate: Date.now(),
-				marks: [],
-				ball: 'pokeball',
-			};
+					happiness: 120,
+					originalTrainer: state.displayName || user.name,
+					otId: user.id.substring(0, 6),
+					metLocation: "Professor Oak's Lab",
+					metLevel: addedLevel,
+					metDate: Date.now(),
+					marks: [],
+					ball: 'pokeball',
+				};
 
 			if (config.randomizeMoves || config.randomizeAbilities) {
 				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
@@ -923,6 +923,11 @@ export const commands: Chat.ChatCommands = {
 			delete state.pendingChoice;
 			delete state.pendingChoiceType;
 			delete state.pendingChoiceFloor;
+
+			if ((state as any).view === 'starterselect') {
+				(state as any).view = 'main';
+			}
+				
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
