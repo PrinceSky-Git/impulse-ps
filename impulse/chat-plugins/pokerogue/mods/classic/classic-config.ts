@@ -21,6 +21,7 @@ export const classicConfig: ModeConfig = {
 	bossInterval: 10,
 	startingBiome: 'Town',
 	starterLevel: 5,
+	useNewStarterSelectionUI: true,
 
 	generation: 9,
 	baseFormat: '[Gen 9] PokeRogue',
