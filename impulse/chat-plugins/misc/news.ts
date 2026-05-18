@@ -38,7 +38,7 @@ const NewsManager = {
 	},
 
 	save() {
-		FS(DATA_FILE).writeUpdate(() => JSON.stringify(data));
+		FS(DATA_FILE).safeWriteSync(JSON.stringify(data));
 	},
 
 	formatDate(date = new Date()) {
