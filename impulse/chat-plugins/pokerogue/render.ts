@@ -390,7 +390,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
 	buf += `</div>`;
 
-	buf += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">`;
+	buf += `<div style="display:flex;flex-wrap:wrap;gap:6px;">`;
 
 	for (let i = 0; i < pending.length; i++) {
 		const sid = toID(pending[i]);
@@ -399,11 +399,10 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 		const saved = userData.starters[sid];
 		const isShiny = !!saved?.shiny;
 
-		buf += `<div class="pr-card" style="padding:5px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;box-sizing:border-box;">`;
-		buf += `<div style="width:32px;height:32px;flex-shrink:0;position:relative;margin:0 auto;">`;
-		buf += getSprite(sp.id, 32, isShiny);
-		buf += `</div>`;
-		buf += `<button name="send" value="/pokerogue choose ${i + 1}" class="pr-pick-btn" style="width:100%;text-align:center;padding:3px 0;font-size:10px;box-sizing:border-box;display:block;">Select</button>`;
+		buf += `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 4px;box-sizing:border-box;width:calc(25% - 5px);min-width:60px;border-radius:6px;background:rgba(255,255,255,0.04);">`;
+		buf += `<div style="font-size:9px;color:#ccc;text-align:center;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.escapeHTML(sp.name)}</div>`;		
+		buf += getSprite(sp.id, 40, isShiny);
+		buf += `<button name="send" value="/pokerogue choose ${i + 1}" style="width:100%;text-align:center;padding:2px 0;font-size:10px;box-sizing:border-box;display:block;background:#3a6bc4;color:#fff;border:none;border-radius:4px;cursor:pointer;">Select</button>`;
 		buf += `</div>`;
 	}
 
