@@ -386,7 +386,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const unlockedCount = Object.keys(userData.starters || {}).length;
 
 	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
-	buf += `<div style="text-align:center;color:#aaa;font-size:11px;margin:-6px 0 12px">`;
+	buf += `<div style="text-align:center;font-size:11px;margin:-6px 0 12px">`;
 	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
 	buf += `</div>`;
 
@@ -403,8 +403,8 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 				if (sp.exists) {
 					const saved = userData.starters[sid];
 					const isShiny = !!saved?.shiny;
+					buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.escapeHTML(sp.name)}</div>`;
 					buf += getSprite(sp.id, 40, isShiny);
-					buf += `<div style="font-size:9px;color:#ccc;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.escapeHTML(sp.name)}</div>`;
 					buf += `<button name="send" value="/pokerogue choose ${j + 1}" style="width:90%;padding:2px 0;font-size:10px;background:#3a6bc4;color:#fff;border:none;border-radius:4px;cursor:pointer;">Select</button>`;
 				}
 			}
