@@ -840,6 +840,9 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 
 	if (isTrainer && trainerName) {
 		botUser.name = trainerName;
+	} else if (!isTrainer) {
+		const wildNames = botTeamData.team.map(m => Dex.species.get(toID(m.species)).name).filter(Boolean);
+		if (wildNames.length) botUser.name = `Wild ${wildNames.join(' & ')}`;
 	}
 
 	const botSlot = 'p2' as const;
