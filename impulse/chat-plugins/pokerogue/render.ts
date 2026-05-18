@@ -970,7 +970,18 @@ function renderStatsView(state: PokeRogueState): string {
 	if (activeTab === 0) {
 		buf += `<div class="pr-sv-row">`;
 		buf += `<span class="pr-sv-row-label">Ability</span>`;
-		buf += `<div class="pr-sv-row-val"><b>${Utils.escapeHTML(abilityName)}</b>`;
+		buf += `<div class="pr-sv-row-val">`;
+		
+		if (state.isConfiguringStarter) {
+			buf += `<div style="display:flex;align-items:center;gap:6px;">`;
+			buf += renderBtn(`/pokerogue cyclestarter ability prev`, '◀', 'pr-btn', 'padding:2px 6px;font-size:10px');
+			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
+			buf += renderBtn(`/pokerogue cyclestarter ability next`, '▶', 'pr-btn', 'padding:2px 6px;font-size:10px');
+			buf += `</div>`;
+		} else {
+			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
+		}
+		
 		if (abilityDesc) buf += `<div class="pr-sv-subdesc">${Utils.escapeHTML(abilityDesc)}</div>`;
 		buf += `</div></div>`;
 
@@ -981,8 +992,19 @@ function renderStatsView(state: PokeRogueState): string {
 		}
 		buf += `<div class="pr-sv-row">`;
 		buf += `<span class="pr-sv-row-label">Nature</span>`;
-		buf += `<div class="pr-sv-row-val"><b>${Utils.escapeHTML(natureName)}</b>${natureSuffix}</div>`;
-		buf += `</div>`;
+		buf += `<div class="pr-sv-row-val">`;
+		
+		if (state.isConfiguringStarter) {
+			buf += `<div style="display:flex;align-items:center;gap:6px;">`;
+			buf += renderBtn(`/pokerogue cyclestarter nature prev`, '◀', 'pr-btn', 'padding:2px 6px;font-size:10px');
+			buf += `<b>${Utils.escapeHTML(natureName)}</b>${natureSuffix}`;
+			buf += renderBtn(`/pokerogue cyclestarter nature next`, '▶', 'pr-btn', 'padding:2px 6px;font-size:10px');
+			buf += `</div>`;
+		} else {
+			buf += `<b>${Utils.escapeHTML(natureName)}</b>${natureSuffix}`;
+		}
+		
+		buf += `</div></div>`;
 
 		buf += `<div class="pr-sv-row">`;
 		buf += `<span class="pr-sv-row-label">Item</span>`;
@@ -1095,7 +1117,7 @@ function renderStatsView(state: PokeRogueState): string {
 
 	buf += `</div>`;
 
-	if (state.team.length > 1) {
+	if (state.team.length > 1 && !state.isConfiguringStarter) {
 		buf += `<div class="pr-sv-team-nav">`;
 		for (let i = 0; i < state.team.length; i++) {
 			const m = state.team[i];
@@ -1113,6 +1135,13 @@ function renderStatsView(state: PokeRogueState): string {
 	}
 
 	buf += `</div>`;
+
+	if (state.isConfiguringStarter) {
+		buf += `<div style="text-align:center; margin-top: 12px;">`;
+		buf += renderBtn('/pokerogue confirmstarter', 'Begin Run', 'pr-btn primary', 'width: 100%; padding: 10px; font-size: 14px; background: #4caf50; color: white;');
+		buf += `</div>`;
+	}
+
 	return buf;
 }
 
@@ -1317,4 +1346,6 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (state.gameWon) return buf + renderHeader('victory', false) + `<div style="padding:0 14px 14px">${renderVictoryView(state)}</div></div>`;
 
 	return buf + renderMainView(state, user) + `</div></div>`;
+}
+
 }
