@@ -380,6 +380,43 @@ function renderPendingChoice(state: PokeRogueState): string {
 	return buf + `</div>`;
 }
 
+function renderStarterSelectionView(state: PokeRogueState, user: User): string {
+	const pending = state.pendingChoice || [];
+	const userData = getUserData(user.id);
+	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
+	buf += `<div style="text-align:center;color:#aaa;font-size:11px;margin:-6px 0 10px">`;
+	buf += `Unlocked starters: <b>${Object.keys(userData.starters || {}).length}</b>`;
+	buf += `</div><div class="pr-choice-grid">`;
+
+	for (let i = 0; i < pending.length; i++) {
+		const sid = toID(pending[i]);
+		const sp = Dex.species.get(sid);
+		if (!sp.exists) continue;
+		const saved = userData.starters[sid];
+		const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+		const abilities = sp.abilities ?? {};
+		const ability = saved?.ability || (abilities as unknown as Record<string, string>)['0'] || 'Unknown';
+		const nature = saved?.nature || 'Hardy';
+		const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
+		const displayMoves = getLevelUpMoves(sp.id, 5, genNumber);
+		const tags = [
+			saved ? `<span style="color:#86efac">Unlocked</span>` : `<span style="color:#fbbf24">Default</span>`,
+			saved?.shiny ? `<span style="color:#facc15">Shiny</span>` : '',
+		].filter(Boolean).join(' · ');
+
+		let flexHtml = `<div class="pr-ct-name" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${sp.name}</div>`;
+		flexHtml += `<div class="pr-types">${renderTypeBadge(sp.types ?? [])}</div>`;
+		if (tags) flexHtml += `<div class="pr-ct-ability" style="margin-top:2px">${tags}</div>`;
+		flexHtml += `<div class="pr-ct-stats">${renderBaseStatsInline(bs)}</div>`;
+		flexHtml += `<div class="pr-ct-ability" style="margin-top:2px">Nature: <b>${Utils.escapeHTML(nature)}</b></div>`;
+		flexHtml += `<div class="pr-ct-ability" style="margin-top:2px">Ability: <b>${Utils.escapeHTML(ability)}</b></div>`;
+		if (displayMoves.length) flexHtml += renderMoveList(displayMoves);
+
+		buf += renderChoiceRow(getSpriteWithBall(sp.id, 52, saved?.ball), flexHtml, renderBtn(`/pokerogue choose ${i + 1}`, 'Pick', 'pr-pick-btn'));
+	}
+	return buf + `</div>`;
+}
+
 function renderPendingSwap(state: PokeRogueState): string {
 	const sp = Dex.species.get(toID(state.pendingSwap!.species));
 	let buf = `<h2 class="pr-choice-heading">Team is full!</h2><div style="text-align:center;margin-bottom:10px">`;
@@ -1258,6 +1295,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderResetConfirmView(state)}</div></div>`;
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderTopView()}</div></div>`;
 	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderWelcomeView()}</div></div>`;
+	if (view === 'starterselect') return buf + renderHeader('main', false) + `<div style="padding:0 14px 14px">${renderStarterSelectionView(state, user)}</div></div>`;
 	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderStatsView(state)}</div></div>`;
 	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderSlotsView(user, 'save')}</div></div>`;
 	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderSlotsView(user, 'load')}</div></div>`;

@@ -702,7 +702,6 @@ export function genPokemon(
 				}
 			}
 
-			// Biome pools are normalized to base forms before the shared level-based evolution pass below.
 			if (config?.poolFilterFn) {
 				pool = config.poolFilterFn(pool, floor, !!isBossFloor);
 			} else if (floor < 100) {

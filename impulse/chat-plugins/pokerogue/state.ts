@@ -62,7 +62,6 @@ export function getState(userid: string): PokeRogueState | null {
 		return user.runs[user.activeMode]!;
 	}
 
-	// Repair saves from older hotpatches that stored a run without an active mode pointer.
 	const existingMode = Object.keys(user.runs)[0] as GameMode | undefined;
 	if (existingMode) {
 		user.activeMode = existingMode;
