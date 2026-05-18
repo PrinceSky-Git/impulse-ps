@@ -779,9 +779,11 @@ function renderBagView(state: PokeRogueState): string {
 		buf += `<td class="pr-td-action" style="padding:3px 4px; text-align:right;">`;
 
 		if (['vitamin', 'healHP', 'revive', 'cureStatus'].includes(item.type) && canUse) {
-			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', itemActionStyle);
 		} else if (item.type === 'item' && canUse) {
-			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Give', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:40px;');
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Give', 'pr-shop-buy', itemActionStyle);
+		} else if (item.type === 'evolveItem' && canUse) {
+			buf += renderBtn(`/pokerogue usebagitem ${key}`, 'Use', 'pr-shop-buy', itemActionStyle);
 		}
 
 		buf += `</td></tr>`;

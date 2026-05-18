@@ -1009,10 +1009,16 @@ export const commands: Chat.ChatCommands = {
 					let evoTarget = '';
 					if (state.pendingItemIsEvo) {
 						const evoList = dexSpecies.evos;
+						const pendingItemId = toID(dexNewItem.name);
 						if (evoList) {
 							for (const newEvo of evoList) {
 								const evoData = Dex.species.get(newEvo);
-								if (evoData.evoType === 'useItem' && toID(evoData.evoItem) === toID(dexNewItem.name)) {
+								const evoItemId = toID(evoData.evoItem);
+								const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
+								const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
+								const isPlainTradeEvolution =
+									evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
+								if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
 									evoTarget = evoData.id;
 									break;
 								}
@@ -1367,12 +1373,13 @@ export const commands: Chat.ChatCommands = {
 			state.inventory = state.inventory || {};
 			if ((state.inventory[key] || 0) <= 0) return this.errorReply(`You don't have any ${item.name} left!`);
 
-			if (!['vitamin', 'healHP', 'revive', 'cureStatus', 'item'].includes(item.type)) {
+			if (!['vitamin', 'healHP', 'revive', 'cureStatus', 'item', 'evolveItem'].includes(item.type)) {
 				return this.errorReply("This item cannot be used from the bag.");
 			}
 
-			if (item.type === 'item') {
+			if (item.type === 'item' || item.type === 'evolveItem') {
 				state.pendingItemName = item.name;
+				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).bagItem = true;
 				state.purchasedItem = key;
 				setState(user.id, state);
