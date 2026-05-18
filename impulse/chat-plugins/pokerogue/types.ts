@@ -7,8 +7,8 @@ export type StatusCondition = 'brn' | 'psn' | 'tox' | 'par' | 'slp' | 'frz';
 export type GameMode = 'classic' | 'random';
 
 export type RarityTier =
-	| 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Ultra Rare'
-	| 'Boss' | 'Boss Rare' | 'Boss Super Rare' | 'Boss Ultra Rare';
+	| 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Ultra Rare' |
+	'Boss' | 'Boss Rare' | 'Boss Super Rare' | 'Boss Ultra Rare';
 
 export interface BiomeEntry {
 	species: string;
@@ -55,37 +55,37 @@ export interface ModeConfig {
 	emptyPoolFallbackFn?: (floor: number, rarity: string, isBoss: boolean, biomes: Record<string, BiomePool>) => BiomeEntry[];
 
 	economy: {
-		startingBP: number;
-		bpPerWin: number;
-		bpPerBoss: number;
-		doubleBpFloor?: number;
-		startingKeyItems?: string[];
-		startingInventory?: Record<string, number>;
+		startingBP: number,
+		bpPerWin: number,
+		bpPerBoss: number,
+		doubleBpFloor?: number,
+		startingKeyItems?: string[],
+		startingInventory?: Record<string, number>,
 	};
 
 	storyRouting?: {
-		fixedTrainerWaves?: number[];
-		gymLeaderInterval?: number;
-		maxGymLeaderTier?: number;
-		firstGymLeaderWaves?: number[];
+		fixedTrainerWaves?: number[],
+		gymLeaderInterval?: number,
+		maxGymLeaderTier?: number,
+		firstGymLeaderWaves?: number[],
 	};
 
 	mechanicUnlocks?: {
-		terastallize?: number;
-		mega?: number;
+		terastallize?: number,
+		mega?: number,
 	};
 
 	maxFloor?: number;
 
 	victoryConfig?: {
-		name?: string;
-		spriteUrl?: string;
-		dialog?: string;
+		name?: string,
+		spriteUrl?: string,
+		dialog?: string,
 	};
 
 	lastBiome?: {
-		biome: string;
-		floor: string;
+		biome: string,
+		floor: string,
 	};
 }
 
@@ -181,7 +181,6 @@ export interface PokeRogueState {
 	firstGymLeaderWave?: number;
 	pendingTrainerKey?: string;
 
-	// UI specific state
 	shopCategory?: string;
 	bagCategory?: string;
 	bagItem?: boolean;
