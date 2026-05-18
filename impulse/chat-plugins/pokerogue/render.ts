@@ -390,23 +390,30 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
 	buf += `</div>`;
 
-	buf += `<div style="display:flex;flex-wrap:wrap;gap:6px;">`;
+	buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><tbody>`;
 
-	for (let i = 0; i < pending.length; i++) {
-		const sid = toID(pending[i]);
-		const sp = Dex.species.get(sid);
-		if (!sp.exists) continue;
-		const saved = userData.starters[sid];
-		const isShiny = !!saved?.shiny;
-
-		buf += `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 4px;box-sizing:border-box;width:calc(25% - 5px);min-width:60px;border-radius:6px;background:rgba(255,255,255,0.04);">`;
-		buf += `<div style="font-size:9px;color:#ccc;text-align:center;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.escapeHTML(sp.name)}</div>`;		
-		buf += getSprite(sp.id, 40, isShiny);
-		buf += `<button name="send" value="/pokerogue choose ${i + 1}" style="width:100%;text-align:center;padding:2px 0;font-size:10px;box-sizing:border-box;display:block;background:#3a6bc4;color:#fff;border:none;border-radius:4px;cursor:pointer;">Select</button>`;
-		buf += `</div>`;
+	const COLS = 4;
+	for (let i = 0; i < pending.length; i += COLS) {
+		buf += `<tr>`;
+		for (let j = i; j < i + COLS; j++) {
+			buf += `<td style="width:25%;text-align:center;padding:4px 2px;vertical-align:top;">`;
+			if (j < pending.length) {
+				const sid = toID(pending[j]);
+				const sp = Dex.species.get(sid);
+				if (sp.exists) {
+					const saved = userData.starters[sid];
+					const isShiny = !!saved?.shiny;
+					buf += getSprite(sp.id, 40, isShiny);
+					buf += `<div style="font-size:9px;color:#ccc;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.escapeHTML(sp.name)}</div>`;
+					buf += `<button name="send" value="/pokerogue choose ${j + 1}" style="width:90%;padding:2px 0;font-size:10px;background:#3a6bc4;color:#fff;border:none;border-radius:4px;cursor:pointer;">Select</button>`;
+				}
+			}
+			buf += `</td>`;
+		}
+		buf += `</tr>`;
 	}
 
-	buf += `</div>`;
+	buf += `</tbody></table>`;
 	return buf;
 }
 
