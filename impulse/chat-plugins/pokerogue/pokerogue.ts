@@ -845,7 +845,7 @@ export const commands: Chat.ChatCommands = {
 			let finalSpecies = choice;
 			if (!isStarterChoice) {
 				while (true) {
-					const evo = getLevelUpEvo(finalSpecies);
+					const evo = getLevelUpEvo(finalSpecies, 70);
 					if (!evo || addedLevel < evo.evoLevel) break;
 					finalSpecies = evo.evoTo;
 				}
@@ -1099,6 +1099,7 @@ export const commands: Chat.ChatCommands = {
 					}
 					const healAmt = item.healAmount || 20;
 					mon.currentHp = item.isMax ? 100 : Math.min(100, hp + healAmt);
+					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
 				} else if (item.type === 'cureStatus') {
 					if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
@@ -1137,6 +1138,7 @@ export const commands: Chat.ChatCommands = {
 						state.battlePoints -= item.cost;
 					}
 					mon.evs[evStat] += gain;
+					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
 				}
 
@@ -1724,6 +1726,7 @@ export const commands: Chat.ChatCommands = {
 				state.battlePoints -= usedItem.cost;
 				const healAmt = usedItem.healAmount || 20;
 				mon.currentHp = usedItem.isMax ? 100 : Math.min(100, hp + healAmt);
+				mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
 				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was Q-Healed using a ${usedItem.name}! (${hp}% → ${mon.currentHp}%)`;
 			} else if (type === 'cure') {
 				if (hp <= 0 || !mon.status) return this.errorReply("Pokémon cannot be Q Cured.");
