@@ -451,6 +451,7 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 		}
 		state.gameOver = true;
 		state.lastRunFloor = floor;
+		state.floor = 1;
 		state.team = [];
 	}
 }
@@ -566,6 +567,7 @@ export const commands: Chat.ChatCommands = {
 				delete existingInMode.gameOver;
 				delete existingInMode.gameWon;
 				delete existingInMode.lastRunFloor;
+				existingInMode.floor = 1;
 				setState(user.id, existingInMode);
 			}
 
