@@ -1807,6 +1807,7 @@ export const commands: Chat.ChatCommands = {
 			if (s) {
 				s.gameOver = true;
 				s.lastRunFloor = s.floor;
+				s.floor = 1;
 				s.team = [];
 				delete s.pendingMoves;
 				delete s.pendingSwap;
