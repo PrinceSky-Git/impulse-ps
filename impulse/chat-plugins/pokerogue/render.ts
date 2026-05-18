@@ -801,6 +801,8 @@ function renderBagView(state: PokeRogueState): string {
 		!state.pendingSwap && !state.moveToLearn && !state.pendingItemName &&
 		!state.itemOptions?.length && !state.pendingConsumableType;
 
+	const itemActionStyle = 'padding:2px 6px; font-size:10px; min-width:45px;';
+
 	for (const { key, item, qty } of tabItems) {
 		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
 		buf += `<td class="pr-td-icon" style="padding:3px 4px; width:18px;">${getShopItemIcon(item.icon, 16)}</td>`;
