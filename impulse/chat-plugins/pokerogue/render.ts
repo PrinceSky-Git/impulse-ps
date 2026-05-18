@@ -386,7 +386,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const unlockedCount = Object.keys(userData.starters || {}).length;
 
 	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
-	buf += `<div style="text-align:center;font-size:11px;margin:-6px 0 12px">`;
+	buf += `<div style="text-align:center;color:#aaa;font-size:11px;margin:-6px 0 12px">`;
 	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
 	buf += `</div>`;
 
@@ -403,8 +403,8 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 				if (sp.exists) {
 					const saved = userData.starters[sid];
 					const isShiny = !!saved?.shiny;
-					buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.escapeHTML(sp.name)}</div>`;
 					buf += getSprite(sp.id, 40, isShiny);
+					buf += `<div style="font-size:9px;color:#ccc;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.escapeHTML(sp.name)}</div>`;
 					buf += `<button name="send" value="/pokerogue choose ${j + 1}" style="width:90%;padding:2px 0;font-size:10px;background:#3a6bc4;color:#fff;border:none;border-radius:4px;cursor:pointer;">Select</button>`;
 				}
 			}
@@ -866,7 +866,7 @@ function renderBagView(state: PokeRogueState): string {
 	return buf;
 }
 
-function renderStatsView(state: PokeRogueState): string {
+function renderStatsView(state: PokeRogueState, user: User): string {
 	const slot = (state as any).pendingStatsSlot;
 	const activeTab: number = (state as any).statsTab ?? 0;
 	if (slot === undefined || slot < 0 || slot >= state.team.length) {
@@ -875,6 +875,24 @@ function renderStatsView(state: PokeRogueState): string {
 
 	const mon = state.team[slot];
 	const spData = Dex.species.get(toID(mon.species));
+
+	let showAbilityArrows = false;
+	let showNatureArrows = false;
+
+	if (state.isConfiguringStarter && slot === 0) {
+		const userData = getUserData(user.id);
+		let baseSpecies = toID(mon.species);
+		while (true) {
+			const sp = Dex.species.get(baseSpecies);
+			if (!sp.prevo) break;
+			baseSpecies = toID(sp.prevo);
+		}
+		const starterData = userData.starters[baseSpecies];
+		if (starterData) {
+			if ((starterData.unlockedAbilities?.length || 0) > 1) showAbilityArrows = true;
+			if ((starterData.unlockedNatures?.length || 0) > 1) showNatureArrows = true;
+		}
+	}
 
 	const natureName = mon.nature || 'Hardy';
 	const nature = Dex.natures.get(natureName) ?? Dex.natures.get('Hardy');
@@ -972,7 +990,7 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `<span class="pr-sv-row-label">Ability</span>`;
 		buf += `<div class="pr-sv-row-val">`;
 		
-		if (state.isConfiguringStarter) {
+		if (showAbilityArrows) {
 			buf += `<div style="display:flex;align-items:center;gap:6px;">`;
 			buf += renderBtn(`/pokerogue cyclestarter ability prev`, '◀', 'pr-btn', 'padding:2px 6px;font-size:10px');
 			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
@@ -994,7 +1012,7 @@ function renderStatsView(state: PokeRogueState): string {
 		buf += `<span class="pr-sv-row-label">Nature</span>`;
 		buf += `<div class="pr-sv-row-val">`;
 		
-		if (state.isConfiguringStarter) {
+		if (showNatureArrows) {
 			buf += `<div style="display:flex;align-items:center;gap:6px;">`;
 			buf += renderBtn(`/pokerogue cyclestarter nature prev`, '◀', 'pr-btn', 'padding:2px 6px;font-size:10px');
 			buf += `<b>${Utils.escapeHTML(natureName)}</b>${natureSuffix}`;
@@ -1320,18 +1338,17 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 
 	buf += `<div class="pr" style="min-height:100vh;padding-bottom:20px">`;
 
-	if (state.gameOver && view !== 'welcome') return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderGameOverView(state)}</div></div>`;
-	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderResetConfirmView(state)}</div></div>`;
-	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderTopView()}</div></div>`;
-	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderWelcomeView()}</div></div>`;
-	if (view === 'starterselect') return buf + renderHeader('main', false) + `<div style="padding:0 14px 14px">${renderStarterSelectionView(state, user)}</div></div>`;
-	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderStatsView(state)}</div></div>`;
-	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderSlotsView(user, 'save')}</div></div>`;
-	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderSlotsView(user, 'load')}</div></div>`;
+	if (state.gameOver && view !== 'welcome') return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGameOverView(state)}</div></div>`;
+	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderResetConfirmView(state)}</div></div>`;
+	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderTopView()}</div></div>`;
+	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderWelcomeView()}</div></div>`;
+	if (view === 'starterselect') return buf + renderHeader('main', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStarterSelectionView(state, user)}</div></div>`;
+	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStatsView(state, user)}</div></div>`;
+	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'save')}</div></div>`;
+	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'load')}</div></div>`;
 
 	buf += renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 
-	if (view === 'starterselect') return buf + renderStarterSelectionView(state, user) + `</div></div>`;
 	if (state.pendingChoice?.length) return buf + renderPendingChoice(state) + `</div></div>`;
 	if (state.pendingSwap) return buf + renderPendingSwap(state) + `</div></div>`;
 	if (state.pendingMoves?.length) return buf + renderPendingMoves(state) + `</div></div>`;
