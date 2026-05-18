@@ -37,13 +37,6 @@ function isBossFloorBoundary(floor: number, bossInterval = 10): boolean {
 	return floor % bossInterval === 0;
 }
 
-function fullHealPP(mon: PokemonEntry): void {
-	mon.ppLeft = mon.moves.map(m => {
-		const dexMove = Dex.moves.get(m);
-		return Math.floor((dexMove.pp ?? 5) * (8 / 5));
-	});
-}
-
 function parseFloorRange(range: string): { start: number, end: number } | null {
 	const match = /^(\d+)-(\d+)$/.exec(range.trim());
 	if (!match) return null;
@@ -218,7 +211,7 @@ function syncBattleOutcome(
 
 			let matched = -1;
 			for (let i = 0; i < state.team.length; i++) {
-				if (!activelyAssigned.has(i) && toID(state.team[i].species) === sid) {
+				if (!activelyAssigned.has(i) && toID(state.team[i].species) === sid && !faintedIndices.has(i) && (state.team[i].currentHp ?? 100) > 0) {
 					matched = i;
 					break;
 				}
@@ -304,7 +297,7 @@ function syncBattleOutcome(
 			const logBase = toID(Dex.species.get(sid).baseSpecies || sid);
 			for (let i = 0; i < state.team.length; i++) {
 				const teamBase = toID(Dex.species.get(state.team[i].species).baseSpecies || state.team[i].species);
-				if (!itemAssigned.has(i) && teamBase === logBase) {
+				if (!itemAssigned.has(i) && teamBase === logBase && !faintedIndices.has(i) && (state.team[i].currentHp ?? 100) > 0) {
 					itemSlotMap[slot] = i;
 					itemAssigned.add(i);
 					break;
@@ -414,7 +407,6 @@ function processFloorRewards(
 		for (const mon of state.team) {
 			mon.currentHp = 100;
 			delete mon.status;
-			fullHealPP(mon);
 		}
 		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
 	}
@@ -507,7 +499,6 @@ export const commands: Chat.ChatCommands = {
 				if (!bRoom?.battle || bRoom.battle.ended) delete state.battleRoomId;
 			}
 
-			// Hotpatches can leave disk-backed runs without activeMode; only rebuild when no progress is recoverable.
 			const hasActiveRun = state && (
 				(state.team?.length > 0) ||
 				((state.floor ?? 1) > 1) ||
@@ -655,7 +646,6 @@ export const commands: Chat.ChatCommands = {
 			const userData = getUserData(user.id);
 			if (!userData.saveSlots) userData.saveSlots = {};
 
-			// Save slots need a detached snapshot so later active-run mutations cannot bleed into stored saves.
 			userData.saveSlots[slot] = JSON.parse(JSON.stringify(state));
 			saveUserData(user.id);
 
@@ -682,7 +672,6 @@ export const commands: Chat.ChatCommands = {
 				}
 			}
 
-			// Loading also clones the slot to keep future run mutations from editing saved slot data by reference.
 			const restoredState = JSON.parse(JSON.stringify(slotData));
 			userData.runs[restoredState.gameMode] = restoredState;
 			userData.activeMode = restoredState.gameMode;
@@ -892,7 +881,6 @@ export const commands: Chat.ChatCommands = {
 					exp: expForLevel(g.level, getExpType(g.species)),
 					expType: getExpType(g.species),
 					moves: g.moves,
-					ppLeft: g.moves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					nature: g.nature,
 					ability: g.ability,
 					...commonProps,
@@ -910,7 +898,6 @@ export const commands: Chat.ChatCommands = {
 					exp: expForLevel(addedLevel, finalExpType),
 					expType: finalExpType,
 					moves: initialMoves,
-					ppLeft: initialMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					nature: displayNature,
 					...commonProps,
 				} as PokemonEntry;
@@ -952,7 +939,6 @@ export const commands: Chat.ChatCommands = {
 					if (isNaN(slot) || slot < 0 || slot >= mon.moves.length) return this.errorReply("Invalid move slot.");
 					const oldMoveName = Dex.moves.get(mon.moves[slot]).name;
 					mon.moves[slot] = pending.move;
-					if (mon.ppLeft) mon.ppLeft[slot] = Math.floor((Dex.moves.get(pending.move).pp ?? 5) * (8 / 5));
 					state.notification = `Forgot ${oldMoveName} and learned <b>${Dex.moves.get(pending.move).name}</b>!`;
 				}
 				state.pendingMoves.shift();
@@ -1235,6 +1221,8 @@ export const commands: Chat.ChatCommands = {
 
 				state.notification = `You released <b>${spName}</b>.`;
 				delete state.pendingReleaseSlot;
+				delete state.pendingMoveSlot;
+				delete (state as any).pendingStatsSlot;
 
 				setState(user.id, state);
 				refreshGamePage(user);
@@ -1418,7 +1406,10 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("You cannot catch Trainer or Boss Pokémon!");
 			}
 
-			const ballType = toID(target);
+			const targetMatch = target.trim().split(' ');
+			const ballType = toID(targetMatch[0]);
+			const reqSlot = targetMatch[1] ? targetMatch[1].toLowerCase() : '';
+
 			if (!['pokeball', 'greatball', 'ultraball', 'masterball'].includes(ballType)) {
 				return this.errorReply("Invalid Poké Ball type.");
 			}
@@ -1434,56 +1425,60 @@ export const commands: Chat.ChatCommands = {
 			(state as any).lastThrowTime = now;
 
 			const log = room.log?.log || [];
-			let p2Species = '';
-			let p2Level = botLevel(floor, config);
-			let p2Hp = -1;
-			let p2MaxHp = 100;
-			let p2Status = '';
-			let isFainted = false;
-
+			
+			const p2State = new Map<string, { species: string, level: number, hp: number, maxHp: number, status: string, fainted: boolean }>();
 			let p1Fainted = false;
-			let p1Found = false;
 
-			for (let i = log.length - 1; i >= 0; i--) {
-				const line = log[i];
+			for (const line of log) {
+				if (/^\|faint\|p1[a-z]:/.test(line)) p1Fainted = true;
+				else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) p1Fainted = false;
 
-				if (!p1Found) {
-					if (/^\|faint\|p1[a-z]:/.test(line)) {
-						p1Fainted = true;
-						p1Found = true;
-					} else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) {
-						p1Fainted = false;
-						p1Found = true;
+				const swMatch = /^\|(?:switch|drag)\|(p2[a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+				if (swMatch) {
+					p2State.set(swMatch[1], {
+						species: toID(swMatch[2]),
+						level: swMatch[3] ? parseInt(swMatch[3]) : botLevel(floor, config),
+						hp: parseInt(swMatch[4]),
+						maxHp: swMatch[5] ? parseInt(swMatch[5]) : 100,
+						status: swMatch[6] || '',
+						fainted: false
+					});
+					continue;
+				}
+
+				const dmgMatch = /^\|(?:-damage|-heal)\|(p2[a-z]): [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+				if (dmgMatch) {
+					const s = p2State.get(dmgMatch[1]);
+					if (s) {
+						s.hp = parseInt(dmgMatch[2]);
+						if (dmgMatch[3]) s.maxHp = parseInt(dmgMatch[3]);
+						if (dmgMatch[4]) s.status = dmgMatch[4];
 					}
+					continue;
 				}
 
-				if (p2Hp === -1 && /^\|faint\|p2[a-z]:/.test(line)) {
-					isFainted = true;
+				const stMatch = /^\|-status\|(p2[a-z]): [^|]+\|(brn|psn|tox|par|slp|frz)/.exec(line);
+				if (stMatch) {
+					const s = p2State.get(stMatch[1]);
+					if (s) s.status = stMatch[2];
+					continue;
 				}
 
-				const hpMatch = /^\|(?:-damage|-heal)\|p2[a-z]: [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
-				if (hpMatch && p2Hp === -1 && !isFainted) {
-					p2Hp = parseInt(hpMatch[1]);
-					p2MaxHp = hpMatch[2] ? parseInt(hpMatch[2]) : 100;
-					if (hpMatch[3]) p2Status = hpMatch[3];
+				const cureMatch = /^\|-curestatus\|(p2[a-z]):/.exec(line);
+				if (cureMatch) {
+					const s = p2State.get(cureMatch[1]);
+					if (s) s.status = '';
+					continue;
 				}
 
-				const statusMatch = /^\|-status\|p2[a-z]: [^|]+\|(brn|psn|tox|par|slp|frz)/.exec(line);
-				if (statusMatch && p2Status === '') p2Status = statusMatch[1];
-
-				const cureMatch = /^\|-curestatus\|p2[a-z]:/.exec(line);
-				if (cureMatch && p2Status === '') p2Status = 'none';
-
-				const switchMatch = /^\|(?:switch|drag)\|p2[a-z]: [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
-				if (switchMatch) {
-					p2Species = toID(switchMatch[1]);
-					if (switchMatch[2]) p2Level = parseInt(switchMatch[2]);
-					if (p2Hp === -1 && !isFainted) {
-						p2Hp = parseInt(switchMatch[3]);
-						p2MaxHp = switchMatch[4] ? parseInt(switchMatch[4]) : 100;
-						if (switchMatch[5] && p2Status === '') p2Status = switchMatch[5];
+				const faintMatch = /^\|faint\|(p2[a-z]):/.exec(line);
+				if (faintMatch) {
+					const s = p2State.get(faintMatch[1]);
+					if (s) {
+						s.fainted = true;
+						s.hp = 0;
 					}
-					break;
+					continue;
 				}
 			}
 
@@ -1491,10 +1486,29 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("You cannot throw a Poké Ball while your Pokémon is fainted! Please send out a new Pokémon first.");
 			}
 
+			let targetMon = null;
+			if (reqSlot) {
+				targetMon = p2State.get(reqSlot);
+				if (!targetMon || targetMon.fainted) return this.errorReply("That target is not available to catch.");
+			} else {
+				for (const [, data] of p2State.entries()) {
+					if (!data.fainted && data.hp > 0) {
+						targetMon = data;
+						break;
+					}
+				}
+			}
+
+			if (!targetMon || targetMon.fainted) return this.errorReply("There is no active Pokémon to catch.");
+
+			const p2Species = targetMon.species;
+			const p2Level = targetMon.level;
+			let p2Hp = targetMon.hp;
+			let p2MaxHp = targetMon.maxHp;
+			let p2Status = targetMon.status;
+
 			if (p2Status === 'none') p2Status = '';
 			if (p2Hp === -1) p2Hp = 100;
-
-			if (!p2Species || isFainted) return this.errorReply("There is no active Pokémon to catch.");
 
 			state.inventory[ballType]--;
 			setState(user.id, state);
@@ -1607,7 +1621,6 @@ export const commands: Chat.ChatCommands = {
 					expType: getExpType(p2Species),
 					moves: caughtMoves,
 					nature: randomNature,
-					ppLeft: caughtMoves.map(m => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))),
 					currentHp: hpPct,
 					ability: caughtAbility,
 					ball: ballType,
@@ -1651,9 +1664,6 @@ export const commands: Chat.ChatCommands = {
 							exp: expForLevel(5, getExpType(baseSpecies)),
 							expType: getExpType(baseSpecies),
 							moves: getLevelUpMoves(baseSpecies, 5, config.generation),
-							ppLeft: getLevelUpMoves(baseSpecies, 5, config.generation).map(
-								(m: string) => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))
-							),
 							metLevel: 5,
 							metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
 							currentHp: 100,

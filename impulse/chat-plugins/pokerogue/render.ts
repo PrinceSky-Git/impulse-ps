@@ -423,7 +423,7 @@ function renderPendingMoves(state: PokeRogueState): string {
 	for (let i = 0; i < mon.moves.length; i++) {
 		const oldMove = Dex.moves.get(mon.moves[i]);
 		const maxPp = Math.floor((oldMove.pp || 5) * (8 / 5));
-		const curPp = mon.ppLeft?.[i] ?? maxPp;
+		const curPp = maxPp;
 		const mColor = '#' + typeColor(oldMove.type || 'Normal');
 		const catIcon = oldMove.category === 'Physical' ? '⚔' : oldMove.category === 'Special' ? '◆' : '●';
 		const moveDesc = oldMove.shortDesc || oldMove.desc || '';
@@ -462,7 +462,6 @@ function renderGiveItem(state: PokeRogueState): string {
 	const dexItem = Dex.items.get(state.pendingItemName);
 	const pendingItemId = toID(state.pendingItemName);
 	
-	// Dynamically change the text based on item type
 	const actionVerb = state.pendingItemIsEvo ? 'Use' : 'Give';
 
 	let buf = `<h2 class="pr-choice-heading">${actionVerb} ${Utils.escapeHTML(dexItem.name || state.pendingItemName!)}?</h2>`;
@@ -476,7 +475,6 @@ function renderGiveItem(state: PokeRogueState): string {
 		let isCompatible = true;
 		let reason = '';
 
-		// Check evolution compatibility if the item is an evolution item
 		if (state.pendingItemIsEvo) {
 			isCompatible = false;
 			const evoList = dexSpecies.evos;
@@ -502,10 +500,8 @@ function renderGiveItem(state: PokeRogueState): string {
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${spName}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` <span style="color:#f87171">(${reason})</span>` : ''}</span>`;
 		if (mon.heldItem) flexHtml += `<div style="font-size:9px;color:#8ab4f8">Holds: ${Utils.escapeHTML(Dex.items.get(mon.heldItem).name || mon.heldItem)}</div>`;
 		
-		// Hide the button if not compatible, and use the dynamic actionVerb ("Use" or "Give")
 		const btnHtml = isCompatible ? renderBtn(`/pokerogue resolve giveitem ${i + 1}`, actionVerb, 'pr-pick-btn') : '';
 		
-		// Dim the row if not compatible
 		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, isCompatible ? '' : 'opacity:.45');
 	}
 
@@ -1039,7 +1035,7 @@ function renderStatsView(state: PokeRogueState): string {
 			if (i < moves.length) {
 				const move = Dex.moves.get(moves[i]);
 				const maxPp = Math.floor((move.pp || 5) * (8 / 5));
-				const curPp = mon.ppLeft?.[i] ?? maxPp;
+				const curPp = maxPp;
 				const mColor = '#' + typeColor(move.type);
 				const catIcon = move.category === 'Physical' ? '⚔' : move.category === 'Special' ? '◆' : '●';
 				const moveDesc = move.shortDesc || move.desc || '';
