@@ -6,7 +6,6 @@ const USERS_DIR = 'impulse/db/pokerogue-users/';
 
 export let globalStats: Record<string, GlobalStatEntry> = {};
 
-// In-memory cache to prevent lag from constant disk reading
 export const userCache: Record<string, UserSaveData> = {};
 
 export function loadGlobalStats(): void {
@@ -33,13 +32,12 @@ export function getUserData(userid: string): UserSaveData {
 		}
 	} catch {}
 
-	// Create a fresh profile for new users
-	const newData: UserSaveData = { 
-		displayName: userid, 
-		activeMode: 'classic', 
-		starters: {}, 
+	const newData: UserSaveData = {
+		displayName: userid,
+		activeMode: 'classic',
+		starters: {},
 		runs: {},
-		saveSlots: {}
+		saveSlots: {},
 	};
 	userCache[userid] = newData;
 	return newData;
@@ -59,20 +57,20 @@ export function saveAllData(): void {
 
 export function getState(userid: string): PokeRogueState | null {
 	const user = getUserData(userid);
-	// If activeMode is set, use it
+
 	if (user.activeMode && user.runs[user.activeMode]) {
 		return user.runs[user.activeMode]!;
 	}
-	// Fallback: find any existing run (handles missing activeMode after hotpatch)
+
+	// Repair saves from older hotpatches that stored a run without an active mode pointer.
 	const existingMode = Object.keys(user.runs)[0] as GameMode | undefined;
 	if (existingMode) {
-		user.activeMode = existingMode; // repair it
+		user.activeMode = existingMode;
 		return user.runs[existingMode]!;
 	}
 	return null;
 }
 
-// Smart Wrapper: Saves the state directly into the correct mode slot
 export function setState(userid: string, state: PokeRogueState): void {
 	const user = getUserData(userid);
 	user.activeMode = state.gameMode;
@@ -88,12 +86,10 @@ export function deleteState(userid: string): void {
 	}
 }
 
-// Helper to switch modes without overwriting data
 export function setActiveMode(userid: string, mode: GameMode): void {
 	const user = getUserData(userid);
 	user.activeMode = mode;
 	saveUserData(userid);
 }
 
-// Initialize ladder stats on boot
 loadGlobalStats();

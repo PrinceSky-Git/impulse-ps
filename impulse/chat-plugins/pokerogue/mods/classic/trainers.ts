@@ -18,7 +18,7 @@ export const EVS_SPDEF_PIVOT = { hp: 248, atk: 0, def: 8, spa: 0, spd: 252, spe:
 export const EVS_MIXED_WALL = { hp: 252, atk: 0, def: 128, spa: 0, spd: 128, spe: 0 } as const;
 
 export const EVS_TRICK_ROOM_SWEEPER = { hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0 } as const;
-export const EVS_TRICK_ROOM_SPEC    = { hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 0 } as const;
+export const EVS_TRICK_ROOM_SPEC = { hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 0 } as const;
 
 export const EVS_SUPPORT_FAST = { hp: 252, atk: 0, def: 4, spa: 0, spd: 0, spe: 252 } as const;
 

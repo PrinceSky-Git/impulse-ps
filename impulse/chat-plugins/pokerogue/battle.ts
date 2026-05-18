@@ -28,7 +28,7 @@ export function destroyBotUser(botUser: User): void {
 	}
 }
 
-// The bot is a synthetic Showdown user; intercepting requests here keeps the battle stream moving even when an AI choice is rejected.
+// Synthetic users must behave like real Showdown connections so rejected AI choices can be retried.
 function createBotUser(playerId: string): User {
 	const uid = ++botCounter;
 	const connId = `pokerogue-bot-${uid}`;
@@ -158,7 +158,7 @@ function getMoveEffectiveness(
 	if (targetAbility === 'soundproof' && SOUNDPROOF_MOVES.has(moveId)) return 0;
 
 	const immuneTypes = ABILITY_IMMUNITIES[targetAbility];
-	if (immuneTypes && immuneTypes.includes(moveType)) return 0;
+	if (immuneTypes?.includes(moveType)) return 0;
 
 	return getTypeMultiplier(gen, moveType, targetDex.types);
 }
@@ -210,7 +210,7 @@ function scoreMove(
 	turn: number,
 	battleContext: BattleContext,
 ): number {
-	// This intentionally stays heuristic-only: battle requests do not expose enough hidden state for full simulation.
+	// Battle requests omit hidden state, so move scores stay heuristic instead of pretending to simulate a full battle.
 	const moveData = Dex.moves.get(move.id);
 	if (!moveData.exists) return 0;
 
@@ -353,10 +353,9 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: Battle
 		agility: 55, rockpolish: 55,
 	};
 	if (setupMoves[moveId] !== undefined) {
-
-		const relevantBoost = ['calmmind', 'nastyplot', 'quiverdance', 'growth'].includes(moveId)
-			? (boosts['spa'] ?? 0)
-			: (boosts['atk'] ?? 0);
+		const relevantBoost = ['calmmind', 'nastyplot', 'quiverdance', 'growth'].includes(moveId) ?
+			(boosts['spa'] ?? 0) :
+			(boosts['atk'] ?? 0);
 
 		if (relevantBoost >= 3) return -Infinity;
 
@@ -432,7 +431,7 @@ function shouldSwitch(
 	room: AnyObject | null | undefined,
 	alreadyChosen: number[],
 ): number {
-	// Switch scoring must be conservative because a bad switch can strand the bot in forced-switch loops.
+	// Keep switching conservative; a bad forced switch can trap the bot in repeated switch decisions.
 	const pokemon = request.side?.pokemon ?? [];
 	const currentPokemon = pokemon[activeIdx];
 	if (!currentPokemon) return 0;
@@ -675,7 +674,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 			if (active.canMegaEvo && config.mechanicUnlocks?.mega && currentFloor >= config.mechanicUnlocks.mega) {
 				chosen += ' mega';
 			} else if (active.canTerastallize && config.mechanicUnlocks?.terastallize && currentFloor >= config.mechanicUnlocks.terastallize) {
-				// Terastallization is reserved for turns where it improves defense or provides a meaningful STAB swing.
+				// Spend Terastallization only when it avoids obvious defensive penalties or adds meaningful STAB.
 				const targetDex = Dex.species.get(targetSpecies);
 				const userDex = Dex.species.get(userSpecies);
 
@@ -732,7 +731,6 @@ interface ActiveRougeMatch {
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
 function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string, team: AIPokemonSet[] } {
-
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 	const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 
@@ -764,7 +762,7 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 		packedTeam: packAITeam(result.team),
 		isTrainer: result.isTrainer,
 		trainerName: result.trainerName,
-		team: result.team
+		team: result.team,
 	};
 }
 
@@ -837,7 +835,6 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		if (match) {
 			const activeState = getState(match.userId);
 			if (activeState) {
-
 				activeConfig = MODE_CONFIGS[activeState.gameMode] || MODE_CONFIGS['classic'];
 				gen = activeConfig.generation || 9;
 				if (activeState.floor % activeConfig.bossInterval !== 0 && !match.isTrainerBattle) {
