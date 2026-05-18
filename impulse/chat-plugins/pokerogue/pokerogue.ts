@@ -675,6 +675,7 @@ export const commands: Chat.ChatCommands = {
 			const restoredState = JSON.parse(JSON.stringify(slotData));
 			userData.runs[restoredState.gameMode] = restoredState;
 			userData.activeMode = restoredState.gameMode;
+			delete userData.saveSlots[slot];
 
 			saveUserData(user.id);
 
