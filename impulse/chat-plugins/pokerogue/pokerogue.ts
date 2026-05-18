@@ -1700,9 +1700,13 @@ export const commands: Chat.ChatCommands = {
 				const catchMatch = activeMatches.get(room.roomid);
 				let passChoice = 'pass';
 				if (catchMatch?.isDoubles) {
-					const p1Side = room.battle.sides[0];
-					const aliveActive = p1Side?.active?.filter((p: any) => p && !p.fainted && p.hp > 0).length ?? 1;
-					passChoice = Array(Math.max(1, aliveActive)).fill('pass').join(', ');
+					try {
+						const p1Active = room.battle.sides[0]?.active ?? [];
+						const aliveCount = p1Active.filter((p: any) => p && !p.fainted).length;
+						passChoice = Array(Math.max(1, aliveCount)).fill('pass').join(', ');
+					} catch {
+						passChoice = 'pass';
+					}
 				}
 				void room.battle.stream.write(`>p1 ${passChoice}`);
 				
