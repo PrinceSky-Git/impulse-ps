@@ -282,8 +282,10 @@ function getBattleContext(room: AnyObject | null | undefined, slot: number, poke
 	let targetCondition = '';
 	try {
 		const oppActive = (room?.battle)?.p1?.active?.[slot];
-		oppStatus = oppActive?.status ?? '';
-		targetCondition = oppActive?.condition ?? '';
+		if (oppActive && !oppActive.fainted && (oppActive.hp === undefined || oppActive.hp > 0)) {
+			oppStatus = oppActive.status ?? '';
+			targetCondition = oppActive.condition ?? '';
+		}
 	} catch {}
 
 	const hazardsSet = new Set<string>();
@@ -403,7 +405,7 @@ function parseHpRatio(condition: string | undefined): number {
 function getOpponentAbility(room: AnyObject | null | undefined, slot: number): string {
 	try {
 		const oppActive = (room?.battle)?.p1?.active?.[slot];
-		if (!oppActive) return '';
+		if (!oppActive || oppActive.fainted || (oppActive.hp !== undefined && oppActive.hp <= 0)) return '';
 		return toID(oppActive.ability ?? oppActive.baseAbility ?? '');
 	} catch {
 		return '';
@@ -413,7 +415,7 @@ function getOpponentAbility(room: AnyObject | null | undefined, slot: number): s
 function getOpponentSpecies(room: AnyObject | null | undefined, slot: number): string {
 	try {
 		const oppActive = (room?.battle)?.p1?.active?.[slot];
-		if (!oppActive) return '';
+		if (!oppActive || oppActive.fainted || (oppActive.hp !== undefined && oppActive.hp <= 0)) return '';
 		return toID(oppActive.species?.name ?? '');
 	} catch {
 		return '';
@@ -599,6 +601,15 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 		const currentFloor = match?.floor ?? 1;
 		const numActive = (request.active as any[]).length;
 
+		const oppActiveSlots: number[] = [];
+		const p1Active = (room?.battle)?.p1?.active ?? [];
+		for (let j = 0; j < p1Active.length; j++) {
+			if (p1Active[j] && !p1Active[j].fainted && (p1Active[j].hp === undefined || p1Active[j].hp > 0)) {
+				oppActiveSlots.push(j);
+			}
+		}
+		if (!oppActiveSlots.length) oppActiveSlots.push(0);
+
 		for (let i = 0; i < numActive; i++) {
 			const active = (request.active as any[])[i];
 			const pokemon = request.side?.pokemon?.[i];
@@ -608,9 +619,8 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 				continue;
 			}
 
-			const userSpecies = toID(pokemon.details?.split(',')[0] ?? '');
-			const targetSpecies = getOpponentSpecies(room, i);
-			const targetAbility = getOpponentAbility(room, i);
+			const targetSpecies = getOpponentSpecies(room, i) || getOpponentSpecies(room, oppActiveSlots[0]);
+			const targetAbility = getOpponentAbility(room, i) || getOpponentAbility(room, oppActiveSlots[0]);
 
 			const switchIdx = shouldSwitch(gen, request, i, targetSpecies, targetAbility, room, chosenSwitchTargets);
 			if (switchIdx > 0) {
@@ -623,26 +633,56 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 			const usableMoves = moves.filter((m: any) => !m.disabled && (m.pp ?? 1) > 0);
 
 			if (!usableMoves.length) {
-				choicesList.push('move 1');
+				choicesList.push(numActive > 1 ? `move 1 ${oppActiveSlots[0] + 1}` : 'move 1');
 				continue;
 			}
 
-			const battleCtx = getBattleContext(room, i, pokemon);
+			const scored: any[] = [];
 
-			const scored = usableMoves.map((m: any) => {
-				let score = scoreMove(gen, m, userSpecies, targetSpecies, targetAbility, pokemon, turn, battleCtx);
+			for (const m of usableMoves) {
+				const moveData = Dex.moves.get(m.id);
+				const originalIdx = moves.indexOf(m) + 1;
+				
+				const needsTarget = !['all', 'allAdjacent', 'allAdjacentFoes', 'allySide', 'allyTeam', 'foeSide', 'randomNormal', 'scripted', 'self'].includes(moveData.target || 'normal');
+				const targetsAlly = ['adjacentAlly', 'adjacentAllyOrSelf'].includes(moveData.target || '');
 
+				let ppMod = 1;
 				const pp = m.pp ?? 99;
 				if (pp > 1) {
 					const lastUsed = getLastUsedTurn(roomid, i, m.id);
 					const turnsSince = turn - lastUsed;
-					if (turnsSince === 1) score *= 0.72;
-					else if (turnsSince === 2) score *= 0.88;
-					else if (turnsSince === 3) score *= 0.95;
+					if (turnsSince === 1) ppMod = 0.72;
+					else if (turnsSince === 2) ppMod = 0.88;
+					else if (turnsSince === 3) ppMod = 0.95;
 				}
 
-				return { m, originalIdx: moves.indexOf(m) + 1, score };
-			});
+				if (needsTarget && numActive > 1) {
+					if (targetsAlly) {
+						const allySlot = i === 0 ? 1 : 0;
+						const allyPokemon = request.side?.pokemon?.[allySlot];
+						let score = 5 * ppMod;
+						if (!allyPokemon || allyPokemon.condition?.endsWith(' fnt')) score = -Infinity;
+						scored.push({ m, originalIdx, score, target: -(allySlot + 1) });
+					} else {
+						for (const targetSlot of oppActiveSlots) {
+							const tSpecies = getOpponentSpecies(room, targetSlot);
+							const tAbility = getOpponentAbility(room, targetSlot);
+							const battleCtx = getBattleContext(room, targetSlot, pokemon);
+							let score = scoreMove(gen, m, userSpecies, tSpecies, tAbility, pokemon, turn, battleCtx);
+							score *= ppMod;
+							scored.push({ m, originalIdx, score, target: targetSlot + 1 });
+						}
+					}
+				} else {
+					const targetSlot = oppActiveSlots[0] || 0;
+					const tSpecies = getOpponentSpecies(room, targetSlot);
+					const tAbility = getOpponentAbility(room, targetSlot);
+					const battleCtx = getBattleContext(room, targetSlot, pokemon);
+					let score = scoreMove(gen, m, userSpecies, tSpecies, tAbility, pokemon, turn, battleCtx);
+					score *= ppMod;
+					scored.push({ m, originalIdx, score, target: null });
+				}
+			}
 
 			scored.sort((a: any, b: any) => b.score - a.score);
 
@@ -655,23 +695,24 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 			const pick = scored[pickIdx];
 			let chosen: string;
 
-			if (pick.score === -Infinity || pick.score <= 0) {
+			if (!pick || pick.score === -Infinity || pick.score <= 0) {
 				const fallback = scored.find((s: any) => s.score > -Infinity && s.score > 0);
 				if (fallback) {
-					chosen = `move ${fallback.originalIdx}`;
+					chosen = `move ${fallback.originalIdx}${fallback.target ? ` ${fallback.target}` : ''}`;
 					recordMoveUsed(roomid, i, fallback.m.id, turn);
 				} else {
-					chosen = 'move 1';
+					chosen = numActive > 1 ? `move 1 ${oppActiveSlots[0] + 1}` : 'move 1';
 				}
 			} else {
-				chosen = `move ${pick.originalIdx}`;
+				chosen = `move ${pick.originalIdx}${pick.target ? ` ${pick.target}` : ''}`;
 				recordMoveUsed(roomid, i, pick.m.id, turn);
 			}
 
 			if (active.canMegaEvo && config.mechanicUnlocks?.mega && currentFloor >= config.mechanicUnlocks.mega) {
 				chosen += ' mega';
 			} else if (active.canTerastallize && config.mechanicUnlocks?.terastallize && currentFloor >= config.mechanicUnlocks.terastallize) {
-				const targetDex = Dex.species.get(targetSpecies);
+				const tSpecies = getOpponentSpecies(room, i) || getOpponentSpecies(room, oppActiveSlots[0]);
+				const targetDex = Dex.species.get(tSpecies);
 				const userDex = Dex.species.get(userSpecies);
 
 				const teraType = active.teraType as string | undefined;
@@ -683,7 +724,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 					}
 				}
 
-				const chosenMoveId = pick.m?.id ?? '';
+				const chosenMoveId = pick?.m?.id ?? '';
 				const chosenMoveData = Dex.moves.get(chosenMoveId);
 				const teraOffensiveBoost = teraType && chosenMoveData.exists && chosenMoveData.type === teraType;
 
@@ -783,7 +824,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 
 	const hasLure = (state.keyItems ?? []).includes('Lure');
 	const isDoubles = !isTrainer && !isBoss && hasLure && botTeamData.team.length > 1;
-	
+
 	if (state.pendingTrainer) {
 		delete state.pendingTrainer;
 	}
