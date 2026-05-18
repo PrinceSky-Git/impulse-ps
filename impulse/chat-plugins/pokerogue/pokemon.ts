@@ -857,13 +857,19 @@ const EVO_TYPE_FALLBACK_LEVEL: Partial<Record<string, number>> = {
 	levelMove: 30, levelExtra: 20, levelHold: 30,
 };
 
-export function getLevelUpEvo(speciesId: string): { evoTo: string, evoLevel: number } | null {
+export function getLevelUpEvo(speciesId: string, currentHappiness: number = 70): { evoTo: string, evoLevel: number } | null {
 	const species = Dex.species.get(toID(speciesId));
 	if (!species.exists || !species.evos.length) return null;
 	const validEvos: { evoTo: string, evoLevel: number }[] = [];
 	for (const evoName of species.evos) {
 		const evo = Dex.species.get(toID(evoName));
 		if (evo.evoType === 'other') continue;
+		if (evo.evoType === 'levelFriendship') {
+			if (currentHappiness >= 160) {
+				validEvos.push({ evoTo: toID(evoName), evoLevel: 1 });
+			}
+			continue;
+		}
 		const fallback = evo.evoType ? (EVO_TYPE_FALLBACK_LEVEL[evo.evoType] ?? 36) : 36;
 		const evoLevel = evo.evoLevel ?? fallback;
 		if (evoLevel > 0) validEvos.push({ evoTo: toID(evoName), evoLevel });
@@ -895,13 +901,19 @@ export function applyExpAndLevelUp(
 		mon.exp = maxExpAllowed;
 	}
 
+	let leveledUp = false;
 	while (mon.level < levelCap && mon.exp >= expForLevel(mon.level + 1, expType)) {
 		mon.level++;
+		leveledUp = true;
+	}
+
+	if (leveledUp) {
+		mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 	}
 
 	let evolved = false;
 	while (true) {
-		const evo = getLevelUpEvo(mon.species);
+		const evo = getLevelUpEvo(mon.species, mon.happiness);
 		if (!evo || mon.level < evo.evoLevel) break;
 		mon.expType = getExpType(evo.evoTo);
 		mon.species = evo.evoTo;
@@ -909,7 +921,7 @@ export function applyExpAndLevelUp(
 	}
 	return { evolved, oldLevel };
 }
-
+	
 export function botLevel(floor: number, config?: ModeConfig): number {
 	const [minLevel] = levelScaleForFloor(floor, config);
 	return minLevel;
