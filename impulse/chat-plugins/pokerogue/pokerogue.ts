@@ -1697,9 +1697,9 @@ export const commands: Chat.ChatCommands = {
 					}
 				}
 			} else {
-				const numActive = room.battle.sides[0]?.active?.length ?? 1;
-				const passChoice = Array(numActive).fill('pass').join(', ');
-				void room.battle.stream.write(`>p1 default`);
+				const catchMatch = activeMatches.get(room.roomid);
+				const passChoice = catchMatch?.isDoubles ? 'pass, pass' : 'pass';
+				void room.battle.stream.write(`>p1 ${passChoice}`);
 
 				let escapeMsg = `|c|~|Oh no! The Pokémon broke free!`;
 				if (shakes === 1) escapeMsg = `|c|~|Aww! It appeared to be caught!`;
