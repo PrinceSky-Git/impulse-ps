@@ -1636,11 +1636,40 @@ export const commands: Chat.ChatCommands = {
 
 				// --- STARTER UNLOCK LOGIC ---
 				const userData = getUserData(user.id);
-				
-				if (state.gameMode === 'classic' && !userData.starters[p2Species]) {
-					userData.starters[p2Species] = caught;
-					saveUserData(user.id);
-					room.add(`|c|~|${Dex.species.get(p2Species).name} has been permanently unlocked as a Starter!`).update();
+
+				if (state.gameMode === 'classic') {
+					// Walk back to the base (unevolved) form
+					let baseSpecies = p2Species;
+					while (true) {
+						const sp = Dex.species.get(baseSpecies);
+						const prevo = sp.prevo;
+						if (!prevo) break;
+						baseSpecies = toID(prevo);
+					}
+
+					if (!userData.starters[baseSpecies]) {
+						const baseDex = Dex.species.get(baseSpecies);
+						const baseCaught = {
+							...caught,
+							species: baseSpecies,
+							level: 5,
+							exp: expForLevel(5, getExpType(baseSpecies)),
+							expType: getExpType(baseSpecies),
+							moves: getLevelUpMoves(baseSpecies, 5, config.generation),
+							ppLeft: getLevelUpMoves(baseSpecies, 5, config.generation).map(
+								(m: string) => Math.floor((Dex.moves.get(m).pp ?? 5) * (8 / 5))
+							),
+							metLevel: 5,
+							metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
+							currentHp: 100,
+						};
+						delete baseCaught.status;
+						delete baseCaught.heldItem;
+						
+						userData.starters[baseSpecies] = baseCaught;
+						saveUserData(user.id);
+						room.add(`|c|~|${baseDex.name} has been permanently unlocked as a Starter!`).update();
+					}
 				}
 				// ----------------------------
 
