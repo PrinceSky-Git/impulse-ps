@@ -1199,6 +1199,7 @@ export const commands: Chat.ChatCommands = {
 					
 					mon.nature = pool[idx];
 					starterData.selectedNature = pool[idx];
+					starterData.nature = pool[idx];
 				}
 			} else if (trait === 'ability') {
 				const pool = starterData.unlockedAbilities?.length ? starterData.unlockedAbilities : [mon.ability!];
@@ -1213,6 +1214,7 @@ export const commands: Chat.ChatCommands = {
 					
 					mon.ability = pool[idx];
 					starterData.selectedAbility = pool[idx];
+					starterData.ability = pool[idx];
 				}
 			}
 
@@ -1220,7 +1222,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-		
+
 		confirmstarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state || !state.isConfiguringStarter) return;
@@ -1766,9 +1768,13 @@ export const commands: Chat.ChatCommands = {
 					const isShiny = existingStarter?.shiny || caught.shiny;
 
 					const unlockedNatures = new Set(existingStarter?.unlockedNatures || []);
+					if (existingStarter?.nature) unlockedNatures.add(existingStarter.nature);
+					if (existingStarter?.selectedNature) unlockedNatures.add(existingStarter.selectedNature);
 					if (caught.nature) unlockedNatures.add(caught.nature);
 
 					const unlockedAbilities = new Set(existingStarter?.unlockedAbilities || []);
+					if (existingStarter?.ability) unlockedAbilities.add(existingStarter.ability);
+					if (existingStarter?.selectedAbility) unlockedAbilities.add(existingStarter.selectedAbility);
 					if (caught.ability) unlockedAbilities.add(caught.ability);
 
 					const selectedNature = existingStarter?.selectedNature || caught.nature;
