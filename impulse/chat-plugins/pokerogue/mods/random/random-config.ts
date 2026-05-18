@@ -15,6 +15,7 @@ export const randomConfig: ModeConfig = {
 	starterLevel: 5,
 	generation: 9,
 	baseFormat: '[Gen 9] PokeRogue',
+	doublesFormat: '[Gen 9] PokeRogue Doubles',
 	economy: {
 		startingBP: 20,
 		bpPerWin: 5,
