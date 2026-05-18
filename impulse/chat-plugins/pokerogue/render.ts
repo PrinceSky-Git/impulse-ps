@@ -1347,5 +1347,3 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 
 	return buf + renderMainView(state, user) + `</div></div>`;
 }
-
-}
