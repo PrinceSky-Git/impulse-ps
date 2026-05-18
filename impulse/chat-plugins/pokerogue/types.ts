@@ -118,7 +118,6 @@ export interface PokemonEntry {
 	heldItem?: string;
 	moves: string[];
 	currentHp?: number;
-	ppLeft?: number[];
 	status?: StatusCondition;
 	ball?: string;
 	nature?: string;
