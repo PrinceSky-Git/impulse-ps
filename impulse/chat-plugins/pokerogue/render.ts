@@ -1215,7 +1215,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 
 	if (state.isConfiguringStarter) {
 		buf += `<div style="text-align:center;margin-bottom:8px">`;
-		buf += renderBtn('/pokerogue confirmstarter', 'Start', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+		buf += renderBtn('/pokerogue confirmstarter', 'Start Run', 'pr-btn primary', 'font-size:18px;padding:5px 10px');
 		buf += `</div>`;
 	}
 
