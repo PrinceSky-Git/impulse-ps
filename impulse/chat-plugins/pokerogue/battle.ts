@@ -1,7 +1,7 @@
 import { ObjectReadWriteStream } from '../../../lib/streams';
 import { StreamWorker } from '../../../lib/process-manager';
 import { type PokeRogueState } from './types';
-import { MODE_CONFIGS, MODE_REGISTRY } from './config';
+import { MODE_CONFIGS, MODE_REGISTRY, getModeConfig, getModeData } from './config';
 import {
 	genAIPokemon, packAITeam, packTeam,
 	type AIPokemonSet, botLevel,
@@ -770,8 +770,8 @@ interface ActiveRougeMatch {
 export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
 
 function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string, team: AIPokemonSet[] } {
-	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-	const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+	const config = getModeConfig(state.gameMode);
+	const data = getModeData(state.gameMode);
 
 	const floor = state.floor;
 
@@ -820,7 +820,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	const isTrainer = botTeamData.isTrainer;
 	const trainerName = botTeamData.trainerName;
 
-	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+	const config = getModeConfig(state.gameMode);
 	const isBoss = state.floor % config.bossInterval === 0;
 
 	const hasLure = (state.keyItems ?? []).includes('Lure');

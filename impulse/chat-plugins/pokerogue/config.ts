@@ -17,3 +17,13 @@ export const MODE_REGISTRY: Record<GameMode, ModeData> = {
 	random: randomData,
 
 };
+
+export function getModeConfig(mode?: GameMode): ModeConfig {
+	if (mode && MODE_CONFIGS[mode]) return MODE_CONFIGS[mode];
+	return MODE_CONFIGS.classic;
+}
+
+export function getModeData(mode?: GameMode): ModeData {
+	if (mode && MODE_REGISTRY[mode]) return MODE_REGISTRY[mode];
+	return MODE_REGISTRY.classic;
+}

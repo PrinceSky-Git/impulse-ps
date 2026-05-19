@@ -2,7 +2,7 @@ import { Utils } from '../../../lib';
 import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem } from './items';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
-import { MODE_CONFIGS, MODE_REGISTRY } from './config';
+import { MODE_CONFIGS, MODE_REGISTRY, getModeConfig, getModeData } from './config';
 import {
 	getState, setState, deleteState, saveAllData,
 	getUserData, saveUserData, globalStats, saveGlobalStats, setActiveMode,
@@ -28,7 +28,7 @@ const pendingLadderResetConfirmations = new Map<ID, number>();
 
 function repairEmptyPendingChoice(state: PokeRogueState, userId: string): void {
 	if (!state.pendingChoice || state.pendingChoice.length) return;
-	const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+	const modeData = getModeData(state.gameMode);
 	state.pendingChoice = pickStarterOptions(modeData.starters);
 	setState(userId, state);
 }
@@ -765,8 +765,8 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+			const config = getModeConfig(state.gameMode);
+			const data = getModeData(state.gameMode);
 
 			const floor = state.floor;
 
@@ -824,8 +824,8 @@ export const commands: Chat.ChatCommands = {
 			const choice = state.pendingChoice[n];
 
 			const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+			const config = getModeConfig(state.gameMode);
+			const data = getModeData(state.gameMode);
 
 			let addedLevel = config.starterLevel ?? 5;
 			if (!isStarterChoice) {
@@ -1501,7 +1501,7 @@ export const commands: Chat.ChatCommands = {
 			if (!room.battle.turn) return this.errorReply("The battle hasnt started yet!");
 			if (state.caughtPokemon) return this.errorReply("You already caught this Pokémon!");
 
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const config = getModeConfig(state.gameMode);
 			const floor = state.floor;
 			if (floor % config.bossInterval === 0 || catchMatch.isTrainerBattle) {
 				return this.errorReply("You cannot catch Trainer or Boss Pokémon!");
@@ -2039,8 +2039,8 @@ export const handlers: Chat.Handlers = {
 		const state = getState(match.userId);
 		if (!state) return;
 
-		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-		const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+		const config = getModeConfig(state.gameMode);
+		const data = getModeData(state.gameMode);
 
 		const isBossFloor = match.floor % config.bossInterval === 0;
 		const room = Rooms.get(battle.roomid);

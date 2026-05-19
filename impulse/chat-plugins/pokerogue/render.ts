@@ -1,7 +1,7 @@
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
-import { MODE_CONFIGS, MODE_REGISTRY } from './config';
+import { MODE_CONFIGS, MODE_REGISTRY, getModeConfig, getModeData } from './config';
 import { SHOP_ITEMS } from './items';
 import { globalStats, getUserData } from './state';
 import { expForLevel, getLevelUpMoves } from './pokemon';
@@ -647,7 +647,7 @@ function renderReleaseMon(state: PokeRogueState): string {
 function renderTrainerIntroView(state: PokeRogueState): string {
 	const trainerName = state.pendingTrainer!;
 	const lookupKey = state.pendingTrainerKey || state.floor.toString();
-	const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+	const modeData = getModeData(state.gameMode);
 	const trainerData = modeData.trainers?.[lookupKey]?.[trainerName];
 
 	return renderCharacterDialogView({
@@ -681,7 +681,7 @@ function renderWelcomeView(): string {
 }
 
 function renderVictoryView(state: PokeRogueState): string {
-	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+	const config = getModeConfig(state.gameMode);
 	const vc = config.victoryConfig ?? {};
 
 	const name = vc.name ?? 'Professor Oak';
