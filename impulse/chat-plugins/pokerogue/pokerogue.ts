@@ -702,6 +702,16 @@ export const commands: Chat.ChatCommands = {
 			const v = args[0] as any;
 
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect'].includes(v)) {
+				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
+					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+					if (modeData.useNewStarterSelectionUI !== false) {
+						(state as any).view = 'starterselect';
+						setState(user.id, state);
+						refreshGamePage(user);
+						return;
+					}
+				}
+
 				if (v === 'main' && state.isConfiguringStarter) {
 					const userData = getUserData(user.id);
 					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
