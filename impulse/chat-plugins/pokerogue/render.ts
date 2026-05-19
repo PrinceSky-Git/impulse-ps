@@ -943,7 +943,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 	const statKeys: (keyof typeof bs)[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 	const statLabels: Record<string, string> = {
-		hp: 'HP', atk: 'Atk', def: 'Def', spa: 'Sp.Atk', spd: 'Sp.Def', spe: 'Speed',
+		hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SPA', spd: 'SPD', spe: 'SPE',
 	};
 	const statColors: Record<string, string> = {
 		hp: '#FF5959', atk: '#F5AC78', def: '#FAE078',
