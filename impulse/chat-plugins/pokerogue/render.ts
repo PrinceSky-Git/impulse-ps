@@ -384,9 +384,9 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const pending = state.pendingChoice || [];
 	const userData = getUserData(user.id);
 	const unlockedCount = Object.keys(userData.starters || {}).length;
-	const search = ((state as any).starterSearch || '').toLowerCase();
+	const search = ((state as any).starterSearch || '').toLowerCase().trim();
 
-	const filtered = search
+	const filtered = search.length > 0
 		? pending.filter(sid => {
 			const sp = Dex.species.get(toID(sid));
 			return sp.name.toLowerCase().includes(search) || toID(sid).includes(search);
