@@ -618,12 +618,14 @@ export const commands: Chat.ChatCommands = {
 
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
+
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect'].includes(v)) {
 				if (v === 'main' && state.isConfiguringStarter) {
 					state.team = [];
 					delete state.isConfiguringStarter;
 					delete (state as any).pendingStatsSlot;
 					delete (state as any).statsTab;
+					delete (state as any).starterSearch;
 					(state as any).view = 'starterselect';
 					setState(user.id, state);
 					refreshGamePage(user);
