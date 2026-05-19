@@ -621,7 +621,16 @@ export const commands: Chat.ChatCommands = {
 
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect'].includes(v)) {
 				if (v === 'main' && state.isConfiguringStarter) {
+					const userData = getUserData(user.id);
+					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+					const unlockedStarterIds = Object.keys(userData.starters || {});
+					const starterPool = modeData.useNewStarterSelectionUI !== false
+						? [...new Set([...modeData.starters, ...unlockedStarterIds])]
+						: modeData.starters;
+
 					state.team = [];
+					state.pendingChoice = starterPool;
+					state.pendingChoiceType = 'starter';
 					delete state.isConfiguringStarter;
 					delete (state as any).pendingStatsSlot;
 					delete (state as any).statsTab;
