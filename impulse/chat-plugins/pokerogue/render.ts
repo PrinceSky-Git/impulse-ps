@@ -405,7 +405,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
 	buf += `</div>`;
 
-	buf += `<form data-submitsend="/pokerogue startersearch {data}" style="text-align:center;margin-bottom:8px">`;
+	buf += `<form data-submitsend="/pokerogue startersearch {data}" style="text-align:center;margin-bottom:12px">`;
 	buf += `<input name="data" value="${Utils.escapeHTML(search)}" placeholder="Name, type, or 'shiny'..." ` +
 		`style="padding:5px 10px;border-radius:6px;border:1px solid rgba(150,150,150,0.4);background:rgba(0,0,0,0.2);color:inherit;font-size:12px;width:180px;" />`;
 	buf += `&nbsp;&nbsp;<button type="submit" class="pr-btn" style="font-size:11px;padding:5px 10px;">Search</button>`;
@@ -413,21 +413,6 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 		buf += `&nbsp;&nbsp;` + renderBtn('/pokerogue startersearch', 'Clear', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	}
 	buf += `</form>`;
-
-	const typeList = ['Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting', 'Poison', 'Ground',
-		'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy', 'Normal'];
-
-	buf += `<div style="text-align:center;margin-bottom:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px;">`;
-	for (const type of typeList) {
-		const color = typeColor(type);
-		const textColor = getContrastColor(color);
-		const isActive = search === type.toLowerCase();
-		buf += `<button name="send" value="/pokerogue startersearch ${type.toLowerCase()}" ` +
-			`class="pr-btn" style="font-size:9px;padding:2px 6px;background:#${color};color:#${textColor};border:2px solid ${isActive ? '#fff' : 'transparent'};opacity:${isActive ? '1' : '0.75'};">${type}</button>`;
-	}
-	buf += `<button name="send" value="/pokerogue startersearch shiny" ` +
-		`class="pr-btn" style="font-size:9px;padding:2px 6px;background:linear-gradient(135deg,#f6d365,#fda085);color:#333;border:2px solid ${search === 'shiny' ? '#fff' : 'transparent'};opacity:${search === 'shiny' ? '1' : '0.75'};">★ Shiny</button>`;
-	buf += `</div>`;
 
 	if (filtered.length === 0) {
 		buf += `<div style="text-align:center;padding:16px;color:#888;">No Pokémon found for "<b>${Utils.escapeHTML(search)}</b>".</div>`;
