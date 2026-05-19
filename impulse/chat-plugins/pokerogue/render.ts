@@ -6,6 +6,8 @@ import { SHOP_ITEMS } from './items';
 import { globalStats, getUserData } from './state';
 import { expForLevel, getLevelUpMoves } from './pokemon';
 
+const PAGE_REFRESH_SECONDS = 20;
+
 const TYPE_COLORS: Record<string, string> = {
 	Normal: '9fa19f', Fire: 'e62829', Water: '2980ef', Grass: '3fa129', Electric: 'fac000',
 	Ice: '3dcef3', Fighting: 'ff8000', Poison: '9141cb', Ground: '915121', Flying: '81b9ef',
@@ -20,6 +22,21 @@ const BALL_MAP: Record<string, { srcSuffix: string, alt: string }> = {
 	pokeball: { srcSuffix: 'i4.png', alt: 'Poké Ball' },
 };
 
+const SPRITE_ID_OVERRIDES: { [id: string]: string } = {
+	floetteeternal: 'floette',
+	eternatuseternamax: 'eternatus',
+	bloodmoonursaluna: 'ursaluna',
+	ursalunabloodmoon: 'ursaluna',
+};
+
+interface DialogConfig {
+	title: string;
+	spriteUrl?: string;
+	dialog?: string;
+	borderColor?: string;
+	actionsHtml: string;
+}
+
 export function refreshGamePage(user: User): void {
 	for (const conn of user.connections) {
 		if (conn.openPages?.has('pokerogue')) {
@@ -28,18 +45,30 @@ export function refreshGamePage(user: User): void {
 	}
 }
 
-const PAGE_REFRESH_SECONDS = 20;
-
 function itemURLFormat(item: string): string {
 	return item.replaceAll(/[^a-zA-Z0-9\s-]+/g, '').toLowerCase().replaceAll(' ', '-');
 }
 
-const SPRITE_ID_OVERRIDES: { [id: string]: string } = {
-	floetteeternal: 'floette',
-	eternatuseternamax: 'eternatus',
-	bloodmoonursaluna: 'ursaluna',
-	ursalunabloodmoon: 'ursaluna',
-};
+function typeColor(type: string): string {
+	return TYPE_COLORS[type] ?? '68a090';
+}
+
+function getContrastColor(hex: string): string {
+	const r = parseInt(hex.slice(0, 2), 16);
+	const g = parseInt(hex.slice(2, 4), 16);
+	const b = parseInt(hex.slice(4, 6), 16);
+	const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+	return luma > 130 ? '333333' : 'ffffff';
+}
+
+function getExpPercentage(mon: PokemonEntry): number {
+	if (mon.level >= 9999) return 100;
+	const expType = mon.expType ?? 'Medium Fast';
+	const expAtCurrent = expForLevel(mon.level, expType);
+	const expAtNext = expForLevel(mon.level + 1, expType);
+	const range = expAtNext - expAtCurrent;
+	return range > 0 ? Math.max(0, Math.min(100, Math.round(((mon.exp - expAtCurrent) / range) * 100))) : 0;
+}
 
 function getSprite(species: string, size = 80, shiny = false, className = 'pr-mon-img'): string {
 	const id = toID(species);
@@ -84,18 +113,6 @@ export function getSpriteWithBall(species: string, size = 80, ball?: string, shi
 		`</div>`;
 }
 
-function typeColor(type: string): string {
-	return TYPE_COLORS[type] ?? '68a090';
-}
-
-function getContrastColor(hex: string): string {
-	const r = parseInt(hex.slice(0, 2), 16);
-	const g = parseInt(hex.slice(2, 4), 16);
-	const b = parseInt(hex.slice(4, 6), 16);
-	const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-	return luma > 130 ? '333333' : 'ffffff';
-}
-
 export function renderTypeBadge(types: string[], large = false): string {
 	return types.map(t => {
 		const color = typeColor(t);
@@ -116,15 +133,6 @@ function renderProgressBarInner(pct: number, fillColorClass = 'pr-bar-fill', ext
 	return `<div class="pr-bar-track"><div class="${fillColorClass}" style="width:${pct}%;${extraFillStyle}"></div></div>`;
 }
 
-function getExpPercentage(mon: PokemonEntry): number {
-	if (mon.level >= 9999) return 100;
-	const expType = mon.expType ?? 'Medium Fast';
-	const expAtCurrent = expForLevel(mon.level, expType);
-	const expAtNext = expForLevel(mon.level + 1, expType);
-	const range = expAtNext - expAtCurrent;
-	return range > 0 ? Math.max(0, Math.min(100, Math.round(((mon.exp - expAtCurrent) / range) * 100))) : 0;
-}
-
 function renderBtn(cmd: string | null, label: string, className = 'pr-btn', style = '', disabled = false): string {
 	let buf = `<button`;
 	if (cmd) buf += ` name="send" value="${cmd}"`;
@@ -137,14 +145,6 @@ function renderBtn(cmd: string | null, label: string, className = 'pr-btn', styl
 
 function renderChoiceRow(spriteHtml: string, flexHtml: string, actionBtnHtml: string, extraStyle = ''): string {
 	return `<div class="pr-choice-row" ${extraStyle ? `style="${extraStyle}"` : ''}>${spriteHtml}<div style="flex:1;min-width:0">${flexHtml}</div>${actionBtnHtml}</div>`;
-}
-
-interface DialogConfig {
-	title: string;
-	spriteUrl?: string;
-	dialog?: string;
-	borderColor?: string;
-	actionsHtml: string;
 }
 
 function renderCharacterDialogView(config: DialogConfig): string {
@@ -499,7 +499,6 @@ function renderPendingMoves(state: PokeRogueState): string {
 		buf += `<div class="pr-sv-move-meta">${catIcon} ${oldMove.category} &nbsp;·&nbsp; Pwr: <b>${oldMove.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${oldMove.accuracy === true ? '—' : (oldMove.accuracy || '—')}</b> &nbsp;·&nbsp; Pri: <b>${oldMove.priority > 0 ? `+${oldMove.priority}` : oldMove.priority}</b> &nbsp;·&nbsp; PP: <b>${curPp}/${maxPp}</b></div>`;
 		if (moveDesc) buf += `<div class="pr-sv-subdesc" style="margin-top:3px">${Utils.escapeHTML(moveDesc)}</div>`;
 		buf += `</div>`;
-		//buf += `<div style="display:flex;align-items:center;flex-shrink:0">`;
 		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
 		buf += renderBtn(`/pokerogue resolve learnmove ${i + 1}`, 'Forget', 'pr-pick-btn');
 		buf += `</div>`;

@@ -2,107 +2,29 @@ import { ObjectReadWriteStream } from '../../../lib/streams';
 import { StreamWorker } from '../../../lib/process-manager';
 import { type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
-import {
-	genAIPokemon, packAITeam, packTeam,
-	type AIPokemonSet, botLevel,
-} from './pokemon';
+import { genAIPokemon, packAITeam, packTeam, type AIPokemonSet, botLevel } from './pokemon';
 import { setState, getState } from './state';
 
-class NoopStream extends ObjectReadWriteStream<string> {
-	override _write(_data: string): void {}
+interface BattleContext {
+	boosts: Record<string, number>;
+	oppStatus: string;
+	targetCondition: string;
+	hazardsSet: Set<string>;
+	screensSet: Set<string>;
+	allyFainted: boolean;
 }
 
-const noopWorker = new StreamWorker(new NoopStream());
-let botCounter = 0;
+interface ActiveRougeMatch {
+	userId: ID;
+	botUserId: ID;
+	floor: number;
+	lastPanelTurn?: number;
+	isTrainerBattle?: boolean;
+	botTeam?: AIPokemonSet[];
+	isDoubles?: boolean;
+}
 
-const botBattleHandlers = new Map<string, (roomid: string, requestLine: string) => void>();
 const TRAINER_NAME = 'PokéRogue Challenger';
-
-export function destroyBotUser(botUser: User): void {
-	botBattleHandlers.delete(botUser.id);
-	for (const c of botUser.connections.slice()) {
-		c.onDisconnect();
-	}
-	if (Users.get(botUser.id) === botUser) {
-		Users.delete(botUser);
-	}
-}
-
-function createBotUser(playerId: string): User {
-	const uid = ++botCounter;
-	const connId = `pokerogue-bot-${uid}`;
-	const botInternalName = `pokeroguebot${uid}`;
-
-	let staleRoomId: RoomID | undefined;
-	for (const [roomId, match] of activeMatches) {
-		if (match.userId === toID(playerId)) {
-			staleRoomId = roomId;
-			break;
-		}
-	}
-	if (staleRoomId !== undefined) {
-		const room = Rooms.get(staleRoomId);
-		const battleEnded = !room?.battle || room.battle.ended;
-		if (battleEnded) {
-			const staleMatch = activeMatches.get(staleRoomId);
-			if (staleMatch) {
-				const staleBot = Users.get(staleMatch.botUserId);
-				if (staleBot) destroyBotUser(staleBot);
-			}
-			activeMatches.delete(staleRoomId);
-		}
-	}
-
-	const conn = new Users.Connection(
-		connId,
-		noopWorker,
-		String(uid),
-		null,
-		'127.0.0.1',
-		null
-	);
-
-	const botUser = new Users.User(conn);
-	conn.user = botUser;
-
-	botUser.forceRename(botInternalName, true);
-	(botUser as any).name = TRAINER_NAME;
-	(botUser as any).named = false;
-
-	(botUser as any).sendTo = function (roomid: RoomID | BasicRoom | null, data: string) {
-		if (typeof data === 'string') {
-			const lines = data.split('\n');
-			const roomidStr = typeof roomid === 'string' ? roomid : (roomid as any)?.roomid ?? '';
-
-			for (const line of lines) {
-				if (line.startsWith('|request|')) {
-					setTimeout(() => {
-						const handler = botBattleHandlers.get(botUser.id);
-						if (handler) handler(roomidStr, line);
-					}, 150);
-					break;
-				} else if (line.startsWith('|error|[Invalid choice]')) {
-					setTimeout(() => {
-						void Rooms.get(roomidStr as RoomID)?.battle?.stream.write(`>p2 default`);
-					}, 50);
-				}
-			}
-		}
-	};
-
-	return botUser;
-}
-
-function getTypeMultiplier(gen: number, atkType: string, defTypes: string[]): number {
-	let multiplier = 1;
-	for (const defType of defTypes) {
-		const val = Dex.mod(`gen${gen}`).data.TypeChart[toID(defType)]?.damageTaken?.[atkType] ?? 0;
-		if (val === 3) return 0;
-		if (val === 2) multiplier *= 0.5;
-		if (val === 1) multiplier *= 2;
-	}
-	return multiplier;
-}
 
 const ABILITY_IMMUNITIES: Record<string, string[]> = {
 	levitate: ['Ground'],
@@ -139,53 +61,57 @@ const SOUNDPROOF_MOVES = new Set([
 	'sing', 'snarl', 'snore', 'sparklingsurge', 'supersonic', 'uproar',
 ]);
 
-function getMoveEffectiveness(
-	gen: number,
-	moveData: any,
-	targetDex: any,
-	targetAbility: string,
-): number {
-	const moveType = moveData.type as string;
-	const moveId = moveData.id as string;
-
-	if (targetAbility === 'wonderguard') {
-		const eff = getTypeMultiplier(gen, moveType, targetDex.types);
-		return eff > 1 ? eff : 0;
-	}
-
-	if (targetAbility === 'bulletproof' && BULLETPROOF_MOVES.has(moveId)) return 0;
-	if (targetAbility === 'soundproof' && SOUNDPROOF_MOVES.has(moveId)) return 0;
-
-	const immuneTypes = ABILITY_IMMUNITIES[targetAbility];
-	if (immuneTypes?.includes(moveType)) return 0;
-
-	return getTypeMultiplier(gen, moveType, targetDex.types);
+class NoopStream extends ObjectReadWriteStream<string> {
+	override _write(_data: string): void {}
 }
 
-function getStatCategoryModifier(moveData: any, pokemon: any): number {
-	if (moveData.category === 'Status') return 1;
+const noopWorker = new StreamWorker(new NoopStream());
+let botCounter = 0;
 
-	const stats = pokemon.stats;
-	if (!stats) return 1;
+const botBattleHandlers = new Map<string, (roomid: string, requestLine: string) => void>();
+export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
+const recentMoveHistory = new Map<string, Map<number, Map<string, number>>>();
 
-	if (moveData.category === 'Physical') {
-		return stats.atk >= stats.spa ? 1.1 : 0.85;
-	} else {
-		return stats.spa >= stats.atk ? 1.1 : 0.85;
+function parseHpRatio(condition: string | undefined): number {
+	if (!condition || condition.endsWith(' fnt')) return 0;
+	const match = /^(\d+)\/(\d+)/.exec(condition);
+	if (!match) return 1;
+	return parseInt(match[1]) / parseInt(match[2]);
+}
+
+function recordMoveUsed(roomid: string, slot: number, moveId: string, turn: number): void {
+	if (!recentMoveHistory.has(roomid)) recentMoveHistory.set(roomid, new Map());
+	const slots = recentMoveHistory.get(roomid)!;
+	if (!slots.has(slot)) slots.set(slot, new Map());
+	slots.get(slot)!.set(moveId, turn);
+}
+
+function getLastUsedTurn(roomid: string, slot: number, moveId: string): number {
+	return recentMoveHistory.get(roomid)?.get(slot)?.get(moveId) ?? -99;
+}
+
+export function clearMoveHistory(roomid: string): void {
+	recentMoveHistory.delete(roomid);
+}
+
+function getOpponentSpecies(room: AnyObject | null | undefined, slot: number): string {
+	try {
+		const oppActive = (room?.battle)?.p1?.active?.[slot];
+		if (!oppActive || oppActive.fainted || (oppActive.hp !== undefined && oppActive.hp <= 0)) return '';
+		return toID(oppActive.species?.name ?? '');
+	} catch {
+		return '';
 	}
 }
 
-function getDefensiveScore(gen: number, switchInSpecies: string, oppMoveTypes: string[]): number {
-	const dex = Dex.species.get(switchInSpecies);
-	if (!dex.exists) return 0;
-	let score = 0;
-	for (const atkType of oppMoveTypes) {
-		const eff = getTypeMultiplier(gen, atkType, dex.types);
-		if (eff === 0) score += 3;
-		else if (eff < 1) score += 1;
-		else if (eff > 1) score -= 1.5;
+function getOpponentAbility(room: AnyObject | null | undefined, slot: number): string {
+	try {
+		const oppActive = (room?.battle)?.p1?.active?.[slot];
+		if (!oppActive || oppActive.fainted || (oppActive.hp !== undefined && oppActive.hp <= 0)) return '';
+		return toID(oppActive.ability ?? oppActive.baseAbility ?? '');
+	} catch {
+		return '';
 	}
-	return score;
 }
 
 function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number): string[] {
@@ -197,83 +123,6 @@ function getOpponentMoveTypes(room: AnyObject | null | undefined, slot: number):
 	} catch {
 		return [];
 	}
-}
-
-function scoreMove(
-	gen: number,
-	move: any,
-	userSpecies: string,
-	targetSpecies: string,
-	targetAbility: string,
-	userPokemon: any,
-	turn: number,
-	battleContext: BattleContext,
-): number {
-	const moveData = Dex.moves.get(move.id);
-	if (!moveData.exists) return 0;
-
-	if (moveData.category === 'Status') {
-		return scoreStatusMove(move.id, userPokemon, turn, battleContext);
-	}
-
-	const userDex = Dex.species.get(userSpecies);
-	const targetDex = Dex.species.get(targetSpecies);
-
-	const effectiveness = targetDex.exists ?
-		getMoveEffectiveness(gen, moveData, targetDex, targetAbility) :
-		1;
-
-	if (effectiveness === 0) return -Infinity;
-
-	let basePower = moveData.basePower ?? 0;
-	if (basePower === 0) {
-		basePower = estimateVariablePower(move.id, userPokemon);
-	}
-	if (basePower === 0) return 5;
-
-	let score = basePower * effectiveness;
-
-	if (userDex.exists && userDex.types.includes(moveData.type)) {
-		score *= 1.5;
-	}
-
-	score *= getStatCategoryModifier(moveData, userPokemon);
-
-	const acc = moveData.accuracy;
-	if (typeof acc === 'number') {
-		score *= acc / 100;
-	}
-
-	if (moveData.recoil || moveData.mindBlownRecoil) score *= 0.85;
-	if (moveData.struggle) score *= 0.5;
-
-	if (moveData.multihit) score *= 1.25;
-
-	if ((moveData.priority ?? 0) > 0) {
-		const hpRatio = parseHpRatio(userPokemon?.condition);
-		const targetHpRatio = parseHpRatio(battleContext.targetCondition);
-
-		if (targetHpRatio < 0.25) score *= 1.4;
-		else if (hpRatio < 0.35) score *= 1.2;
-		else score *= 0.95;
-	}
-
-	if (moveData.flags?.charge && !moveData.flags?.recharge) score *= 0.75;
-
-	if (moveData.flags?.recharge) score *= 0.8;
-
-	if (moveData.drain && parseHpRatio(userPokemon?.condition) < 0.5) score *= 1.15;
-
-	return score;
-}
-
-interface BattleContext {
-	boosts: Record<string, number>;
-	oppStatus: string;
-	targetCondition: string;
-	hazardsSet: Set<string>;
-	screensSet: Set<string>;
-	allyFainted: boolean;
 }
 
 function getBattleContext(room: AnyObject | null | undefined, slot: number, pokemon: any): BattleContext {
@@ -304,6 +153,79 @@ function getBattleContext(room: AnyObject | null | undefined, slot: number, poke
 	const allyFainted = (room?.battle)?.p2?.pokemon?.some((p: any) => p?.fainted) ?? false;
 
 	return { boosts, oppStatus, targetCondition, hazardsSet, screensSet, allyFainted };
+}
+
+function getTypeMultiplier(gen: number, atkType: string, defTypes: string[]): number {
+	let multiplier = 1;
+	for (const defType of defTypes) {
+		const val = Dex.mod(`gen${gen}`).data.TypeChart[toID(defType)]?.damageTaken?.[atkType] ?? 0;
+		if (val === 3) return 0;
+		if (val === 2) multiplier *= 0.5;
+		if (val === 1) multiplier *= 2;
+	}
+	return multiplier;
+}
+
+function getMoveEffectiveness(gen: number, moveData: any, targetDex: any, targetAbility: string): number {
+	const moveType = moveData.type as string;
+	const moveId = moveData.id as string;
+
+	if (targetAbility === 'wonderguard') {
+		const eff = getTypeMultiplier(gen, moveType, targetDex.types);
+		return eff > 1 ? eff : 0;
+	}
+
+	if (targetAbility === 'bulletproof' && BULLETPROOF_MOVES.has(moveId)) return 0;
+	if (targetAbility === 'soundproof' && SOUNDPROOF_MOVES.has(moveId)) return 0;
+
+	const immuneTypes = ABILITY_IMMUNITIES[targetAbility];
+	if (immuneTypes?.includes(moveType)) return 0;
+
+	return getTypeMultiplier(gen, moveType, targetDex.types);
+}
+
+function getStatCategoryModifier(moveData: any, pokemon: any): number {
+	if (moveData.category === 'Status') return 1;
+
+	const stats = pokemon.stats;
+	if (!stats) return 1;
+
+	if (moveData.category === 'Physical') {
+		return stats.atk >= stats.spa ? 1.1 : 0.85;
+	} else {
+		return stats.spa >= stats.atk ? 1.1 : 0.85;
+	}
+}
+
+function estimateVariablePower(moveId: string, pokemon?: any): number {
+	if ((moveId === 'eruption' || moveId === 'waterspout') && pokemon) {
+		const hp = parseHpRatio(pokemon.condition);
+		return Math.max(1, Math.floor(150 * hp));
+	}
+
+	const estimates: Record<string, number> = {
+		gyroball: 60, electroball: 60, heatcrash: 60, heavyslam: 60,
+		lowkick: 60, grassknot: 60, waterspout: 100, eruption: 100,
+		reversal: 50, flail: 50, magnitude: 70, naturalgift: 70,
+		trumpcard: 40, returnn: 102, frustration: 102,
+		hiddenpower: 60, weatherball: 50, terrainpulse: 50,
+		powertrip: 40, storedpower: 40, punishment: 60,
+		knockoff: 65, acrobatics: 55, fling: 50,
+	};
+	return estimates[moveId] ?? 0;
+}
+
+function getDefensiveScore(gen: number, switchInSpecies: string, oppMoveTypes: string[]): number {
+	const dex = Dex.species.get(switchInSpecies);
+	if (!dex.exists) return 0;
+	let score = 0;
+	for (const atkType of oppMoveTypes) {
+		const eff = getTypeMultiplier(gen, atkType, dex.types);
+		if (eff === 0) score += 3;
+		else if (eff < 1) score += 1;
+		else if (eff > 1) score -= 1.5;
+	}
+	return score;
 }
 
 function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: BattleContext): number {
@@ -377,49 +299,72 @@ function scoreStatusMove(moveId: string, pokemon: any, turn: number, ctx: Battle
 	return 15;
 }
 
-function estimateVariablePower(moveId: string, pokemon?: any): number {
-	if ((moveId === 'eruption' || moveId === 'waterspout') && pokemon) {
-		const hp = parseHpRatio(pokemon.condition);
-		return Math.max(1, Math.floor(150 * hp));
+function scoreMove(
+	gen: number,
+	move: any,
+	userSpecies: string,
+	targetSpecies: string,
+	targetAbility: string,
+	userPokemon: any,
+	turn: number,
+	battleContext: BattleContext,
+): number {
+	const moveData = Dex.moves.get(move.id);
+	if (!moveData.exists) return 0;
+
+	if (moveData.category === 'Status') {
+		return scoreStatusMove(move.id, userPokemon, turn, battleContext);
 	}
 
-	const estimates: Record<string, number> = {
-		gyroball: 60, electroball: 60, heatcrash: 60, heavyslam: 60,
-		lowkick: 60, grassknot: 60, waterspout: 100, eruption: 100,
-		reversal: 50, flail: 50, magnitude: 70, naturalgift: 70,
-		trumpcard: 40, returnn: 102, frustration: 102,
-		hiddenpower: 60, weatherball: 50, terrainpulse: 50,
-		powertrip: 40, storedpower: 40, punishment: 60,
-		knockoff: 65, acrobatics: 55, fling: 50,
-	};
-	return estimates[moveId] ?? 0;
-}
+	const userDex = Dex.species.get(userSpecies);
+	const targetDex = Dex.species.get(targetSpecies);
 
-function parseHpRatio(condition: string | undefined): number {
-	if (!condition || condition.endsWith(' fnt')) return 0;
-	const match = /^(\d+)\/(\d+)/.exec(condition);
-	if (!match) return 1;
-	return parseInt(match[1]) / parseInt(match[2]);
-}
+	const effectiveness = targetDex.exists ?
+		getMoveEffectiveness(gen, moveData, targetDex, targetAbility) :
+		1;
 
-function getOpponentAbility(room: AnyObject | null | undefined, slot: number): string {
-	try {
-		const oppActive = (room?.battle)?.p1?.active?.[slot];
-		if (!oppActive || oppActive.fainted || (oppActive.hp !== undefined && oppActive.hp <= 0)) return '';
-		return toID(oppActive.ability ?? oppActive.baseAbility ?? '');
-	} catch {
-		return '';
+	if (effectiveness === 0) return -Infinity;
+
+	let basePower = moveData.basePower ?? 0;
+	if (basePower === 0) {
+		basePower = estimateVariablePower(move.id, userPokemon);
 	}
-}
+	if (basePower === 0) return 5;
 
-function getOpponentSpecies(room: AnyObject | null | undefined, slot: number): string {
-	try {
-		const oppActive = (room?.battle)?.p1?.active?.[slot];
-		if (!oppActive || oppActive.fainted || (oppActive.hp !== undefined && oppActive.hp <= 0)) return '';
-		return toID(oppActive.species?.name ?? '');
-	} catch {
-		return '';
+	let score = basePower * effectiveness;
+
+	if (userDex.exists && userDex.types.includes(moveData.type)) {
+		score *= 1.5;
 	}
+
+	score *= getStatCategoryModifier(moveData, userPokemon);
+
+	const acc = moveData.accuracy;
+	if (typeof acc === 'number') {
+		score *= acc / 100;
+	}
+
+	if (moveData.recoil || moveData.mindBlownRecoil) score *= 0.85;
+	if (moveData.struggle) score *= 0.5;
+
+	if (moveData.multihit) score *= 1.25;
+
+	if ((moveData.priority ?? 0) > 0) {
+		const hpRatio = parseHpRatio(userPokemon?.condition);
+		const targetHpRatio = parseHpRatio(battleContext.targetCondition);
+
+		if (targetHpRatio < 0.25) score *= 1.4;
+		else if (hpRatio < 0.35) score *= 1.2;
+		else score *= 0.95;
+	}
+
+	if (moveData.flags?.charge && !moveData.flags?.recharge) score *= 0.75;
+
+	if (moveData.flags?.recharge) score *= 0.8;
+
+	if (moveData.drain && parseHpRatio(userPokemon?.condition) < 0.5) score *= 1.15;
+
+	return score;
 }
 
 function shouldSwitch(
@@ -521,23 +466,6 @@ function shouldSwitch(
 	if (best && best.score > 3) return best.idx;
 
 	return 0;
-}
-
-const recentMoveHistory = new Map<string, Map<number, Map<string, number>>>();
-
-function recordMoveUsed(roomid: string, slot: number, moveId: string, turn: number): void {
-	if (!recentMoveHistory.has(roomid)) recentMoveHistory.set(roomid, new Map());
-	const slots = recentMoveHistory.get(roomid)!;
-	if (!slots.has(slot)) slots.set(slot, new Map());
-	slots.get(slot)!.set(moveId, turn);
-}
-
-function getLastUsedTurn(roomid: string, slot: number, moveId: string): number {
-	return recentMoveHistory.get(roomid)?.get(slot)?.get(moveId) ?? -99;
-}
-
-export function clearMoveHistory(roomid: string): void {
-	recentMoveHistory.delete(roomid);
 }
 
 function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: number, config: any): string {
@@ -757,17 +685,80 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 	return 'move 1';
 }
 
-interface ActiveRougeMatch {
-	userId: ID;
-	botUserId: ID;
-	floor: number;
-	lastPanelTurn?: number;
-	isTrainerBattle?: boolean;
-	botTeam?: AIPokemonSet[];
-	isDoubles?: boolean;
+export function destroyBotUser(botUser: User): void {
+	botBattleHandlers.delete(botUser.id);
+	for (const c of botUser.connections.slice()) {
+		c.onDisconnect();
+	}
+	if (Users.get(botUser.id) === botUser) {
+		Users.delete(botUser);
+	}
 }
 
-export const activeMatches = new Map<RoomID, ActiveRougeMatch>();
+function createBotUser(playerId: string): User {
+	const uid = ++botCounter;
+	const connId = `pokerogue-bot-${uid}`;
+	const botInternalName = `pokeroguebot${uid}`;
+
+	let staleRoomId: RoomID | undefined;
+	for (const [roomId, match] of activeMatches) {
+		if (match.userId === toID(playerId)) {
+			staleRoomId = roomId;
+			break;
+		}
+	}
+	if (staleRoomId !== undefined) {
+		const room = Rooms.get(staleRoomId);
+		const battleEnded = !room?.battle || room.battle.ended;
+		if (battleEnded) {
+			const staleMatch = activeMatches.get(staleRoomId);
+			if (staleMatch) {
+				const staleBot = Users.get(staleMatch.botUserId);
+				if (staleBot) destroyBotUser(staleBot);
+			}
+			activeMatches.delete(staleRoomId);
+		}
+	}
+
+	const conn = new Users.Connection(
+		connId,
+		noopWorker,
+		String(uid),
+		null,
+		'127.0.0.1',
+		null
+	);
+
+	const botUser = new Users.User(conn);
+	conn.user = botUser;
+
+	botUser.forceRename(botInternalName, true);
+	(botUser as any).name = TRAINER_NAME;
+	(botUser as any).named = false;
+
+	(botUser as any).sendTo = function (roomid: RoomID | BasicRoom | null, data: string) {
+		if (typeof data === 'string') {
+			const lines = data.split('\n');
+			const roomidStr = typeof roomid === 'string' ? roomid : (roomid as any)?.roomid ?? '';
+
+			for (const line of lines) {
+				if (line.startsWith('|request|')) {
+					setTimeout(() => {
+						const handler = botBattleHandlers.get(botUser.id);
+						if (handler) handler(roomidStr, line);
+					}, 150);
+					break;
+				} else if (line.startsWith('|error|[Invalid choice]')) {
+					setTimeout(() => {
+						void Rooms.get(roomidStr as RoomID)?.battle?.stream.write(`>p2 default`);
+					}, 50);
+				}
+			}
+		}
+	};
+
+	return botUser;
+}
 
 function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: boolean, trainerName?: string, team: AIPokemonSet[] } {
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
