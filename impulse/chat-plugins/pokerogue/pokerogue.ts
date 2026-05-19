@@ -619,6 +619,17 @@ export const commands: Chat.ChatCommands = {
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
 			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect'].includes(v)) {
+				if (v === 'main' && state.isConfiguringStarter) {
+					state.team = [];
+					delete state.isConfiguringStarter;
+					delete (state as any).pendingStatsSlot;
+					delete (state as any).statsTab;
+					(state as any).view = 'starterselect';
+					setState(user.id, state);
+					refreshGamePage(user);
+					return;
+				}
+
 				if (v === 'stats') {
 					const slot = parseInt(args[1]);
 					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
@@ -635,6 +646,7 @@ export const commands: Chat.ChatCommands = {
 				if (v !== 'shop') {
 					delete (state as any).shopCategory;
 				}
+				
 				if (v !== 'bag') {
 					delete (state as any).bagCategory;
 				}
