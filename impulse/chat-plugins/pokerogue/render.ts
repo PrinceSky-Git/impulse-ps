@@ -962,7 +962,17 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		}
 	}
 	if (spData.id === 'shedinja') stats.hp = 1;
-	const bst = statKeys.reduce((s, k) => s + (bs[k] ?? 0), 0);
+
+	const maxStats: Record<string, number> = {};
+	for (const stat of statKeys) {
+		if (stat === 'hp') {
+			maxStats.hp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + 31 + Math.floor(252 / 4)) * 9999 / 100) + 9999 + 10;
+		} else {
+			maxStats[stat] = Math.floor(
+				(Math.floor((2 * bs[stat] + 31 + Math.floor(252 / 4)) * 9999 / 100) + 5) * 1.1
+			);
+		}
+	}
 
 	const hpPct = mon.currentHp ?? 100;
 	const hpColor = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
@@ -1022,7 +1032,6 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		buf += `<div class="pr-sv-row">`;
 		buf += `<span class="pr-sv-row-label">Ability</span>`;
 		buf += `<div class="pr-sv-row-val">`;
-		
 		if (showAbilityArrows) {
 			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
 			buf += `&nbsp;&nbsp;&nbsp;`;
@@ -1030,7 +1039,6 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		} else {
 			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
 		}
-		
 		if (abilityDesc) buf += `<div class="pr-sv-subdesc">${Utils.escapeHTML(abilityDesc)}</div>`;
 		buf += `</div></div>`;
 
@@ -1042,7 +1050,6 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		buf += `<div class="pr-sv-row">`;
 		buf += `<span class="pr-sv-row-label">Nature</span>`;
 		buf += `<div class="pr-sv-row-val">`;
-		
 		if (showNatureArrows) {
 			buf += `<b>${Utils.escapeHTML(natureName)}</b>&nbsp;&nbsp;${natureSuffix}`;
 			buf += `&nbsp;&nbsp;&nbsp;`;
@@ -1050,7 +1057,6 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		} else {
 			buf += `<b>${Utils.escapeHTML(natureName)}</b>&nbsp;&nbsp;${natureSuffix}`;
 		}
-		
 		buf += `</div></div>`;
 
 		buf += `<div class="pr-sv-row">`;
@@ -1099,8 +1105,6 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	}
 
 	if (activeTab === 1) {
-		const maxStat = Math.max(...statKeys.map(s => stats[s] ?? 0));
-
 		buf += `<div class="pr-sv-stat-row" style="font-size:9px;color:#888;margin-bottom:4px;font-weight:600">`;
 		buf += `<span class="pr-sv-stat-label"></span>`;
 		buf += `<div class="pr-sv-bar-wrap"></div>`;
@@ -1113,7 +1117,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 			const iv = ivs[stat] ?? 31;
 			const ev = evs[stat] ?? 0;
 			const actual = stats[stat] ?? 0;
-			const barPct = Math.min(100, Math.round((actual / (maxStat || 1)) * 100));
+			const barPct = Math.min(100, Math.round((actual / (maxStats[stat] || 1)) * 100));
 			const isPlus = naturePlus === stat;
 			const isMinus = natureMinus === stat;
 			const valStyle = isPlus ?
