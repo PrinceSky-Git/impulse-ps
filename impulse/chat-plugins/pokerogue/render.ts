@@ -1099,21 +1099,21 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	}
 
 	if (activeTab === 1) {
+		const maxStat = Math.max(...statKeys.map(s => stats[s] ?? 0));
+
 		buf += `<div class="pr-sv-stat-row" style="font-size:9px;color:#888;margin-bottom:4px;font-weight:600">`;
 		buf += `<span class="pr-sv-stat-label"></span>`;
-		buf += `<span class="pr-sv-stat-base">Base</span>`;
 		buf += `<div class="pr-sv-bar-wrap"></div>`;
-		buf += `<span class="pr-sv-stat-val">Total</span>`;
+		buf += `<span class="pr-sv-stat-val">Stat</span>`;
 		buf += `<span class="pr-sv-stat-iv">IV</span>`;
 		buf += `<span class="pr-sv-stat-iv">EV</span>`;
 		buf += `</div>`;
 
 		for (const stat of statKeys) {
-			const base = bs[stat] ?? 0;
 			const iv = ivs[stat] ?? 31;
 			const ev = evs[stat] ?? 0;
 			const actual = stats[stat] ?? 0;
-			const barPct = Math.min(100, Math.round((base / 255) * 100));
+			const barPct = Math.min(100, Math.round((actual / (maxStat || 1)) * 100));
 			const isPlus = naturePlus === stat;
 			const isMinus = natureMinus === stat;
 			const valStyle = isPlus ?
@@ -1123,7 +1123,6 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 
 			buf += `<div class="pr-sv-stat-row">`;
 			buf += `<span class="pr-sv-stat-label">${statLabels[stat]}</span>`;
-			buf += `<span class="pr-sv-stat-base">${base}</span>`;
 			buf += `<div class="pr-sv-bar-wrap">`;
 			buf += `<div class="pr-sv-bar" style="width:${barPct}%;background:${statColors[stat]}"></div>`;
 			buf += `</div>`;
@@ -1134,7 +1133,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		}
 
 		const totalEvs = Object.values(evs as Record<string, number>).reduce((a, b) => a + b, 0);
-		buf += `<div class="pr-sv-bst">Base Total <b>${bst}</b> &nbsp;·&nbsp; EVs <b style="color:#c4a8ff">${totalEvs}</b><span style="color:#555">/508</span></div>`;
+		buf += `<div class="pr-sv-bst">EVs <b style="color:#c4a8ff">${totalEvs}</b><span style="color:#555">/508</span></div>`;
 	}
 
 	if (activeTab === 2) {
