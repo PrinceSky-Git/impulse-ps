@@ -436,14 +436,14 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
 	buf += `</div>`;
 
-	buf += `<form data-submitsend="/pokerogue startersearch {data}">`;
-	buf += `<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px">`;
+	buf += `<form data-submitsend="/pokerogue startersearch {data}" style="text-align:center;margin-bottom:12px">`;
 	buf += `<input name="data" value="${Utils.escapeHTML(search)}" placeholder="Search Pokémon..." ` +
 		`style="padding:5px 10px;border-radius:6px;border:1px solid rgba(150,150,150,0.4);background:rgba(0,0,0,0.2);color:inherit;font-size:12px;width:180px;" />`;
-	buf += `<button type="submit" class="pr-btn" style="font-size:11px;padding:5px 10px;">Search</button>`;
+	buf += `&nbsp&nbsp;;<button type="submit" class="pr-btn" style="font-size:11px;padding:5px 10px;">Search</button>`;
 	if (search) {
-		buf += renderBtn('/pokerogue startersearch', 'Clear', 'pr-btn', 'font-size:11px;padding:5px 10px');
+		buf += `&nbsp;&nbsp;` + renderBtn('/pokerogue startersearch', 'Clear', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	}
+	buf += `</form>`;
 	buf += `</div>`;
 	buf += `</form>`;
 
