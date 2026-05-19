@@ -1054,8 +1054,8 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		buf += `<div class="pr-sv-row-val">`;
 		
 		if (showAbilityArrows) {
-			buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
 			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
+			buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
 			buf += `${renderBtn('/pokerogue  cyclestarter ability next', 'Change', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
 			buf += `</div>`;
 		} else {
@@ -1075,8 +1075,8 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		buf += `<div class="pr-sv-row-val">`;
 		
 		if (showNatureArrows) {
-			buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
 			buf += `<b>${Utils.escapeHTML(natureName)}</b>&nbsp;&nbsp;${natureSuffix}`;
+			buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
 			buf += `${renderBtn('/pokerogue cyclestarter nature next', 'Change', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
 			buf += `</div>`;
 		} else {
