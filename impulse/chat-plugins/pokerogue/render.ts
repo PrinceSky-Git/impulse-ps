@@ -991,10 +991,9 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		buf += `<div class="pr-sv-row-val">`;
 		
 		if (showAbilityArrows) {
-			buf += `<div style="display:flex;align-items:center;gap:6px;">`;
-			buf += renderBtn(`/pokerogue cyclestarter ability prev`, '◀', 'pr-btn', 'padding:2px 6px;font-size:10px');
+			buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+			buf += `${renderBtn('/pokerogue  cyclestarter ability next', 'Change', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;		
 			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
-			buf += renderBtn(`/pokerogue cyclestarter ability next`, '▶', 'pr-btn', 'padding:2px 6px;font-size:10px');
 			buf += `</div>`;
 		} else {
 			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
@@ -1013,13 +1012,12 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		buf += `<div class="pr-sv-row-val">`;
 		
 		if (showNatureArrows) {
-			buf += `<div style="display:flex;align-items:center;gap:6px;">`;
-			buf += renderBtn(`/pokerogue cyclestarter nature prev`, '◀', 'pr-btn', 'padding:2px 6px;font-size:10px');
-			buf += `<b>${Utils.escapeHTML(natureName)}</b>${natureSuffix}`;
-			buf += renderBtn(`/pokerogue cyclestarter nature next`, '▶', 'pr-btn', 'padding:2px 6px;font-size:10px');
+			buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+			buf += `${renderBtn('/pokerogue cyclestarter nature next', 'Change', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;		
+			buf += `<b>${Utils.escapeHTML(natureName)}</b>&nbsp;&nbsp;${natureSuffix}`;
 			buf += `</div>`;
 		} else {
-			buf += `<b>${Utils.escapeHTML(natureName)}</b>${natureSuffix}`;
+			buf += `<b>${Utils.escapeHTML(natureName)}</b>&nbsp;&nbsp;${natureSuffix}`;
 		}
 		
 		buf += `</div></div>`;
@@ -1155,8 +1153,8 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	buf += `</div>`;
 
 	if (state.isConfiguringStarter) {
-		buf += `<div style="text-align:center; margin-top: 12px;">`;
-		buf += renderBtn('/pokerogue confirmstarter', 'Begin Run', 'pr-btn primary', 'width: 100%; padding: 10px; font-size: 14px; background: #4caf50; color: white;');
+		buf += `<div style="text-align:center;margin-bottom:8px">`;
+		buf += renderBtn('/pokerogue confirmstarter', 'Start', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 		buf += `</div>`;
 	}
 
