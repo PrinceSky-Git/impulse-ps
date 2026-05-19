@@ -430,7 +430,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 					const originalIndex = pending.indexOf(filtered[j]);
 					buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.escapeHTML(sp.name)}</div>`;
 					buf += getSprite(sp.id, 40, isShiny);
-					buf += `<button name="send" value="/pokerogue choose ${originalIndex + 1}" style="width:90%;padding:2px 0;font-size:10px;background:#3a6bc4;color:#fff;border:none;border-radius:4px;cursor:pointer;">Select</button>`;
+					buf += `<button name="send" value="/pokerogue choose ${originalIndex + 1}" class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;">Select</button>`;
 				}
 			}
 			buf += `</td>`;
