@@ -490,6 +490,15 @@ const EV_VITAMIN_GAIN = 10;
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
 
+		// Test
+		startersearch(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'starterselect') return;
+			(state as any).starterSearch = target.trim().toLowerCase();
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
 		start(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			let state = getState(user.id);
