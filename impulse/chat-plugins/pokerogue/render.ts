@@ -436,40 +436,16 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
 	buf += `</div>`;
 
-	buf += `<div style="text-align:center;margin-bottom:12px">`;
-	buf += `<input name="data" value="${Utils.escapeHTML(search)}" placeholder="Search Pokémon..." ` +
-		`style="padding:5px 10px;border-radius:6px;border:1px solid rgba(150,150,150,0.4);background:rgba(0,0,0,0.2);color:inherit;font-size:12px;width:200px;" ` +
-		`oninput="this.closest('button,form')?.submit?.()" />` +
-		`<button name="send" value="/pokerogue startersearch " style="display:none"></button>`;
-	buf += `&nbsp;`;
-	buf += `<button name="send" value="/pokerogue startersearch " class="pr-btn" style="font-size:11px;padding:5px 10px;">Clear</button>`;
-	buf += `</div>`;
-
-	// Since PS chat input doesn't support live input binding, render a search form via buttons for common letters isn't ideal.
-	// Instead, provide a text input that sends via a named button trick used in PS pages.
-	// The actual working approach: a send button the user clicks after typing.
-	buf = buf.replace(
-		`<button name="send" value="/pokerogue startersearch " style="display:none"></button>`,
-		``
-	);
-
-	// Rebuild with a proper search UX for PS page context
-	buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
-	buf += `<div style="text-align:center;font-size:11px;margin:-6px 0 12px">`;
-	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
-	buf += `</div>`;
-
+	buf += `<form data-submitsend="/pokerogue startersearch {data}">`;
 	buf += `<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px">`;
-	buf += `<input name="data" id="starter-search-input" value="${Utils.escapeHTML(search)}" placeholder="Search Pokémon..." ` +
+	buf += `<input name="data" value="${Utils.escapeHTML(search)}" placeholder="Search Pokémon..." ` +
 		`style="padding:5px 10px;border-radius:6px;border:1px solid rgba(150,150,150,0.4);background:rgba(0,0,0,0.2);color:inherit;font-size:12px;width:180px;" />`;
-	buf += `<button class="pr-btn" style="font-size:11px;padding:5px 10px;" ` +
-		`onclick="const v=document.getElementById('starter-search-input')?.value||'';` +
-		`document.querySelector('[name=send]').value='/pokerogue startersearch '+v;` +
-		`document.querySelector('[name=send]').click()">Search</button>`;
+	buf += `<button type="submit" class="pr-btn" style="font-size:11px;padding:5px 10px;">Search</button>`;
 	if (search) {
 		buf += renderBtn('/pokerogue startersearch', 'Clear', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	}
 	buf += `</div>`;
+	buf += `</form>`;
 
 	if (filtered.length === 0) {
 		buf += `<div style="text-align:center;padding:16px;color:#888;">No Pokémon found for "<b>${Utils.escapeHTML(search)}</b>".</div>`;
