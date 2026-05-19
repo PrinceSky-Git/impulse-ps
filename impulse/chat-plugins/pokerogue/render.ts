@@ -153,7 +153,7 @@ function renderCharacterDialogView(config: DialogConfig): string {
 	buf += `<div style="font-size:16px; font-weight:bold; margin-bottom: 6px;">${Utils.escapeHTML(config.title)}</div>`;
 	if (config.spriteUrl) {
 		buf += `<div style="margin-bottom: 8px;">`;
-		buf += `<img src="${Utils.escapeHTML(config.spriteUrl)}" alt="${Utils.escapeHTML(config.title)}" style="width: 96px; height: 96px; image-rendering: pixelated; display: inline-block;">`;
+		buf += `<img src="${Utils.escapeHTML(config.spriteUrl)}" alt="${Utils.escapeHTML(config.title)}" style="width: 96px; height: 96px; display: inline-block;">`;
 		buf += `</div>`;
 	}
 	if (config.dialog) {
