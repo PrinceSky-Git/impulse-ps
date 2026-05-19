@@ -146,6 +146,8 @@ export interface PokemonEntry {
 }
 
 export interface PokeRogueState {
+	// Test
+	starterSearch?: string;
 	gameWon?: boolean;
 	floor: number;
 	gameMode: GameMode;
