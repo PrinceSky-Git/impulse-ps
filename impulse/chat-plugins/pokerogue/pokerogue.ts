@@ -1064,6 +1064,46 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
+		buyshop(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'draft') return;
+
+			const itemKey = toID(target);
+			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+			const item = activeShop[itemKey];
+
+			if (!item || !item.isShopItem) return this.errorReply("Unknown shop item.");
+
+			const price = getItemPrice(state.floor, item.moneyMultiplier);
+			if ((state.money || 0) < price) return this.errorReply(`Not enough money! Need $${price}.`);
+
+			state.money -= price;
+
+			if (itemKey === 'sacredash') {
+				for (const mon of state.team) {
+					if ((mon.currentHp ?? 100) <= 0) {
+						mon.currentHp = 100;
+						delete mon.status;
+					}
+				}
+				state.notification = `Sacred Ash revived all fainted Pokémon!`;
+				setState(user.id, state);
+				refreshGamePage(user);
+				return;
+			}
+
+			state.purchasedItem = itemKey;
+			if (item.type === 'item') {
+				state.pendingItemName = item.name;
+			} else {
+				state.pendingConsumableType = item.type as any;
+			}
+			(state as any).view = 'main';
+
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
 		choose(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
@@ -1189,46 +1229,6 @@ export const commands: Chat.ChatCommands = {
 			delete state.pendingChoiceFloor;
 			setState(user.id, state);
 			refreshGamePage(user);
-		},
-		
-		buyshop(target, room, user) {
-			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft') return;
-
-			const itemKey = toID(target);
-			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-			const item = activeShop[itemKey];
-
-			if (!item || !item.isShopItem) return this.errorReply("Unknown shop item.");
-
-			const price = getItemPrice(state.floor, item.moneyMultiplier);
-			if ((state.money || 0) < price) return this.errorReply(`Not enough money! Need $${price}.`);
-
-			state.money -= price;
-
-			if (itemKey === 'sacredash') {
-				// Sacred Ash has an immediate global effect
-				for (const mon of state.team) {
-					if ((mon.currentHp ?? 100) <= 0) {
-						mon.currentHp = 100;
-						delete mon.status;
-					}
-				}
-				state.notification = `Sacred Ash revived all fainted Pokémon!`;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			state.purchasedItem = itemKey;
-			if (item.type === 'item') {
-				state.pendingItemName = item.name;
-			} else {
-				state.pendingConsumableType = item.type as any;
-			}
-			(state as any).view = 'main';
-
-			setState(user.id, state);	refreshGamePage(user);
 		},
 
 		resolve(target, room, user) {
@@ -1919,8 +1919,8 @@ export const commands: Chat.ChatCommands = {
 				`<code>/pokerogue quit</code> - Abandon run.<br>`;
 			if (isStaff) {
 				html += `<br><b>Staff Commands (Requires: Admin Only):</b><br>` +
-					`<code>/pokerogue givebp [user], [amount]</code> - Gives Money to a user.<br>` +
-					`<code>/pokerogue removebp [user], [amount]</code> - Removes Money from a user.<br>` +
+					`<code>/pokerogue givemoney [user], [amount]</code> - Gives Money to a user.<br>` +
+					`<code>/pokerogue removemoney [user], [amount]</code> - Removes Money from a user.<br>` +
 					`<code>/pokerogue setfloor [user], [floor]</code> - Sets the floor for a user's run.<br>` +
 					`<code>/pokerogue healteam [user]</code> - Fully heals a user's team.<br>` +
 					`<code>/pokerogue addmon [user], [pokemon], [level]</code> - Adds a Pokemon to a user's team.<br>` +
@@ -2074,5 +2074,5 @@ export const handlers: Chat.Handlers = {
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
-	}
+	},
 };
