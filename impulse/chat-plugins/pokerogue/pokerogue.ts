@@ -1057,7 +1057,8 @@ export const commands: Chat.ChatCommands = {
 			state.money -= cost;
 			state.rerollCount = (state.rerollCount || 0) + 1;
 			
-			state.pendingRewardDraft = generateDraftOptions(state);
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			state.pendingRewardDraft = generateDraftOptions(state, config);
 
 			setState(user.id, state);
 			refreshGamePage(user);
@@ -2050,7 +2051,9 @@ export const handlers: Chat.Handlers = {
 
 			state.displayName = Users.get(match.userId)?.name || match.userId;
 			state.timesRerolled = 0;
-			state.pendingRewardDraft = generateDraftOptions(state);
+			
+			state.pendingRewardDraft = generateDraftOptions(state, config);
+			
 			state.rerollCount = 0;
 			(state as any).view = 'draft';
 
@@ -2071,5 +2074,5 @@ export const handlers: Chat.Handlers = {
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
-	},
+	}
 };
