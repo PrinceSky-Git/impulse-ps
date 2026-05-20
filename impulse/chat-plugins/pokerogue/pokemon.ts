@@ -993,8 +993,8 @@ export function getItemPrice(wave: number, multiplier: number): number {
 }
 
 export function getRerollCost(wave: number, rerollCount: number): number {
-	const baseMultiplier = 0.5 * (rerollCount + 1);
-	return getItemPrice(wave, baseMultiplier);
+	const base = 250 * Math.ceil(Math.max(1, wave) / 10);
+	return base * Math.pow(2, rerollCount);
 }
 
 export function calculatePartyLuck(team: PokemonEntry[]): number {
@@ -1006,23 +1006,20 @@ export function calculatePartyLuck(team: PokemonEntry[]): number {
 }
 
 export function rollRarity(luck: number): ItemRarityTier {
-	let rates = { Common: 80, Rare: 15, Epic: 4, Master: 1 };
-	
-	rates.Rare += luck * 2;
-	rates.Epic += luck * 0.5;
-	rates.Master += luck * 0.1;
-	rates.Common = Math.max(10, 100 - (rates.Rare + rates.Epic + rates.Master));
+	const tiers: ItemRarityTier[] = ['Common', 'Rare', 'Epic', 'Master'];
+	let tierIndex = 0;
 
-	const total = rates.Common + rates.Rare + rates.Epic + rates.Master;
-	let roll = Math.random() * total;
-	
-	if (roll < rates.Master) return 'Master';
-	roll -= rates.Master;
-	if (roll < rates.Epic) return 'Epic';
-	roll -= rates.Epic;
-	if (roll < rates.Rare) return 'Rare';
-	
-	return 'Common';
+	const upgradeOdds = Math.floor(32 / ((luck + 2) / 2));
+
+	while (tierIndex < tiers.length - 1) {
+		if (upgradeOdds > 0 && Math.floor(Math.random() * upgradeOdds) === 0) {
+			tierIndex++;
+		} else {
+			break;
+		}
+	}
+
+	return tiers[tierIndex];
 }
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
