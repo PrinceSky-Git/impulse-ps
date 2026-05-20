@@ -11,7 +11,7 @@ const CONFIG = {
 	staffRoom: 'staff',
 	maxSize: 5 * 1024 * 1024,
 	timeout: 10000,
-	baseUrl: 'impulse-ps.mooo.com/avatars/',
+	baseUrl: 'impulse.privatedns.org/avatars/',
 };
 
 const IMAGE_FORMATS: { [ext: string]: number[] } = {
