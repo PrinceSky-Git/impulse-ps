@@ -11,7 +11,7 @@ import {
 import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon,
+	packTeam, genPokemon, getRewardMoney, getItemPrice, getRerollCost, generateDraftOptions
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -392,8 +392,7 @@ function processFloorRewards(
 	clearedFloor: number,
 	config: ModeConfig,
 	userId: string
-): { bpGained: number, extraNotifs: string[] } {
-	let bpGained = (config.economy.doubleBpFloor && clearedFloor >= config.economy.doubleBpFloor) ? config.economy.bpPerWin * 2 : config.economy.bpPerWin;
+): { extraNotifs: string[] } {
 	const extraNotifs: string[] = [];
 
 	if (clearedFloor > (state.highestFloor ?? 0)) {
@@ -436,7 +435,6 @@ function processFloorRewards(
 	}
 
 	if (isBossFloorBoundary(clearedFloor, config.bossInterval)) {
-		bpGained += (config.economy.doubleBpFloor && clearedFloor >= config.economy.doubleBpFloor) ? config.economy.bpPerBoss * 2 : config.economy.bpPerBoss;
 		for (const mon of state.team) {
 			mon.currentHp = 100;
 			delete mon.status;
@@ -444,7 +442,7 @@ function processFloorRewards(
 		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
 	}
 
-	return { bpGained, extraNotifs };
+	return { extraNotifs };
 }
 
 function handleBattleLoss(state: PokeRogueState, floor: number, userId: string): void {
@@ -457,6 +455,8 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 	delete state.caughtPokemon;
 	delete state.pendingTrainer;
 	delete state.pendingTrainerKey;
+	delete state.pendingRewardDraft;
+	delete state.rerollCount;
 
 	if ((state.keyItems ?? []).includes('Revive')) {
 		state.keyItems = state.keyItems.filter(k => k !== 'Revive');
@@ -512,7 +512,7 @@ export const commands: Chat.ChatCommands = {
 					gameMode: 'classic',
 					currentBiome: defaultConfig.startingBiome,
 					team: [],
-					battlePoints: defaultConfig.economy.startingBP,
+					money: defaultConfig.economy.startingMoney || 0,
 					timesRerolled: 0,
 					rotationalShop: [],
 					keyItems: [...(defaultConfig.economy.startingKeyItems || [])],
@@ -579,7 +579,7 @@ export const commands: Chat.ChatCommands = {
 				gameMode: finalMode,
 				currentBiome: config.startingBiome,
 				team: [],
-				battlePoints: config.economy.startingBP,
+				money: config.economy.startingMoney || 0,
 				timesRerolled: 0,
 				rotationalShop: [],
 				keyItems: [...(config.economy.startingKeyItems || [])],
@@ -601,7 +601,7 @@ export const commands: Chat.ChatCommands = {
 			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot save right now.");
 
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
 				return this.errorReply("You must resolve your pending choices before saving.");
 			}
 
@@ -659,7 +659,7 @@ export const commands: Chat.ChatCommands = {
 			const tId = toID(target) || user.id;
 			const s = getState(tId);
 			if (!s) return this.errorReply(`No run found for ${tId}.`);
-			const buf = `<b>PokéRogue Status: ${tId}</b><br>Mode: ${s.gameMode || 'classic'} | Floor ${s.floor} | BP: ${s.battlePoints ?? 0}<br>${s.team.map(m => `Lv.${m.level} ${m.species}`).join(', ')}`;
+			const buf = `<b>PokéRogue Status: ${tId}</b><br>Mode: ${s.gameMode || 'classic'} | Floor ${s.floor} | Money: $${s.money ?? 0}<br>${s.team.map(m => `Lv.${m.level} ${m.species}`).join(', ')}`;
 			this.sendReplyBox(buf);
 		},
 
@@ -689,6 +689,8 @@ export const commands: Chat.ChatCommands = {
 				delete s.pendingConsumableType;
 				delete s.pendingTrainer;
 				delete s.pendingTrainerKey;
+				delete s.pendingRewardDraft;
+				delete s.rerollCount;
 				setState(user.id, s);
 			}
 			refreshGamePage(user);
@@ -701,7 +703,7 @@ export const commands: Chat.ChatCommands = {
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
 
-			if (['main', 'shop', 'top', 'bag', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect'].includes(v)) {
+			if (['main', 'top', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
 				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
 					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 					if (modeData.useNewStarterSelectionUI !== false) {
@@ -746,9 +748,6 @@ export const commands: Chat.ChatCommands = {
 					delete (state as any).statsTab;
 				}
 
-				if (v !== 'shop') delete (state as any).shopCategory;
-				if (v !== 'bag') delete (state as any).bagCategory;
-
 				(state as any).view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
@@ -774,28 +773,6 @@ export const commands: Chat.ChatCommands = {
 			(state as any).statsTab = current;
 			setState(user.id, state);
 			refreshGamePage(user);
-		},
-
-		shoptab(target, room, user) {
-			const state = getState(user.id);
-			if (!state || state.gameOver) return;
-			const category = target.trim();
-			if (category) {
-				(state as any).shopCategory = category;
-				setState(user.id, state);
-				refreshGamePage(user);
-			}
-		},
-
-		bagtab(target, room, user) {
-			const state = getState(user.id);
-			if (!state || state.gameOver) return;
-			const category = target.trim();
-			if (category) {
-				(state as any).bagCategory = category;
-				setState(user.id, state);
-				refreshGamePage(user);
-			}
 		},
 
 		startersearch(target, room, user) {
@@ -893,7 +870,7 @@ export const commands: Chat.ChatCommands = {
 			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't organize your team during a battle.");
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
 				return this.errorReply("Resolve pending choices first.");
 			}
 
@@ -937,7 +914,7 @@ export const commands: Chat.ChatCommands = {
 			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't release Pokémon during a battle.");
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
 				return this.errorReply("Resolve pending choices first.");
 			}
 
@@ -981,174 +958,107 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
-		buy(target, room, user) {
+		transferitem(target, room, user) {
 			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("No active run.");
-			if (state.battleRoomId) return this.errorReply("Can't shop during a battle.");
+			if (!state || state.battleRoomId) return;
+
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
 				return this.errorReply("Resolve pending choices first.");
 			}
 
+			const parts = target.trim().split(' ');
+			const fromSlot = parseInt(parts[0]) - 1;
+			const toSlot = parseInt(parts[1]) - 1;
+
+			if (isNaN(fromSlot) || isNaN(toSlot) || fromSlot < 0 || toSlot >= state.team.length) return this.errorReply("Invalid team slot.");
+
+			const fromMon = state.team[fromSlot];
+			const toMon = state.team[toSlot];
+
+			if (!fromMon.heldItem) return this.errorReply("That Pokémon isn't holding anything.");
+
+			const temp = toMon.heldItem;
+			toMon.heldItem = fromMon.heldItem;
+			fromMon.heldItem = temp;
+
+			const fromName = Dex.species.get(toID(fromMon.species)).name;
+			const toName = Dex.species.get(toID(toMon.species)).name;
+			state.notification = `Swapped held items between ${fromName} and ${toName}!`;
+
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		draft(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'draft' || !state.pendingRewardDraft) return;
+
+			const idx = parseInt(target.trim()) - 1;
+			if (isNaN(idx) || idx < 0 || idx >= state.pendingRewardDraft.length) return;
+
+			const itemKey = state.pendingRewardDraft[idx];
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+			const item = activeShop[itemKey];
 
-			const key = toID(target);
-			const item = activeShop[key];
-			if (!item) return this.errorReply("Unknown item.");
-
-			const bp = state.battlePoints ?? 0;
-			if (item.cost > bp) return this.errorReply(`Not enough BP! Need ${item.cost} BP.`);
-
-			if (item.minFloor > (state.floor ?? 1)) return this.errorReply("Your floor isn't high enough for this item.");
-
-			if (item.type === 'key') {
-				const ownedCount = (state.keyItems ?? []).filter(k => k === item.name).length;
-
-				if (item.name === EXP_SHARE_NAME && ownedCount >= 5) {
-					return this.errorReply(`You have reached the maximum stacks (5) for ${EXP_SHARE_NAME}.`);
-				} else if (item.name === 'Exp. Charm' && ownedCount >= 99) {
-					return this.errorReply("You have reached the maximum stacks (99) for Exp. Charm.");
-				} else if (item.name !== EXP_SHARE_NAME && item.name !== 'Exp. Charm' && ownedCount > 0) {
-					return this.errorReply("You already own this key item.");
-				}
-
-				state.battlePoints -= item.cost;
-				state.keyItems = state.keyItems ?? [];
-				state.keyItems.push(item.name);
-
-				const stackMsg = ownedCount > 0 ? ` (Stack ${ownedCount + 1})` : '';
-				state.notification = `Bought key item: <b>${item.name}</b>${stackMsg}!`;
-
-				if (item.name === EXP_SHARE_NAME) {
-					state.notification += ` All non-participating Pokémon will now receive +20% EXP per stack!`;
-				} else if (item.name === 'Exp. Charm') {
-					state.notification += ` Total EXP gained increased by 25% per stack!`;
-				}
-
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
+			delete state.pendingRewardDraft;
+			delete state.rerollCount;
 
 			if (item.type === 'pokeball') {
-				state.battlePoints -= item.cost;
 				state.inventory = state.inventory || {};
-				state.inventory[key] = (state.inventory[key] || 0) + 1;
-				state.notification = `Bought 1x <b>${item.name}</b>!`;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			if (item.type === 'itemPack') {
-				const pseudoTeam = state.team.map(m => ({ species: Dex.species.get(toID(m.species)).name } as PokemonSet));
-				const options = genItem(3, pseudoTeam);
-				state.battlePoints -= item.cost;
-				state.itemOptions = options;
-				state.purchasedItem = key;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			if (item.type === 'item' || item.type === 'evolveItem') {
-				state.pendingItemName = item.name;
-				state.purchasedItem = key;
-				state.pendingItemIsEvo = item.type === 'evolveItem';
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			if (['healHP', 'revive', 'cureStatus', 'vitamin'].includes(item.type)) {
-				if (item.type === 'vitamin') {
-					state.battlePoints -= item.cost;
-					state.inventory = state.inventory || {};
-					state.inventory[key] = (state.inventory[key] || 0) + 1;
-					state.notification = `Bought 1x <b>${item.name}</b>! Use it from your Bag.`;
-					setState(user.id, state);
-					refreshGamePage(user);
-					return;
+				state.inventory[itemKey] = (state.inventory[itemKey] || 0) + 1;
+				state.notification = `You took 1x <b>${item.name}</b>!`;
+				state.floor++;
+				(state as any).view = 'main';
+			} else if (item.type === 'key') {
+				state.keyItems = state.keyItems || [];
+				state.keyItems.push(item.name);
+				state.notification = `Obtained Key Item: <b>${item.name}</b>!`;
+				state.floor++;
+				(state as any).view = 'main';
+			} else if (item.type === 'itemPack') {
+				if (itemKey === 'nugget') {
+					state.money = (state.money || 0) + 5000;
+					state.notification = `You sold the Nugget for $5000!`;
+					state.floor++;
+					(state as any).view = 'main';
+				} else if (itemKey === 'big_nugget') {
+					state.money = (state.money || 0) + 20000;
+					state.notification = `You sold the Big Nugget for $20,000!`;
+					state.floor++;
+					(state as any).view = 'main';
+				} else if (itemKey === 'starter_token') {
+					state.notification = `You unlocked a new Starter!`;
+					state.floor++;
+					(state as any).view = 'main';
 				}
-				state.purchasedItem = key;
-				state.pendingConsumableType = item.type;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
+			} else if (item.type === 'item' || item.type === 'evolveItem') {
+				state.purchasedItem = itemKey;
+				state.pendingItemName = item.name;
+				state.pendingItemIsEvo = item.type === 'evolveItem';
+				(state as any).view = 'main';
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin'].includes(item.type)) {
+				state.purchasedItem = itemKey;
+				state.pendingConsumableType = item.type as any;
+				(state as any).view = 'main';
 			}
 
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
-		usebagitem(target, room, user) {
+		reroll(target, room, user) {
 			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("No active run.");
-			if (state.battleRoomId) return this.errorReply("Can't use items during a battle.");
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
-				return this.errorReply("Resolve pending choices first.");
-			}
+			if (!state || (state as any).view !== 'draft') return;
 
-			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-			const key = toID(target);
-			let item = activeShop[key];
+			const cost = getRerollCost(state.floor, state.rerollCount || 0);
+			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
 
-			if (!item) {
-				const dexItem = Dex.items.get(key);
-				if (dexItem.exists) {
-					item = { name: dexItem.name, type: 'item', category: 'Held Items' } as any;
-				}
-			}
+			state.money -= cost;
+			state.rerollCount = (state.rerollCount || 0) + 1;
+			
+			state.pendingRewardDraft = generateDraftOptions(state);
 
-			if (!item) return this.errorReply("Unknown item.");
-
-			state.inventory = state.inventory || {};
-			if ((state.inventory[key] || 0) <= 0) return this.errorReply(`You don't have any ${item.name} left!`);
-
-			if (!['vitamin', 'healHP', 'revive', 'cureStatus', 'item', 'evolveItem'].includes(item.type)) {
-				return this.errorReply("This item cannot be used from the bag.");
-			}
-
-			if (item.type === 'item' || item.type === 'evolveItem') {
-				state.pendingItemName = item.name;
-				state.pendingItemIsEvo = item.type === 'evolveItem';
-				(state as any).bagItem = true;
-				state.purchasedItem = key;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			state.purchasedItem = key;
-			state.pendingConsumableType = item.type;
-			(state as any).bagItem = true;
-			(state as any).view = 'bag';
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-
-		unequip(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.battleRoomId) return this.errorReply("Can't manage items during a battle.");
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
-				return this.errorReply("Resolve pending choices first.");
-			}
-			const slot = parseInt(target.trim()) - 1;
-			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
-			const mon = state.team[slot];
-			if (!mon.heldItem) return this.errorReply("That Pokémon isn't holding an item.");
-			const dexItem = Dex.items.get(mon.heldItem);
-
-			state.inventory = state.inventory || {};
-			state.inventory[mon.heldItem] = (state.inventory[mon.heldItem] || 0) + 1;
-			state.notification = `Took <b>${Utils.escapeHTML(dexItem.name || mon.heldItem)}</b> from ${Dex.species.get(toID(mon.species)).name} and put it in your Bag.`;
-
-			delete mon.heldItem;
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
@@ -1164,7 +1074,7 @@ export const commands: Chat.ChatCommands = {
 
 			const mon = state.team[slot];
 			const hp = mon.currentHp ?? 100;
-			const bp = state.battlePoints ?? 0;
+			const currentMoney = state.money ?? 0;
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 
 			if (type === 'heal') {
@@ -1172,28 +1082,34 @@ export const commands: Chat.ChatCommands = {
 
 				const healItems = Object.values(activeShop)
 					.filter((i: any) => i.type === 'healHP')
-					.sort((a: any, b: any) => a.cost - b.cost);
+					.sort((a: any, b: any) => (a.moneyMultiplier || 1) - (b.moneyMultiplier || 1));
 
 				if (!healItems.length) return this.errorReply("No healing items found in the shop.");
 
 				let usedItem = null;
 				let bestAffordable = null;
+				let usedCost = 0;
 				const missingHp = 100 - hp;
 
 				for (const i of healItems) {
-					if (bp >= i.cost) {
+					const cost = getItemPrice(state.floor, i.moneyMultiplier || 1);
+					if (currentMoney >= cost) {
 						bestAffordable = i;
 						if ((i.healAmount || 20) >= missingHp || i.isMax) {
 							usedItem = i;
+							usedCost = cost;
 							break;
 						}
 					}
 				}
 
-				if (!usedItem && bestAffordable) usedItem = bestAffordable;
-				if (!usedItem) return this.errorReply("Not enough BP for Q Heal.");
+				if (!usedItem && bestAffordable) {
+					usedItem = bestAffordable;
+					usedCost = getItemPrice(state.floor, bestAffordable.moneyMultiplier || 1);
+				}
+				if (!usedItem) return this.errorReply("Not enough money for Q Heal.");
 
-				state.battlePoints -= usedItem.cost;
+				state.money -= usedCost;
 				const healAmt = usedItem.healAmount || 20;
 				mon.currentHp = usedItem.isMax ? 100 : Math.min(100, hp + healAmt);
 				mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
@@ -1203,9 +1119,11 @@ export const commands: Chat.ChatCommands = {
 
 				const cureItem = Object.values(activeShop).find((i: any) => i.type === 'cureStatus');
 				if (!cureItem) return this.errorReply("No cure item found in shop.");
-				if (bp < cureItem.cost) return this.errorReply("Not enough BP for Q Cure.");
+				
+				const cost = getItemPrice(state.floor, cureItem.moneyMultiplier || 1);
+				if (currentMoney < cost) return this.errorReply("Not enough money for Q Cure.");
 
-				state.battlePoints -= cureItem.cost;
+				state.money -= cost;
 				const oldStatus = mon.status;
 				delete mon.status;
 				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was Q-Cured!`;
@@ -1410,8 +1328,8 @@ export const commands: Chat.ChatCommands = {
 					delete state.pendingItemName;
 					delete state.purchasedItem;
 					delete state.pendingItemIsEvo;
-					delete state.pendingConsumableType;
-					delete (state as any).bagItem;
+					if (state.purchasedItem) state.floor++;
+					(state as any).view = 'main';
 				} else {
 					const slot = parseInt(rest) - 1;
 					if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
@@ -1441,18 +1359,6 @@ export const commands: Chat.ChatCommands = {
 						if (!evoTarget) return this.errorReply("That Pokémon can't evolve with this item.");
 					}
 
-					if (state.purchasedItem) {
-						if ((state as any).bagItem) {
-							state.inventory![state.purchasedItem] = (state.inventory![state.purchasedItem] || 1) - 1;
-						} else {
-							const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-							const item = activeShop[state.purchasedItem];
-							if (item) {
-								state.battlePoints -= item.cost;
-							}
-						}
-					}
-
 					if (state.pendingItemIsEvo) {
 						mon.species = evoTarget;
 						mon.expType = getExpType(evoTarget);
@@ -1466,9 +1372,6 @@ export const commands: Chat.ChatCommands = {
 							if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
 								mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
 							}
-
-							state.inventory = state.inventory || {};
-							state.inventory[mon.heldItem] = (state.inventory[mon.heldItem] || 0) + 1;
 						}
 						mon.heldItem = toID(state.pendingItemName);
 						state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
@@ -1477,7 +1380,8 @@ export const commands: Chat.ChatCommands = {
 					delete state.pendingItemName;
 					delete state.purchasedItem;
 					delete state.pendingItemIsEvo;
-					delete (state as any).bagItem;
+					state.floor++;
+					(state as any).view = 'main';
 				}
 				break;
 			}
@@ -1485,12 +1389,12 @@ export const commands: Chat.ChatCommands = {
 			case 'useshopitem': {
 				if (!state.purchasedItem) return this.errorReply("No item selected.");
 				const itemKey = state.purchasedItem;
-				const fromBag = !!(state as any).bagItem;
 
 				if (rest === 'skip') {
 					delete state.purchasedItem;
 					delete state.pendingConsumableType;
-					delete (state as any).bagItem;
+					state.floor++;
+					(state as any).view = 'main';
 					break;
 				}
 
@@ -1506,11 +1410,6 @@ export const commands: Chat.ChatCommands = {
 				if (item.type === 'healHP') {
 					if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
 					if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
-					if (fromBag) {
-						state.inventory![itemKey] = (state.inventory![itemKey] || 1) - 1;
-					} else {
-						state.battlePoints -= item.cost;
-					}
 					const healAmt = item.healAmount || 20;
 					mon.currentHp = item.isMax ? 100 : Math.min(100, hp + healAmt);
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
@@ -1518,21 +1417,11 @@ export const commands: Chat.ChatCommands = {
 				} else if (item.type === 'cureStatus') {
 					if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
 					if (!mon.status) return this.errorReply("That Pokémon has no status condition.");
-					if (fromBag) {
-						state.inventory![itemKey] = (state.inventory![itemKey] || 1) - 1;
-					} else {
-						state.battlePoints -= item.cost;
-					}
 					const oldStatus = mon.status;
 					delete mon.status;
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
 				} else if (item.type === 'revive') {
 					if (hp > 0) return this.errorReply("That Pokémon hasn't fainted.");
-					if (fromBag) {
-						state.inventory![itemKey] = (state.inventory![itemKey] || 1) - 1;
-					} else {
-						state.battlePoints -= item.cost;
-					}
 					const revAmt = item.reviveAmount || 50;
 					mon.currentHp = (item.isMax || mon.species === 'shedinja') ? 100 : revAmt;
 					delete mon.status;
@@ -1546,11 +1435,6 @@ export const commands: Chat.ChatCommands = {
 					if (totalEvs >= MAX_EV_TOTAL) return this.errorReply("This Pokémon's EVs are maxed out (508 total).");
 					if (mon.evs[evStat] >= MAX_EV_STAT) return this.errorReply(`This Pokémon's ${EV_STAT_LABELS[evStat] ?? evStat} EVs are already at max (252).`);
 					const gain = Math.min(EV_VITAMIN_GAIN, MAX_EV_STAT - mon.evs[evStat], MAX_EV_TOTAL - totalEvs);
-					if (fromBag) {
-						state.inventory![itemKey] = (state.inventory![itemKey] || 1) - 1;
-					} else {
-						state.battlePoints -= item.cost;
-					}
 					mon.evs[evStat] += gain;
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
@@ -1558,7 +1442,8 @@ export const commands: Chat.ChatCommands = {
 
 				delete state.purchasedItem;
 				delete state.pendingConsumableType;
-				delete (state as any).bagItem;
+				state.floor++;
+				(state as any).view = 'main';
 				break;
 			}
 
@@ -1579,7 +1464,7 @@ export const commands: Chat.ChatCommands = {
 			clearStaleBattleRoom(state, user.id);
 
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
 				return this.errorReply("Resolve all pending choices before starting a battle.");
 			}
 
@@ -1633,7 +1518,7 @@ export const commands: Chat.ChatCommands = {
 			clearStaleBattleRoom(state, user.id);
 
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType) {
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
 				return this.errorReply("Resolve all pending choices before starting a battle.");
 			}
 
@@ -2019,14 +1904,13 @@ export const commands: Chat.ChatCommands = {
 			let html = `<b>PokéRogue - Player Commands:</b><br>` +
 				`<code>/pokerogue start</code> - Open the game page.<br>` +
 				`<code>/pokerogue battle</code> - Start floor battle.<br>` +
-				`<code>/pokerogue view shop</code> - Item shop.<br>` +
 				`<code>/pokerogue status</code> - View run info.<br>` +
 				`<code>/pokerogue view top</code> - Leaderboard.<br>` +
 				`<code>/pokerogue quit</code> - Abandon run.<br>`;
 			if (isStaff) {
 				html += `<br><b>Staff Commands (Requires: Admin Only):</b><br>` +
-					`<code>/pokerogue givebp [user], [amount]</code> - Gives Battle Points to a user.<br>` +
-					`<code>/pokerogue removebp [user], [amount]</code> - Removes Battle Points from a user.<br>` +
+					`<code>/pokerogue givebp [user], [amount]</code> - Gives Money to a user.<br>` +
+					`<code>/pokerogue removebp [user], [amount]</code> - Removes Money from a user.<br>` +
 					`<code>/pokerogue setfloor [user], [floor]</code> - Sets the floor for a user's run.<br>` +
 					`<code>/pokerogue healteam [user]</code> - Fully heals a user's team.<br>` +
 					`<code>/pokerogue addmon [user], [pokemon], [level]</code> - Adds a Pokemon to a user's team.<br>` +
@@ -2087,7 +1971,6 @@ export const handlers: Chat.Handlers = {
 			const isTrainerBattle = match.isTrainerBattle ?? false;
 			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle, config);
 			const prevFloor = state.floor;
-			state.floor++;
 
 			if (config.maxFloor && prevFloor >= config.maxFloor) {
 				state.gameWon = true;
@@ -2110,28 +1993,29 @@ export const handlers: Chat.Handlers = {
 				return;
 			}
 
-			if (state.floor % config.biomeRotationInterval === 1 && state.floor > config.biomeRotationInterval) {
+			const nextFloor = prevFloor + 1;
+			if (nextFloor % config.biomeRotationInterval === 1 && nextFloor > config.biomeRotationInterval) {
 				if (config.lastBiome && !data.resolveBiome) {
 					const range = parseFloorRange(config.lastBiome.floor);
-					if (range && state.floor >= range.start && state.floor <= range.end) {
+					if (range && nextFloor >= range.start && nextFloor <= range.end) {
 						state.currentBiome = config.lastBiome.biome;
-						battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
+						battleLogMsgs.push(`<b>You will enter the ${state.currentBiome} biome!</b>`);
 					} else {
 						state.currentBiome = pickNextBiome(state.currentBiome || config.startingBiome, data, config.startingBiome);
-						battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
+						battleLogMsgs.push(`<b>You will enter the ${state.currentBiome} biome!</b>`);
 					}
 				} else if (data.resolveBiome) {
-					state.currentBiome = data.resolveBiome(state.floor, state.currentBiome || config.startingBiome, config);
-					battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
+					state.currentBiome = data.resolveBiome(nextFloor, state.currentBiome || config.startingBiome, config);
+					battleLogMsgs.push(`<b>You will enter the ${state.currentBiome} biome!</b>`);
 				} else {
 					state.currentBiome = pickNextBiome(state.currentBiome || config.startingBiome, data, config.startingBiome);
-					battleLogMsgs.push(`<b>You have entered the ${state.currentBiome} biome!</b>`);
+					battleLogMsgs.push(`<b>You will enter the ${state.currentBiome} biome!</b>`);
 				}
 			} else if (!state.currentBiome) {
 				state.currentBiome = config.startingBiome;
 			}
 
-			const { bpGained, extraNotifs } = processFloorRewards(state, prevFloor, config, match.userId);
+			const { extraNotifs } = processFloorRewards(state, prevFloor, config, match.userId);
 
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;
@@ -2147,17 +2031,20 @@ export const handlers: Chat.Handlers = {
 				delete state.caughtPokemon;
 			}
 
-			state.battlePoints = (state.battlePoints ?? 0) + bpGained;
-			state.displayName = Users.get(match.userId)?.name || match.userId;
-			state.timesRerolled = 0;
-
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
 
-			battleLogMsgs.push(
-				`<hr style="border: 0; border-top: 1px solid currentColor; opacity: 0.2; margin: 8px 0;">` +
-				`<div style="text-align: center;"><b>You've gained ${bpGained} battle points for clearing the floor!</b></div>`
-			);
+			const rewardMultiplier = isBossFloor ? 1.0 : 0.2;
+			const moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
+			state.money = (state.money ?? 0) + moneyGained;
+			battleLogMsgs.push(`<div style="color:#fac000; font-weight:bold;">Earned $${moneyGained}!</div>`);
+
+			state.displayName = Users.get(match.userId)?.name || match.userId;
+			state.timesRerolled = 0;
+			state.pendingRewardDraft = generateDraftOptions(state);
+			state.rerollCount = 0;
+			(state as any).view = 'draft';
+
 		} else {
 			handleBattleLoss(state, match.floor, match.userId);
 		}

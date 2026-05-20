@@ -1,5 +1,6 @@
-import { type PokemonEntry, type ModeConfig, type ModeData, type BiomeEntry, type TrainerMon } from './types';
+import { type PokemonEntry, type ModeConfig, type ModeData, type BiomeEntry, type TrainerMon, type PokeRogueState } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
+import { SHOP_ITEMS, type ItemRarityTier } from './items';
 
 export interface AIPokemonSet {
 	species: string;
@@ -590,7 +591,7 @@ function pickRandomHeldItem(speciesName: string): string {
 	return allItems[Math.floor(Math.random() * allItems.length)].id;
 }
 
-function rollRarity(floor: number, isBoss: boolean, isStarter: boolean, luck = 0): string {
+function rollRaritySpawn(floor: number, isBoss: boolean, isStarter: boolean, luck = 0): string {
 	if (isStarter) {
 		const rand = Math.random() * 100;
 		if (floor <= 5) {
@@ -716,7 +717,7 @@ export function genPokemon(
 				if (forced.item) forcedItem = forced.item;
 			}
 		} else {
-			const rarity = rollRarity(floor, !!isBossFloor, !!starter, luck);
+			const rarity = rollRaritySpawn(floor, !!isBossFloor, !!starter, luck);
 			let pool: BiomeEntry[] = [];
 
 			const activeBiome = currentBiome || config?.startingBiome || 'Town';
@@ -972,4 +973,98 @@ export function packTeam(mons: PokemonEntry[]): string {
 
 export function packAITeam(sets: AIPokemonSet[]): string {
 	return sets.map(s => packAIPokemon(s)).join(']');
+}
+
+export function getWaveSet(wave: number): number {
+	return Math.ceil(wave / 10) - 1;
+}
+
+export function getBaseMoneyReward(wave: number): number {
+	const waveSet = getWaveSet(wave);
+	return Math.pow(10 * wave + 175, 1 + 0.005 * waveSet);
+}
+
+export function getRewardMoney(wave: number, multiplier: number): number {
+	return Math.floor((getBaseMoneyReward(wave) * multiplier) / 10) * 10;
+}
+
+export function getItemPrice(wave: number, multiplier: number): number {
+	return Math.floor(getBaseMoneyReward(wave) / 10) * 10 * multiplier;
+}
+
+export function getRerollCost(wave: number, rerollCount: number): number {
+	const baseMultiplier = 0.5 * (rerollCount + 1);
+	return getItemPrice(wave, baseMultiplier);
+}
+
+export function calculatePartyLuck(team: PokemonEntry[]): number {
+	let luck = 0;
+	for (const mon of team) {
+		if (mon.shiny) luck += 1;
+	}
+	return luck;
+}
+
+export function rollRarity(luck: number): ItemRarityTier {
+	let rates = { Common: 80, Rare: 15, Epic: 4, Master: 1 };
+	
+	rates.Rare += luck * 2;
+	rates.Epic += luck * 0.5;
+	rates.Master += luck * 0.1;
+	rates.Common = Math.max(10, 100 - (rates.Rare + rates.Epic + rates.Master));
+
+	const total = rates.Common + rates.Rare + rates.Epic + rates.Master;
+	let roll = Math.random() * total;
+	
+	if (roll < rates.Master) return 'Master';
+	roll -= rates.Master;
+	if (roll < rates.Epic) return 'Epic';
+	roll -= rates.Epic;
+	if (roll < rates.Rare) return 'Rare';
+	
+	return 'Common';
+}
+
+export function generateDraftOptions(state: PokeRogueState): string[] {
+	const luck = calculatePartyLuck(state.team);
+	const draft: string[] = [];
+	
+	const partySpecies = new Set(state.team.map(m => toID(m.species)));
+
+	for (let i = 0; i < 3; i++) {
+		const targetTier = rollRarity(luck);
+		
+		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
+			if (item.tier !== targetTier) return false;
+			
+			if (item.type === 'evolveItem') {
+				let hasCompatibleTarget = false;
+				for (const species of partySpecies) {
+					const evos = Dex.species.get(species).evos;
+					if (!evos) continue;
+					
+					for (const evoTarget of evos) {
+						const evoData = Dex.species.get(evoTarget);
+						if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade')) {
+							hasCompatibleTarget = true;
+							break;
+						}
+					}
+					if (hasCompatibleTarget) break;
+				}
+				if (!hasCompatibleTarget) return false;
+			}
+			return true;
+		});
+
+		if (validItems.length === 0) {
+			const fallbackItems = Object.entries(SHOP_ITEMS).filter(([, item]) => item.tier === 'Common');
+			const randomFallback = fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
+			draft.push(randomFallback[0]);
+		} else {
+			const randomValid = validItems[Math.floor(Math.random() * validItems.length)];
+			draft.push(randomValid[0]);
+		}
+	}
+	return draft;
 }
