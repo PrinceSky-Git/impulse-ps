@@ -31,7 +31,7 @@ export const classicConfig: ModeConfig = {
 	randomizeAbilities: false,
 
 	economy: {
-		startingMoney: 0,
+		startingMoney: 1000,
 		startingKeyItems: ['Exp. All', 'Exp. All', 'Exp. All'],
 		startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 	},
