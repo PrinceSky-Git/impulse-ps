@@ -56,9 +56,12 @@ export interface ModeConfig {
 	emptyPoolFallbackFn?: (floor: number, rarity: string, isBoss: boolean, biomes: Record<string, BiomePool>) => BiomeEntry[];
 
 	economy: {
-		startingMoney: number, // CHANGED from startingBP
+		startingMoney: number,
 		startingKeyItems?: string[],
 		startingInventory?: Record<string, number>,
+		draftChoicesCount?: number,
+		maxDraftChoicesCount?: number,
+		
 	};
 
 	storyRouting?: {
