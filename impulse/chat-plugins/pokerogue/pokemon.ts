@@ -1044,11 +1044,13 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 	}
 
 	const draftCount = Math.min(maxCount, baseCount + extraOptions);
+	const pickedKeys = new Set<string>();
 
 	for (let i = 0; i < draftCount; i++) {
 		const targetTier = rollRarity(luck);
 		
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
+			if (pickedKeys.has(key)) return false;
 			if (item.tier !== targetTier) return false;
 			
 			if (item.type === 'healHP' && !needsHeal) return false;
@@ -1077,12 +1079,16 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		});
 
 		if (validItems.length === 0) {
-			const fallbackItems = Object.entries(SHOP_ITEMS).filter(([, item]) => item.tier === 'Common' && item.type === 'pokeball');
+			const fallbackItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => !pickedKeys.has(key) && item.tier === 'Common' && item.type === 'pokeball');
 			const randomFallback = fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
-			draft.push(randomFallback[0]);
+			if (randomFallback) {
+				draft.push(randomFallback[0]);
+				pickedKeys.add(randomFallback[0]);
+			}
 		} else {
 			const randomValid = validItems[Math.floor(Math.random() * validItems.length)];
 			draft.push(randomValid[0]);
+			pickedKeys.add(randomValid[0]);
 		}
 	}
 	return draft;
