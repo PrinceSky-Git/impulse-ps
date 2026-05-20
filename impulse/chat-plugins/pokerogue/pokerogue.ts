@@ -1261,6 +1261,46 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
+		
+		buyshop(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'draft') return;
+
+			const itemKey = toID(target);
+			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+			const item = activeShop[itemKey];
+
+			if (!item || !item.isShopItem) return this.errorReply("Unknown shop item.");
+
+			const price = getItemPrice(state.floor, item.moneyMultiplier);
+			if ((state.money || 0) < price) return this.errorReply(`Not enough money! Need $${price}.`);
+
+			state.money -= price;
+
+			if (itemKey === 'sacredash') {
+				// Sacred Ash has an immediate global effect
+				for (const mon of state.team) {
+					if ((mon.currentHp ?? 100) <= 0) {
+						mon.currentHp = 100;
+						delete mon.status;
+					}
+				}
+				state.notification = `Sacred Ash revived all fainted Pokémon!`;
+				setState(user.id, state);
+				refreshGamePage(user);
+				return;
+			}
+
+			state.purchasedItem = itemKey;
+			if (item.type === 'item') {
+				state.pendingItemName = item.name;
+			} else {
+				state.pendingConsumableType = item.type as any;
+			}
+			(state as any).view = 'main';
+
+			setState(user.id, state);	refreshGamePage(user);
+		},
 
 		resolve(target, room, user) {
 			const state = getState(user.id);
@@ -1276,6 +1316,7 @@ export const commands: Chat.ChatCommands = {
 				const pending = state.pendingMoves[0];
 				const mon = state.team[pending.pokemonIndex];
 				if (!mon.moves) mon.moves = getLevelUpMoves(mon.species, mon.level, MODE_CONFIGS[state.gameMode]?.generation || 9);
+				
 				if (rest === 'skip') {
 					state.notification = `Your Pokémon gave up on learning <b>${Dex.moves.get(pending.move).name}</b>.`;
 				} else {
@@ -1293,6 +1334,7 @@ export const commands: Chat.ChatCommands = {
 				if (!state.pendingSwap) return;
 				const newMon = state.pendingSwap;
 				const newMonName = Dex.species.get(toID(newMon.species)).name;
+				
 				if (rest === 'skip') {
 					state.notification = `You released <b>${newMonName}</b> into the wild.`;
 				} else {
@@ -1324,65 +1366,89 @@ export const commands: Chat.ChatCommands = {
 
 			case 'giveitem': {
 				if (!state.pendingItemName) return this.errorReply("No item pending.");
+				const itemKey = state.purchasedItem;
+
 				if (rest === 'skip') {
 					delete state.pendingItemName;
 					delete state.purchasedItem;
 					delete state.pendingItemIsEvo;
-					if (state.purchasedItem) state.floor++;
-					(state as any).view = 'main';
-				} else {
-					const slot = parseInt(rest) - 1;
-					if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
-
-					const mon = state.team[slot];
-					const dexNewItem = Dex.items.get(state.pendingItemName);
-					const dexSpecies = Dex.species.get(toID(mon.species));
-
-					let evoTarget = '';
-					if (state.pendingItemIsEvo) {
-						const evoList = dexSpecies.evos;
-						const pendingItemId = toID(dexNewItem.name);
-						if (evoList) {
-							for (const newEvo of evoList) {
-								const evoData = Dex.species.get(newEvo);
-								const evoItemId = toID(evoData.evoItem);
-								const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
-								const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
-								const isPlainTradeEvolution =
-									evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
-								if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
-									evoTarget = evoData.id;
-									break;
-								}
-							}
-						}
-						if (!evoTarget) return this.errorReply("That Pokémon can't evolve with this item.");
-					}
-
-					if (state.pendingItemIsEvo) {
-						mon.species = evoTarget;
-						mon.expType = getExpType(evoTarget);
-						const evoName = Dex.species.get(evoTarget).name;
-						state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
-					} else {
-						if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
-							mon.species = toID(dexNewItem.forcedForme);
-						} else if (mon.heldItem) {
-							const dexOldItem = Dex.items.get(mon.heldItem);
-							if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
-								mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
-							}
-						}
-						mon.heldItem = toID(state.pendingItemName);
-						state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
-					}
-
-					delete state.pendingItemName;
-					delete state.purchasedItem;
-					delete state.pendingItemIsEvo;
-					state.floor++;
-					(state as any).view = 'main';
+					
+					if (state.pendingRewardDraft) (state as any).view = 'draft';
+					else { state.floor++; (state as any).view = 'main'; }
+					break;
 				}
+
+				const slot = parseInt(rest) - 1;
+				if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
+
+				const mon = state.team[slot];
+				const dexNewItem = Dex.items.get(state.pendingItemName);
+				const dexSpecies = Dex.species.get(toID(mon.species));
+
+				if (itemKey === 'memorymushroom') {
+					const allMoves = getMovesLearnedBetween(mon.species, 1, mon.level, false, MODE_CONFIGS[state.gameMode]?.generation || 9);
+					
+					if (allMoves.length === 0) return this.errorReply("This Pokémon has no moves to remember.");
+
+					state.pendingMoves = [{
+						pokemonIndex: slot,
+						move: allMoves[Math.floor(Math.random() * allMoves.length)], 
+						speciesName: mon.species
+					}];
+					
+					delete state.purchasedItem;
+					delete state.pendingItemName;
+					
+					if (state.pendingRewardDraft) (state as any).view = 'draft';
+					else { state.floor++; (state as any).view = 'main'; }
+					break;
+				}
+
+				let evoTarget = '';
+				if (state.pendingItemIsEvo) {
+					const evoList = dexSpecies.evos;
+					const pendingItemId = toID(dexNewItem.name);
+					if (evoList) {
+						for (const newEvo of evoList) {
+							const evoData = Dex.species.get(newEvo);
+							const evoItemId = toID(evoData.evoItem);
+							const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
+							const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
+							const isPlainTradeEvolution =
+								evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
+							if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
+								evoTarget = evoData.id;
+								break;
+							}
+						}
+					}
+					if (!evoTarget) return this.errorReply("That Pokémon can't evolve with this item.");
+				}
+
+				if (state.pendingItemIsEvo) {
+					mon.species = evoTarget;
+					mon.expType = getExpType(evoTarget);
+					const evoName = Dex.species.get(evoTarget).name;
+					state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
+				} else {
+					if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
+						mon.species = toID(dexNewItem.forcedForme);
+					} else if (mon.heldItem) {
+						const dexOldItem = Dex.items.get(mon.heldItem);
+						if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
+							mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
+						}
+					}
+					mon.heldItem = toID(state.pendingItemName);
+					state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
+				}
+
+				delete state.pendingItemName;
+				delete state.purchasedItem;
+				delete state.pendingItemIsEvo;
+				
+				if (state.pendingRewardDraft) (state as any).view = 'draft';
+				else { state.floor++; (state as any).view = 'main'; }
 				break;
 			}
 
@@ -1393,8 +1459,9 @@ export const commands: Chat.ChatCommands = {
 				if (rest === 'skip') {
 					delete state.purchasedItem;
 					delete state.pendingConsumableType;
-					state.floor++;
-					(state as any).view = 'main';
+					
+					if (state.pendingRewardDraft) (state as any).view = 'draft';
+					else { state.floor++; (state as any).view = 'main'; }
 					break;
 				}
 
@@ -1410,8 +1477,17 @@ export const commands: Chat.ChatCommands = {
 				if (item.type === 'healHP') {
 					if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
 					if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
-					const healAmt = item.healAmount || 20;
-					mon.currentHp = item.isMax ? 100 : Math.min(100, hp + healAmt);
+					
+					const spData = Dex.species.get(toID(mon.species));
+					const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+					const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+					const maxHpActual = Math.floor((2 * bs.hp + 31 + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
+					
+					const healPctCalculated = item.healAmount ? Math.max(item.healPercent || 0, (item.healAmount / maxHpActual) * 100) : (item.healPercent || 0);
+					
+					mon.currentHp = item.isMax ? 100 : Math.min(100, hp + Math.round(healPctCalculated));
+					if (item.curesStatus) delete mon.status;
+					
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
 				} else if (item.type === 'cureStatus') {
@@ -1442,8 +1518,13 @@ export const commands: Chat.ChatCommands = {
 
 				delete state.purchasedItem;
 				delete state.pendingConsumableType;
-				state.floor++;
-				(state as any).view = 'main';
+				
+				if (state.pendingRewardDraft) {
+					(state as any).view = 'draft';
+				} else {
+					state.floor++;
+					(state as any).view = 'main';
+				}
 				break;
 			}
 
