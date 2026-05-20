@@ -1040,39 +1040,9 @@ function renderMainView(state: PokeRogueState, user: User): string {
 
 	for (let i = 0; i < state.team.length; i++) {
 		const mon = state.team[i];
-		const hp = mon.currentHp ?? 100;
-		const currentMoney = state.money ?? 0;
-
-		const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-
-		const healItems = Object.values(activeShop)
-			.filter((item: any) => item.type === 'healHP')
-			.sort((a: any, b: any) => (a.moneyMultiplier || 1) - (b.moneyMultiplier || 1));
-
-		const cureItem = Object.values(activeShop).find((item: any) => item.type === 'cureStatus');
-		const cureCost = cureItem ? getItemPrice(state.floor, cureItem.moneyMultiplier || 1) : Infinity;
-
-		let qHealDisabled = true, qHealLabel = "Q Heal";
-		if (hp <= 0) qHealLabel = "Fainted";
-		else if (hp >= 100) qHealLabel = "Full HP";
-		else if (!healItems.length) qHealLabel = "No Items";
-		else {
-			const affordableHeal = healItems.find((item: any) => currentMoney >= getItemPrice(state.floor, item.moneyMultiplier || 1));
-			if (affordableHeal) qHealDisabled = false;
-			else qHealLabel = "Need Money";
-		}
-
-		let qCureDisabled = true, qCureLabel = "Q Cure";
-		if (hp <= 0) qCureLabel = "Fainted";
-		else if (!mon.status) qCureLabel = "No Status";
-		else if (!cureItem) qCureLabel = "No Items";
-		else if (currentMoney >= cureCost) qCureDisabled = false;
-		else qCureLabel = "Need Money";
 
 		const btnStyle = "display:block;width:100%;margin-bottom:4px;box-sizing:border-box;";
 		let actionBtn = renderBtn(`/pokerogue movemon ${i + 1}`, 'Move', 'pr-shop-buy', btnStyle);
-		actionBtn += renderBtn(qHealDisabled ? null : `/pokerogue qaction heal ${i + 1}`, qHealLabel, 'pr-shop-buy', btnStyle, qHealDisabled);
-		actionBtn += renderBtn(qCureDisabled ? null : `/pokerogue qaction cure ${i + 1}`, qCureLabel, 'pr-shop-buy', btnStyle, qCureDisabled);
 
 		if (state.team.length > 1) {
 			actionBtn += renderBtn(`/pokerogue releasemon ${i + 1}`, 'Release', 'pr-shop-buy', "display:block;width:100%;box-sizing:border-box;");
