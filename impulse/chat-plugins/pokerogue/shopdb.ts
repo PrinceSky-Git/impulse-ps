@@ -38,45 +38,62 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		tier: "Master"
 	},
 	potion: {
-		name: "Potion",
-		icon: "Potion",
-		type: "healHP",
-		category: "Medicine",
-		desc: "Heals 20 HP.",
-		moneyMultiplier: 0.2,
-		tier: "Common",
-		healAmount: 20
+		name: "Potion", icon: "Potion", type: "healHP", category: "Medicine",
+		desc: "Restores 20 HP or 10% HP, whichever is higher.",
+		moneyMultiplier: 0.2, tier: "Common", isShopItem: true, minFloor: 1,
+		healAmount: 20, healPercent: 10
 	},
 	superpotion: {
-		name: "Super Potion",
-		icon: "Super Potion",
-		type: "healHP",
-		category: "Medicine",
-		desc: "Heals 60 HP.",
-		moneyMultiplier: 0.5,
-		tier: "Rare",
-		healAmount: 60
+		name: "Super Potion", icon: "Super Potion", type: "healHP", category: "Medicine",
+		desc: "Restores 50 HP or 25% HP, whichever is higher.",
+		moneyMultiplier: 0.45, tier: "Common", isShopItem: true, minFloor: 21,
+		healAmount: 50, healPercent: 25
+	},
+	hyperpotion: {
+		name: "Hyper Potion", icon: "Hyper Potion", type: "healHP", category: "Medicine",
+		desc: "Restores 200 HP or 50% HP, whichever is higher.",
+		moneyMultiplier: 0.8, tier: "Rare", isShopItem: true, minFloor: 81,
+		healAmount: 200, healPercent: 50
 	},
 	maxpotion: {
-		name: "Max Potion",
-		icon: "Max Potion",
-		type: "healHP",
-		category: "Medicine",
-		desc: "Heals a pokemon's HP fully.",
-		moneyMultiplier: 3.0,
-		tier: "Epic",
-		healAmount: 100,
+		name: "Max Potion", icon: "Max Potion", type: "healHP", category: "Medicine",
+		desc: "Restores 100% HP.",
+		moneyMultiplier: 1.5, tier: "Epic", isShopItem: true, minFloor: 111,
+		isMax: true
+	},
+	revive: {
+		name: "Revive", icon: "Revive", type: "revive", category: "Medicine",
+		desc: "Revives one Pokémon and restores 50% HP.",
+		moneyMultiplier: 2.0, tier: "Rare", isShopItem: true, minFloor: 1,
+		reviveAmount: 50
+	},
+	maxrevive: {
+		name: "Max Revive", icon: "Max Revive", type: "revive", category: "Medicine",
+		desc: "Revives one Pokémon and restores 100% HP.",
+		moneyMultiplier: 2.75, tier: "Epic", isShopItem: true, minFloor: 81,
 		isMax: true
 	},
 	fullheal: {
-		name: "Full Heal",
-		icon: "Full Heal",
-		type: "cureStatus",
-		category: "Medicine",
-		desc: "Cures a pokemon's status.",
-		moneyMultiplier: 0.5,
-		tier: "Common"
+		name: "Full Heal", icon: "Full Heal", type: "cureStatus", category: "Medicine",
+		desc: "Heals any status ailment for one Pokémon.",
+		moneyMultiplier: 1.0, tier: "Common", isShopItem: true, minFloor: 21
 	},
+	fullrestore: {
+		name: "Full Restore", icon: "Full Restore", type: "healHP", category: "Medicine",
+		desc: "Fully restores HP for one Pokémon and heals any status ailment.",
+		moneyMultiplier: 2.25, tier: "Rare", isShopItem: true, minFloor: 141,
+		isMax: true, curesStatus: true
+	},
+	sacredash: {
+		name: "Sacred Ash", icon: "Sacred Ash", type: "itemPack", category: "Medicine", // Using itemPack as a generic trigger
+		desc: "Revives all fainted Pokémon, fully restoring HP.",
+		moneyMultiplier: 10.0, tier: "Master", isShopItem: true, minFloor: 171
+	},
+	memorymushroom: {
+		name: "Memory Mushroom", icon: "Big Mushroom", type: "item", category: "Medicine", // Use 'item' so we select a target
+		desc: "Recall one Pokémon's forgotten move.",
+		moneyMultiplier: 4.0, tier: "Rare", isShopItem: true, minFloor: 81
+	},	
 	lure: {
 		name: "Lure",
 		icon: "Chipped Pot",
@@ -85,27 +102,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "50% chance to encounter 2 wild Pokémon instead of 1.",
 		moneyMultiplier: 1.5,
 		tier: "Rare"
-	},
-	revive: {
-		name: "Revive",
-		icon: "Revive",
-		type: "revive",
-		category: "Medicine",
-		desc: "Revives a Pokemon to half its maximum HP.",
-		moneyMultiplier: 1.5,
-		tier: "Rare",
-		reviveAmount: 50
-	},
-	maxrevive: {
-		name: "Max Revive",
-		icon: "Revive",
-		type: "revive",
-		category: "Medicine",
-		desc: "Revives a Pokemon to its maximum HP.",
-		moneyMultiplier: 3.0,
-		tier: "Epic",
-		reviveAmount: 100,
-		isMax: true
 	},
 	expall: {
 		name: "Exp. All",
