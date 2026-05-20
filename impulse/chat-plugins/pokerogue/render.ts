@@ -304,8 +304,7 @@ function renderDraftView(state: PokeRogueState): string {
 	buf += `<h2 style="color:#fac000; margin-bottom: 4px;">Wave Cleared!</h2>`;
 	buf += `<div style="font-size:14px; font-weight:bold; margin-bottom: 16px;">Current Money: <span style="color:#4caf50">$${currentMoney}</span></div>`;
 	
-	buf += `<div style="display:flex; justify-content:center; gap: 12px; flex-wrap:wrap; margin-bottom: 20px;">`;
-
+	buf += `<div style="display:flex; justify-content:center; gap: 12px; flex-wrap:wrap; margin-bottom: 10px;">`;
 	for (let i = 0; i < (state.pendingRewardDraft?.length || 0); i++) {
 		const itemKey = state.pendingRewardDraft![i];
 		const item = SHOP_ITEMS[itemKey];
@@ -317,19 +316,35 @@ function renderDraftView(state: PokeRogueState): string {
 		buf += renderBtn(`/pokerogue draft ${i + 1}`, 'Take', 'pr-pick-btn', 'width:100%');
 		buf += `</div>`;
 	}
-
+	buf += `</div>`;
+	
+	buf += `<div style="text-align:center; margin-bottom:20px;">`;
+	buf += renderBtn(canReroll ? '/pokerogue reroll' : null, `Reroll ($${rerollCost})`, `pr-btn ${canReroll ? 'primary' : ''}`, 'padding: 8px 16px; font-size: 13px;', !canReroll);
 	buf += `</div>`;
 
-	buf += `<div style="text-align:center;">`;
-	buf += renderBtn(
-		canReroll ? '/pokerogue reroll' : null, 
-		`Reroll ($${rerollCost})`, 
-		`pr-btn ${canReroll ? 'primary' : ''}`, 
-		'padding: 8px 16px; font-size: 13px;', 
-		!canReroll
-	);
-	buf += `</div></div>`;
+	buf += `<div class="pr-section-title">Shop</div>`;
+	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
+	buf += `<tbody>`;
 
+	const shopItems = Object.entries(SHOP_ITEMS)
+		.filter(([, item]) => item.isShopItem && state.floor >= (item.minFloor || 1))
+		.sort((a, b) => (a[1].minFloor || 1) - (b[1].minFloor || 1));
+
+	for (const [key, item] of shopItems) {
+		const price = getItemPrice(state.floor, item.moneyMultiplier);
+		const canBuy = currentMoney >= price;
+
+		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
+		buf += `<td class="pr-td-icon" style="padding:4px; width:18px;">${getShopItemIcon(item.icon, 16)}</td>`;
+		buf += `<td class="pr-td-name" style="padding:4px; font-weight:500; white-space:nowrap;">${Utils.escapeHTML(item.name)}</td>`;
+		buf += `<td class="pr-td-desc" style="padding:4px; font-size:10px;">${Utils.escapeHTML(item.desc)}</td>`;
+		buf += `<td class="pr-td-cost" style="padding:4px; white-space:nowrap; color:#fac000;">$${price}</td>`;
+		buf += `<td class="pr-td-action" style="padding:4px; text-align:right;">`;
+		buf += renderBtn(canBuy ? `/pokerogue buyshop ${key}` : null, canBuy ? 'Buy' : 'Need $', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:45px;', !canBuy);
+		buf += `</td></tr>`;
+	}
+
+	buf += `</tbody></table></div></div>`;
 	return buf;
 }
 
