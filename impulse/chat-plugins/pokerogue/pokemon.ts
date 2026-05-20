@@ -1077,10 +1077,10 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 			}
 			return true;
 		});
-
+		
 		if (validItems.length === 0) {
-			const fallbackItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => !pickedKeys.has(key) && item.tier === 'Common' && item.type === 'pokeball');
-			const randomFallback = fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
+			const anyUnpicked = Object.entries(SHOP_ITEMS).filter(([key]) => !pickedKeys.has(key));
+			const randomFallback = anyUnpicked[Math.floor(Math.random() * anyUnpicked.length)];
 			if (randomFallback) {
 				draft.push(randomFallback[0]);
 				pickedKeys.add(randomFallback[0]);
