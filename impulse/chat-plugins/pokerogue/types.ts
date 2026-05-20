@@ -56,10 +56,7 @@ export interface ModeConfig {
 	emptyPoolFallbackFn?: (floor: number, rarity: string, isBoss: boolean, biomes: Record<string, BiomePool>) => BiomeEntry[];
 
 	economy: {
-		startingBP: number,
-		bpPerWin: number,
-		bpPerBoss: number,
-		doubleBpFloor?: number,
+		startingMoney: number, // CHANGED from startingBP
 		startingKeyItems?: string[],
 		startingInventory?: Record<string, number>,
 	};
@@ -77,9 +74,6 @@ export interface ModeConfig {
 	};
 
 	maxFloor?: number;
-	// MaxLevel is visual for stats bars
-	// Use it according to your custom levelScalingFn formula
-	// Default is Level 200.
 	maxLevel?: number;
 
 	victoryConfig?: {
@@ -142,7 +136,6 @@ export interface PokemonEntry {
 	metDate?: number;
 	marks?: string[];
 
-	// Permanent Progression Unlocks for Starters
 	unlockedNatures?: string[];
 	unlockedAbilities?: string[];
 	selectedNature?: string;
@@ -150,18 +143,21 @@ export interface PokemonEntry {
 }
 
 export interface PokeRogueState {
-	// Test
 	starterSearch?: string;
 	gameWon?: boolean;
 	floor: number;
 	gameMode: GameMode;
 	currentBiome?: string;
 	team: PokemonEntry[];
-	battlePoints: number;
+	
+	money: number;
+	pendingRewardDraft?: string[];
+	rerollCount?: number;
+	luck?: number; 
+	
 	timesRerolled: number;
 	rotationalShop: string[];
 	keyItems: string[];
-	luck?: number;
 	inventory?: Record<string, number>;
 	caughtPokemon?: PokemonEntry;
 	pendingChoice?: string[];
@@ -194,13 +190,9 @@ export interface PokeRogueState {
 	firstGymLeaderWave?: number;
 	pendingTrainerKey?: string;
 
-	shopCategory?: string;
-	bagCategory?: string;
-	bagItem?: boolean;
 	pendingStatsSlot?: number;
 	statsTab?: number;
 	lastThrowTime?: number;
-	// Used for new unlockable starters ui
 	isConfiguringStarter?: boolean;
 }
 
