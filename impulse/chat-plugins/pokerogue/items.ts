@@ -27,7 +27,12 @@ export interface ShopItem {
 	tier: ItemRarityTier;
 	weight?: number;
 
+	isShopItem?: boolean;
+	minFloor?: number;
+
 	healAmount?: number;
+	healPercent?: number;
+	curesStatus?: boolean;
 	reviveAmount?: number;
 	isMax?: boolean;
 	evStat?: string;
