@@ -963,13 +963,14 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	}
 	if (spData.id === 'shedinja') stats.hp = 1;
 
+	const maxStatLevel = MODE_CONFIGS[state.gameMode]?.maxLevel ?? 200;
 	const maxStats: Record<string, number> = {};
 	for (const stat of statKeys) {
 		if (stat === 'hp') {
-			maxStats.hp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + 31 + Math.floor(252 / 4)) * 9999 / 100) + 9999 + 10;
+			maxStats.hp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + 31 + Math.floor(252 / 4)) * maxStatLevel / 100) + maxStatLevel + 10;
 		} else {
 			maxStats[stat] = Math.floor(
-				(Math.floor((2 * bs[stat] + 31 + Math.floor(252 / 4)) * 9999 / 100) + 5) * 1.1
+				(Math.floor((2 * bs[stat] + 31 + Math.floor(252 / 4)) * maxStatLevel / 100) + 5) * 1.1
 			);
 		}
 	}
