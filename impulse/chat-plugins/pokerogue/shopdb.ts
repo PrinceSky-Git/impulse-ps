@@ -1,6 +1,8 @@
 import { type ShopItem } from './items';
+import { TMS_DB } from './tms';
 
 export const SHOP_DB: Record<string, ShopItem> = {
+	...TMS_DB,
 	pokeball: {
 		name: "Poke Ball",
 		icon: "Poke Ball",
