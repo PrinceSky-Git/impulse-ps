@@ -7,8 +7,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "pokeball",
 		category: "Pokéballs",
 		desc: "A standard ball for catching wild Pokemon.",
-		cost: 5,
-		minFloor: 1,
+		moneyMultiplier: 0.2,
+		tier: "Common"
 	},
 	greatball: {
 		name: "Great Ball",
@@ -16,8 +16,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "pokeball",
 		category: "Pokéballs",
 		desc: "A good ball with a higher catch rate.",
-		cost: 10,
-		minFloor: 11,
+		moneyMultiplier: 0.6,
+		tier: "Rare"
 	},
 	ultraball: {
 		name: "Ultra Ball",
@@ -25,8 +25,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "pokeball",
 		category: "Pokéballs",
 		desc: "An excellent ball with a very high catch rate.",
-		cost: 15,
-		minFloor: 31,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	masterball: {
 		name: "Master Ball",
@@ -34,27 +34,28 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "pokeball",
 		category: "Pokéballs",
 		desc: "Catches any wild Pokemon without fail.",
-		cost: 1000,
-		minFloor: 51,
+		moneyMultiplier: 10.0,
+		tier: "Master"
 	},
-	helditempack: {
-		name: "Held Item Pack",
-		icon: "Leftovers",
-		type: "itemPack",
-		category: "Held Items",
-		desc: "Pick 1 of 3 held items to put on a Pokemon",
-		cost: 3,
-		minFloor: 1,
+	potion: {
+		name: "Potion",
+		icon: "Potion",
+		type: "healHP",
+		category: "Medicine",
+		desc: "Heals 20 HP.",
+		moneyMultiplier: 0.2,
+		tier: "Common",
+		healAmount: 20
 	},
 	superpotion: {
 		name: "Super Potion",
 		icon: "Super Potion",
 		type: "healHP",
 		category: "Medicine",
-		desc: "Heals 60% HP for a Pokemon.",
-		cost: 1,
-		minFloor: 1,
-		healAmount: 60,
+		desc: "Heals 60 HP.",
+		moneyMultiplier: 0.5,
+		tier: "Rare",
+		healAmount: 60
 	},
 	maxpotion: {
 		name: "Max Potion",
@@ -62,10 +63,10 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "healHP",
 		category: "Medicine",
 		desc: "Heals a pokemon's HP fully.",
-		cost: 2,
-		minFloor: 1,
+		moneyMultiplier: 3.0,
+		tier: "Epic",
 		healAmount: 100,
-		isMax: true,
+		isMax: true
 	},
 	fullheal: {
 		name: "Full Heal",
@@ -73,8 +74,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "cureStatus",
 		category: "Medicine",
 		desc: "Cures a pokemon's status.",
-		cost: 2,
-		minFloor: 1,
+		moneyMultiplier: 0.5,
+		tier: "Common"
 	},
 	lure: {
 		name: "Lure",
@@ -82,8 +83,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "key",
 		category: "Key Items",
 		desc: "50% chance to encounter 2 wild Pokémon instead of 1.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Rare"
 	},
 	revive: {
 		name: "Revive",
@@ -91,9 +92,9 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "revive",
 		category: "Medicine",
 		desc: "Revives a Pokemon to half its maximum HP.",
-		cost: 3,
-		minFloor: 1,
-		reviveAmount: 50,
+		moneyMultiplier: 1.5,
+		tier: "Rare",
+		reviveAmount: 50
 	},
 	maxrevive: {
 		name: "Max Revive",
@@ -101,10 +102,10 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "revive",
 		category: "Medicine",
 		desc: "Revives a Pokemon to its maximum HP.",
-		cost: 5,
-		minFloor: 1,
+		moneyMultiplier: 3.0,
+		tier: "Epic",
 		reviveAmount: 100,
-		isMax: true,
+		isMax: true
 	},
 	expall: {
 		name: "Exp. All",
@@ -112,8 +113,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "key",
 		category: "Key Items",
 		desc: "Gives 20% Exp. to all non-fainted Pokemon not in the battle. Stacks up to 5 times.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 2.0,
+		tier: "Epic"
 	},
 	expcharm: {
 		name: "Exp. Charm",
@@ -121,8 +122,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "key",
 		category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 25%. Stacks up to 99 times.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Rare"
 	},
 	hpup: {
 		name: "HP Up",
@@ -130,9 +131,9 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "vitamin",
 		category: "Vitamins",
 		desc: "Raises the HP EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
-		cost: 5,
-		minFloor: 1,
-		evStat: "hp",
+		moneyMultiplier: 1.0,
+		tier: "Rare",
+		evStat: "hp"
 	},
 	protein: {
 		name: "Protein",
@@ -140,9 +141,9 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "vitamin",
 		category: "Vitamins",
 		desc: "Raises the Attack EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
-		cost: 5,
-		minFloor: 1,
-		evStat: "atk",
+		moneyMultiplier: 1.0,
+		tier: "Rare",
+		evStat: "atk"
 	},
 	iron: {
 		name: "Iron",
@@ -150,9 +151,9 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "vitamin",
 		category: "Vitamins",
 		desc: "Raises the Defense EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
-		cost: 5,
-		minFloor: 1,
-		evStat: "def",
+		moneyMultiplier: 1.0,
+		tier: "Rare",
+		evStat: "def"
 	},
 	calcium: {
 		name: "Calcium",
@@ -160,9 +161,9 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "vitamin",
 		category: "Vitamins",
 		desc: "Raises the Sp. Atk EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
-		cost: 5,
-		minFloor: 1,
-		evStat: "spa",
+		moneyMultiplier: 1.0,
+		tier: "Rare",
+		evStat: "spa"
 	},
 	zinc: {
 		name: "Zinc",
@@ -170,9 +171,9 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "vitamin",
 		category: "Vitamins",
 		desc: "Raises the Sp. Def EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
-		cost: 5,
-		minFloor: 1,
-		evStat: "spd",
+		moneyMultiplier: 1.0,
+		tier: "Rare",
+		evStat: "spd"
 	},
 	carbos: {
 		name: "Carbos",
@@ -180,9 +181,9 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "vitamin",
 		category: "Vitamins",
 		desc: "Raises the Speed EVs of a Pokémon by 10. Max 252 per stat, 508 total.",
-		cost: 5,
-		minFloor: 1,
-		evStat: "spe",
+		moneyMultiplier: 1.0,
+		tier: "Rare",
+		evStat: "spe"
 	},
 	firestone: {
 		name: "Fire Stone",
@@ -190,8 +191,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	waterstone: {
 		name: "Water Stone",
@@ -199,8 +200,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	thunderstone: {
 		name: "Thunder Stone",
@@ -208,8 +209,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	leafstone: {
 		name: "Leaf Stone",
@@ -217,8 +218,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	moonstone: {
 		name: "Moon Stone",
@@ -226,8 +227,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	sunstone: {
 		name: "Sun Stone",
@@ -235,8 +236,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	shinystone: {
 		name: "Shiny Stone",
@@ -244,8 +245,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	duskstone: {
 		name: "Dusk Stone",
@@ -253,8 +254,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	dawnstone: {
 		name: "Dawn Stone",
@@ -262,8 +263,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	icestone: {
 		name: "Ice Stone",
@@ -271,8 +272,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves certain species of Pokémon.",
-		cost: 10,
-		minFloor: 1,
+		moneyMultiplier: 1.0,
+		tier: "Rare"
 	},
 	linkingcord: {
 		name: "Linking Cord",
@@ -280,8 +281,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Pokémon that normally require trading.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	metalcoat: {
 		name: "Metal Coat",
@@ -289,8 +290,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Onix and Scyther.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	dragonscale: {
 		name: "Dragon Scale",
@@ -298,8 +299,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Seadra into Kingdra.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	kingsrock: {
 		name: "King's Rock",
@@ -307,8 +308,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Poliwhirl and Slowpoke.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	protector: {
 		name: "Protector",
@@ -316,8 +317,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Rhydon into Rhyperior.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	electirizer: {
 		name: "Electirizer",
@@ -325,8 +326,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Electabuzz into Electivire.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	magmarizer: {
 		name: "Magmarizer",
@@ -334,8 +335,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Magmar into Magmortar.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	upgrade: {
 		name: "Up-Grade",
@@ -343,8 +344,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Porygon into Porygon2.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	dubiousdisc: {
 		name: "Dubious Disc",
@@ -352,8 +353,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Porygon2 into Porygon-Z.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	reapercloth: {
 		name: "Reaper Cloth",
@@ -361,8 +362,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Dusclops into Dusknoir.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	prismscale: {
 		name: "Prism Scale",
@@ -370,8 +371,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Feebas into Milotic.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	deepseatooth: {
 		name: "Deep Sea Tooth",
@@ -379,8 +380,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Clamperl into Huntail.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	deepseascale: {
 		name: "Deep Sea Scale",
@@ -388,8 +389,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Clamperl into Gorebyss.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	sachet: {
 		name: "Sachet",
@@ -397,8 +398,8 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Spritzee into Aromatisse.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
 	},
 	whippeddream: {
 		name: "Whipped Dream",
@@ -406,7 +407,43 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		type: "evolveItem",
 		category: "Evolutions",
 		desc: "Evolves Swirlix into Slurpuff.",
-		cost: 15,
-		minFloor: 1,
+		moneyMultiplier: 1.5,
+		tier: "Epic"
+	},
+	leftovers: {
+		name: "Leftovers",
+		icon: "Leftovers",
+		type: "item",
+		category: "Held Items",
+		desc: "Restores 1/16 of the holder's max HP at the end of each turn.",
+		moneyMultiplier: 1.5,
+		tier: "Epic"
+	},
+	nugget: {
+		name: "Nugget",
+		icon: "Nugget",
+		type: "itemPack",
+		category: "Treasure",
+		desc: "A nugget of pure gold. Immediately adds $5000 to your funds.",
+		moneyMultiplier: 0,
+		tier: "Rare"
+	},
+	big_nugget: {
+		name: "Big Nugget",
+		icon: "Big Nugget",
+		type: "itemPack",
+		category: "Treasure",
+		desc: "A massive gold nugget. Immediately adds $20,000 to your funds.",
+		moneyMultiplier: 0,
+		tier: "Epic"
+	},
+	starter_token: {
+		name: "Starter Token",
+		icon: "Gacha Ticket",
+		type: "itemPack",
+		category: "Meta",
+		desc: "Unlocks a random new basic Pokémon in your Starter selection.",
+		moneyMultiplier: 0,
+		tier: "Epic"
 	}
 };
