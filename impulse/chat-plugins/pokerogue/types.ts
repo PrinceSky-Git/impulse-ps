@@ -39,9 +39,9 @@ export type BiomePool = Partial<Record<RarityTier, BiomeEntry[]>>;
 export interface ModeConfig {
 	biomeRotationInterval: number;
 	bossInterval: number;
-	hasTrainers: boolean;
-	randomizeMoves: boolean;
-	randomizeAbilities: boolean;
+	hasTrainers?: boolean;
+	randomizeMoves?: boolean;
+	randomizeAbilities?: boolean;
 	startingBiome: string;
 	starterLevel?: number;
 	generation: number;
@@ -77,6 +77,10 @@ export interface ModeConfig {
 	};
 
 	maxFloor?: number;
+	// MaxLevel is visual for stats bars
+	// Use it according to your custom levelScalingFn formula
+	// Default is Level 200.
+	maxLevel?: number;
 
 	victoryConfig?: {
 		name?: string,
@@ -196,8 +200,7 @@ export interface PokeRogueState {
 	pendingStatsSlot?: number;
 	statsTab?: number;
 	lastThrowTime?: number;
-
-	// UI State Flags
+	// Used for new unlockable starters ui
 	isConfiguringStarter?: boolean;
 }
 
