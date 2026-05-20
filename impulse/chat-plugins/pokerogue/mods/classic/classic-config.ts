@@ -21,7 +21,6 @@ export const classicConfig: ModeConfig = {
 	bossInterval: 10,
 	startingBiome: 'Town',
 	starterLevel: 5,
-	useNewStarterSelectionUI: true,
 
 	generation: 9,
 	baseFormat: '[Gen 9] PokeRogue',
@@ -32,10 +31,7 @@ export const classicConfig: ModeConfig = {
 	randomizeAbilities: false,
 
 	economy: {
-		startingBP: 50,
-		bpPerWin: 10,
-		bpPerBoss: 10,
-		doubleBpFloor: 100,
+		startingMoney: 0,
 		startingKeyItems: ['Exp. All', 'Exp. All', 'Exp. All'],
 		startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 	},
@@ -73,6 +69,7 @@ export const classicData: ModeData = {
 	trainers: ClassicTrainers,
 	starters: CLASSIC_STARTERS,
 	excludedBiomes: ['End'],
+	useNewStarterSelectionUI: true,
 
 	resolveTrainer: (floor: number, state: PokeRogueState, config: ModeConfig) => {
 		const routing = config.storyRouting;
