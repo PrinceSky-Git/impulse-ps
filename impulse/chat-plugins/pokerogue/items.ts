@@ -14,14 +14,18 @@ export type ItemType =
 	'evolveItem' |
 	'vitamin';
 
+export type ItemRarityTier = 'Common' | 'Rare' | 'Epic' | 'Master';
+
 export interface ShopItem {
 	name: string;
 	icon: string;
 	type: ItemType;
 	category: string;
 	desc: string;
-	cost: number;
-	minFloor: number;
+
+	moneyMultiplier: number;
+	tier: ItemRarityTier;
+	weight?: number;
 
 	healAmount?: number;
 	reviveAmount?: number;
