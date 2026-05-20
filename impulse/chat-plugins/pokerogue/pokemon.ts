@@ -1025,23 +1025,32 @@ export function rollRarity(luck: number): ItemRarityTier {
 	return 'Common';
 }
 
-export function generateDraftOptions(state: PokeRogueState): string[] {
+export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
 	const luck = calculatePartyLuck(state.team);
 	const draft: string[] = [];
+	
 	const partySpecies = new Set(state.team.map(m => toID(m.species)));
 
-	// Check what the party actually needs
 	const needsHeal = state.team.some(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100);
 	const needsRevive = state.team.some(m => (m.currentHp ?? 100) <= 0);
 	const needsCure = state.team.some(m => m.status);
 
-	for (let i = 0; i < 3; i++) {
+	const baseCount = config?.economy?.draftChoicesCount ?? 3;
+	const maxCount = config?.economy?.maxDraftChoicesCount ?? Math.max(4, baseCount);
+
+	let extraOptions = 0;
+	for (let i = 0; i < luck; i++) {
+		if (Math.random() < 0.25) extraOptions++;
+	}
+
+	const draftCount = Math.min(maxCount, baseCount + extraOptions);
+
+	for (let i = 0; i < draftCount; i++) {
 		const targetTier = rollRarity(luck);
 		
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 			if (item.tier !== targetTier) return false;
 			
-			// Conditional Draft Filtering
 			if (item.type === 'healHP' && !needsHeal) return false;
 			if (item.type === 'revive' && !needsRevive) return false;
 			if (item.type === 'cureStatus' && !needsCure) return false;
@@ -1052,6 +1061,7 @@ export function generateDraftOptions(state: PokeRogueState): string[] {
 				for (const species of partySpecies) {
 					const evos = Dex.species.get(species).evos;
 					if (!evos) continue;
+					
 					for (const evoTarget of evos) {
 						const evoData = Dex.species.get(evoTarget);
 						if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade')) {
