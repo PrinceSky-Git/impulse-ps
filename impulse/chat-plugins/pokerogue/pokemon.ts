@@ -1072,6 +1072,21 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				}
 				if (!hasCompatibleTarget) return false;
 			}
+
+			if (item.type === 'tm' || item.type === 'TM') {
+				const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
+				let hasCompatibleTarget = false;
+				for (const mon of state.team) {
+					if (mon.moves.includes(moveId)) continue; 
+					
+					const fullLearn = Dex.species.getFullLearnset(toID(mon.species));
+					if (fullLearn.some(step => step.learnset[moveId])) {
+						hasCompatibleTarget = true;
+						break;
+					}
+				}
+				if (!hasCompatibleTarget) return false;
+			}
 			return true;
 		});
 		
