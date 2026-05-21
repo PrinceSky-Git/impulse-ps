@@ -1527,10 +1527,11 @@ export const commands: Chat.ChatCommands = {
 					let levelsToGain = itemKey === 'rarercandy' ? 3 : 1;
 					const candyJars = (state.keyItems ?? []).filter(k => k === 'Candy Jar').length;
 					levelsToGain += candyJars;
-					
-					mon.level += levelsToGain;
+
+					const { cap: levelCap } = getLevelScaling(state.floor, config);
+					mon.level = Math.min(levelCap, mon.level + levelsToGain);
 					mon.exp = expForLevel(mon.level, mon.expType ?? getExpType(mon.species));
-					
+
 					let evolved = false;
 					while (true) {
 						const evo = getLevelUpEvo(mon.species, mon.happiness);
@@ -1539,10 +1540,9 @@ export const commands: Chat.ChatCommands = {
 						mon.species = evo.evoTo;
 						evolved = true;
 					}
-					
+
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 10);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
-					
 				} else if (item.type === 'mint') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					mon.nature = item.nature;
