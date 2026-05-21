@@ -1,22 +1,11 @@
+// items.ts
 import { SHOP_DB } from './shopdb';
 
 export type ItemType =
-	| 'pokeball' |
-	'healHP' |
-	'TM' |
-	'tm' |
-	'key' |
-	'revive' |
-	'cureStatus' |
-	'itemPack' |
-	'item' |
-	'evolveItem' |
-	'vitamin' |
-	'candy' |
-	'mint' |
-	'teraShard';
+	| 'pokeball' | 'healHP' | 'TM' | 'tm' | 'key' | 'revive' | 'cureStatus'
+	| 'itemPack' | 'item' | 'evolveItem' | 'vitamin' | 'candy' | 'mint' | 'teraShard';
 
-export type ItemRarityTier = 'Common' | 'Rare' | 'Epic' | 'Master';
+export type ItemRarityTier = 'Common' | 'Great' | 'Rare' | 'Ultra' | 'Master';
 
 export interface ShopItem {
 	name: string;
@@ -24,14 +13,14 @@ export interface ShopItem {
 	type: ItemType;
 	category: string;
 	desc: string;
-
-	moneyMultiplier: number;
 	tier: ItemRarityTier;
 	weight?: number;
-
+	minWeight?: number;
+	maxWeight?: number;
+	maxStack?: number;
 	isShopItem?: boolean;
+	moneyMultiplier?: number;
 	minFloor?: number;
-
 	healAmount?: number;
 	healPercent?: number;
 	curesStatus?: boolean;
@@ -67,12 +56,10 @@ export function genItem(quantity: number, extraArg?: PokemonSet[] | string): str
 		}
 		return false;
 	});
-
 	for (let i = all.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
 		[all[i], all[j]] = [all[j], all[i]];
 	}
-
 	const items: string[] = [];
 	while (items.length < quantity) {
 		const plausibleItem = all.shift();
