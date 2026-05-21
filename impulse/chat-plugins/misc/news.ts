@@ -55,7 +55,7 @@ const NewsManager = {
 
 		return newsList.map(entry => (
 			`<div style="margin-bottom: 8px; padding: 5px;">` +
-			`<div style="text-align: center;"><strong>${Utils.escapeHTML(entry.title)}</strong></div><br /><br />` +
+			`<div style="text-align: center;"><strong>${Utils.escapeHTML(entry.title)}</strong></div><br />` +
 			`${entry.desc}<br />` +
 			`<small>— ${nameColor(entry.postedBy, true)} on ${entry.postTime}</small>` +
 			`</div>`
@@ -66,7 +66,7 @@ const NewsManager = {
 		if (!Object.keys(data.news).length || data.blocks[user.id]) return;
 
 		const display = this.generateDisplay();
-		user.send(`|pm| ${SERVER_NAME} News|${user.getIdentity()}|/raw <div><strong>${SERVER_NAME} News:</strong><hr />${display}</div>`);
+		user.send(`|pm| ${SERVER_NAME} News|${user.getIdentity()}|/raw ${display}`);
 	},
 };
 
