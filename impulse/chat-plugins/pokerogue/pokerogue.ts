@@ -1145,6 +1145,7 @@ export const commands: Chat.ChatCommands = {
 						...newMon,
 						unlockedNatures: [newMon.nature!],
 						unlockedAbilities: [newMon.ability!],
+						unlockedTeraTypes: [newMon.teraType!],
 						selectedNature: newMon.nature,
 						selectedAbility: newMon.ability,
 					};
