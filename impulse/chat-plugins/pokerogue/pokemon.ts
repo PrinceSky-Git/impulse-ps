@@ -1025,11 +1025,9 @@ export function calculatePartyLuck(team: PokemonEntry[]): number {
 }
 
 export function rollRarity(luck: number): ItemRarityTier {
-	const tiers: ItemRarityTier[] = ['Common', 'Rare', 'Epic', 'Master'];
+	const tiers: ItemRarityTier[] = ['Common', 'Great', 'Rare', 'Ultra', 'Master'];
 	let tierIndex = 0;
-
 	const upgradeOdds = Math.floor(32 / ((luck + 2) / 2));
-
 	while (tierIndex < tiers.length - 1) {
 		if (upgradeOdds > 0 && Math.floor(Math.random() * upgradeOdds) === 0) {
 			tierIndex++;
@@ -1037,20 +1035,16 @@ export function rollRarity(luck: number): ItemRarityTier {
 			break;
 		}
 	}
-
 	return tiers[tierIndex];
 }
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
 	const luck = calculatePartyLuck(state.team);
 	const draft: string[] = [];
-	
 	const partySpecies = new Set(state.team.map(m => toID(m.species)));
-
 	const needsHeal = state.team.some(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100);
 	const needsRevive = state.team.some(m => (m.currentHp ?? 100) <= 0);
 	const needsCure = state.team.some(m => m.status);
-
 	const baseCount = config?.economy?.draftChoicesCount ?? 3;
 	const maxCount = config?.economy?.maxDraftChoicesCount ?? Math.max(4, baseCount);
 
@@ -1066,13 +1060,11 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		if (item.type === 'revive' && !needsRevive) return false;
 		if (item.type === 'cureStatus' && !needsCure) return false;
 		if (key === 'sacredash' && !needsRevive) return false;
-
 		if (item.type === 'evolveItem') {
 			let hasCompatibleTarget = false;
 			for (const species of partySpecies) {
 				const evos = Dex.species.get(species).evos;
 				if (!evos) continue;
-				
 				for (const evoTarget of evos) {
 					const evoData = Dex.species.get(evoTarget);
 					if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade')) {
@@ -1084,24 +1076,16 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 			}
 			if (!hasCompatibleTarget) return false;
 		}
-
 		if (item.type === 'mint') {
 			if (!state.team.some(m => m.nature !== item.nature)) return false;
 		}
-		
-		if (item.type === 'teraShard') {
-			if (!state.team.some(m => m.teraType !== item.teraType)) return false;
-		}
-
-		if (key === 'amuletcoin' && (state.keyItems ?? []).filter(k => k === 'Amulet Coin').length >= 5) return false;
-		if (key === 'goldenpunch' && (state.keyItems ?? []).filter(k => k === 'Golden Punch').length >= 5) return false;
-
+		const currentStackCount = (state.keyItems?.filter(k => k === item.name).length || 0) + (state.inventory?.[key] || 0);
+		if (item.maxStack && currentStackCount >= item.maxStack) return false;
 		if (item.type === 'tm' || item.type === 'TM') {
 			const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
 			let hasCompatibleTarget = false;
 			for (const mon of state.team) {
 				if (mon.moves.includes(moveId)) continue; 
-				
 				const fullLearn = Dex.species.getFullLearnset(toID(mon.species));
 				if (fullLearn.some(step => step.learnset[moveId])) {
 					hasCompatibleTarget = true;
@@ -1115,12 +1099,10 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 
 	for (let i = 0; i < draftCount; i++) {
 		const targetTier = rollRarity(luck);
-		
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 			if (item.tier !== targetTier) return false;
 			return isValidItem(key, item);
 		});
-		
 		if (validItems.length === 0) {
 			const fallbackItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => isValidItem(key, item));
 			const randomFallback = fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
