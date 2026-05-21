@@ -11,7 +11,8 @@ import {
 import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon, getRewardMoney, getItemPrice, getRerollCost, generateDraftOptions
+	packTeam, genPokemon, getRewardMoney, getItemPrice, getRerollCost, generateDraftOptions,
+	getLevelScaling
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
