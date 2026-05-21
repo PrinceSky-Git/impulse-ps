@@ -1,9 +1,9 @@
+import * as https from 'node:https';
 import { FS, Utils } from '../../../lib';
 import { toID } from '../../../sim/dex';
-import { nameColor } from '../customization/custom-color';
-import { Customization } from '../customization/manager'; // Adjust path if needed
 
 const DATA_FILE = 'impulse/db/server-news.json';
+const CONFIG_PATH = 'config/custom.css';
 const SERVER_NAME = 'Impulse';
 
 interface NewsEntry {
@@ -37,34 +37,48 @@ const NewsManager = {
 			data = { news: {}, blocks: {} };
 		}
 
-		// Register the news module to automatically manage its own CSS inside config/custom.css
-		Customization.register({
-			name: 'news',
-			startTag: '/* SERVER NEWS START */',
-			endTag: '/* SERVER NEWS END */',
-			generateCSS() {
-				const serverId = toID(SERVER_NAME);
-				return (
-					`.pm-window:has(.${serverId}-news-box) .challenge,\n` +
-					`.pm-window:has(.${serverId}-news-box) .pm-buttonbar,\n` +
-					`.pm-window:has(.${serverId}-news-box) .pm-log-add,\n` +
-					`.pm-window:has(.${serverId}-news-box) form,\n` +
-					`.pm-window-${serverId}news .challenge,\n` +
-					`.pm-window-${serverId}news .pm-buttonbar,\n` +
-					`.pm-window-${serverId}news .pm-log-add,\n` +
-					`.pm-window-${serverId}news form { display: none !important; }\n\n` +
-					`.pm-window:has(.${serverId}-news-box) .pm-log,\n` +
-					`.pm-window-${serverId}news .pm-log { bottom: 0 !important; }`
-				);
-			},
-		});
+		try {
+			const serverId = toID(SERVER_NAME);
+			const startTag = '/* SERVER NEWS START */';
+			const endTag = '/* SERVER NEWS END */';
+			
+			const cssContent = 
+				`}\n` +
+				`.pm-window-${serverId}news .challenge { display: none !important; }\n` +
+				`.pm-window-${serverId}news .pm-buttonbar { display: none !important; }\n` +
+				`.pm-window-${serverId}news .pm-log-add { display: none !important; }\n` +
+				`.pm-window-${serverId}news form { display: none !important; }\n` +
+				`.pm-window-${serverId}news .pm-log { bottom: 0 !important; }`;
 
-		// Build and update config/custom.css immediately on server startup
-		void Customization.updateCSS();
+			const block = `${startTag}\n${cssContent}\n${endTag}`;
+			let css = await FS(CONFIG_PATH).readIfExists();
+
+			if (!css.includes(startTag)) {
+				css = `${css.trimEnd()}\n\n${block}\n`;
+			} else {
+				const startIndex = css.indexOf(startTag);
+				const endIndex = css.indexOf(endTag) + endTag.length;
+				css = css.slice(0, startIndex) + block + css.slice(endIndex);
+			}
+
+			await FS(CONFIG_PATH).safeWrite(css);
+			this.reloadClientCSS();
+		} catch (err) {
+			console.error(`Error updating server news CSS: ${err}`);
+		}
 	},
 
 	save() {
 		FS(DATA_FILE).writeUpdate(() => JSON.stringify(data));
+	},
+
+	reloadClientCSS() {
+		if (global.Config?.serverid) {
+			const url = `https://play.pokemonshowdown.com/customcss.php?server=${Config.serverid}&invalidate`;
+			const req = https.get(url, () => {});
+			req.on('error', () => {});
+			req.end();
+		}
 	},
 	
 	formatDate(date = new Date()) {
@@ -83,11 +97,10 @@ const NewsManager = {
 			`<div style="margin-bottom: 8px; padding: 5px;">` +
 			`<strong>${Utils.escapeHTML(entry.title)}</strong><br><br>` +
 			`${entry.desc}<br><br>` +
-			`<small>— ${nameColor(entry.postedBy, true)} on ${entry.postTime}</small>` +
+			`<small>— ${Utils.escapeHTML(entry.postedBy)} on ${entry.postTime}</small>` +
 			`</div>`
 		)).join('<hr>');
 
-		// Dynamic wrapper class matching the generated CSS rules
 		const serverId = toID(SERVER_NAME);
 		return `<div class="${serverId}-news-box">${content}</div>`;
 	},
