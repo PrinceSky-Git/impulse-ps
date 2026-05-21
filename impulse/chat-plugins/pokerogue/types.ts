@@ -141,6 +141,7 @@ export interface PokemonEntry {
 
 	unlockedNatures?: string[];
 	unlockedAbilities?: string[];
+	unlockedTeraTypes?: string[];
 	selectedNature?: string;
 	selectedAbility?: string;
 }
