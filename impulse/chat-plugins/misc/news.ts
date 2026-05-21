@@ -1,6 +1,7 @@
 import { FS, Utils } from '../../../lib';
 import { toID } from '../../../sim/dex';
 import { nameColor } from '../customization/custom-color';
+import { Customization } from '../customization/manager'; // Adjust path if needed
 
 const DATA_FILE = 'impulse/db/server-news.json';
 const SERVER_NAME = 'Impulse';
@@ -35,6 +36,31 @@ const NewsManager = {
 		} catch (e) {
 			data = { news: {}, blocks: {} };
 		}
+
+		// Register the news module to automatically manage its own CSS inside config/custom.css
+		Customization.register({
+			name: 'news',
+			startTag: '/* SERVER NEWS START */',
+			endTag: '/* SERVER NEWS END */',
+			generateCSS() {
+				const serverId = toID(SERVER_NAME);
+				return (
+					`.pm-window:has(.${serverId}-news-box) .challenge,\n` +
+					`.pm-window:has(.${serverId}-news-box) .pm-buttonbar,\n` +
+					`.pm-window:has(.${serverId}-news-box) .pm-log-add,\n` +
+					`.pm-window:has(.${serverId}-news-box) form,\n` +
+					`.pm-window-${serverId}news .challenge,\n` +
+					`.pm-window-${serverId}news .pm-buttonbar,\n` +
+					`.pm-window-${serverId}news .pm-log-add,\n` +
+					`.pm-window-${serverId}news form { display: none !important; }\n\n` +
+					`.pm-window:has(.${serverId}-news-box) .pm-log,\n` +
+					`.pm-window-${serverId}news .pm-log { bottom: 0 !important; }`
+				);
+			},
+		});
+
+		// Build and update config/custom.css immediately on server startup
+		void Customization.updateCSS();
 	},
 
 	save() {
@@ -61,15 +87,15 @@ const NewsManager = {
 			`</div>`
 		)).join('<hr>');
 
-		// Wrapped in a clean identifier class for the client-side stylesheet
-		return `<div class="impulse-news-box">${content}</div>`;
+		// Dynamic wrapper class matching the generated CSS rules
+		const serverId = toID(SERVER_NAME);
+		return `<div class="${serverId}-news-box">${content}</div>`;
 	},
 
 	onConnect(user: User) {
 		if (!Object.keys(data.news).length || data.blocks[user.id]) return;
 
 		const display = this.generateDisplay();
-		// Sender set to "Impulse News", which evaluates to user ID 'impulsenews'
 		user.send(`|pm|${SERVER_NAME} News|${user.getIdentity()}|/raw ${display}`);
 	},
 };
