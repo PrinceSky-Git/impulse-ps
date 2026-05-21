@@ -2147,6 +2147,113 @@ export const handlers: Chat.Handlers = {
 					state.pendingSwap = caughtMon;
 					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught! (Team full, swap pending)</b>`);
 				}
+
+				const userData = getUserData(match.userId);
+
+				if (state.gameMode === 'classic') {
+					let baseSpecies = caughtMon.species;
+					while (true) {
+						const sp = Dex.species.get(baseSpecies);
+						const prevo = sp.prevo;
+						if (!prevo) break;
+						baseSpecies = toID(prevo);
+					}
+
+					const existingStarter = userData.starters[baseSpecies];
+					const baseDex = Dex.species.get(baseSpecies);
+
+					const bestIvs = existingStarter?.ivs ? {
+						hp: Math.max(existingStarter.ivs.hp, caughtMon.ivs.hp),
+						atk: Math.max(existingStarter.ivs.atk, caughtMon.ivs.atk),
+						def: Math.max(existingStarter.ivs.def, caughtMon.ivs.def),
+						spa: Math.max(existingStarter.ivs.spa, caughtMon.ivs.spa),
+						spd: Math.max(existingStarter.ivs.spd, caughtMon.ivs.spd),
+						spe: Math.max(existingStarter.ivs.spe, caughtMon.ivs.spe),
+					} : { ...caughtMon.ivs };
+
+					const isShiny = existingStarter?.shiny || caughtMon.shiny;
+
+					const unlockedNatures = new Set(existingStarter?.unlockedNatures || []);
+					if (existingStarter?.nature) unlockedNatures.add(existingStarter.nature);
+					if (existingStarter?.selectedNature) unlockedNatures.add(existingStarter.selectedNature);
+					const isNewNature = caughtMon.nature && !unlockedNatures.has(caughtMon.nature);
+					if (caughtMon.nature) unlockedNatures.add(caughtMon.nature);
+
+					const unlockedAbilities = new Set(existingStarter?.unlockedAbilities || []);
+					if (existingStarter?.ability) unlockedAbilities.add(existingStarter.ability);
+					if (existingStarter?.selectedAbility) unlockedAbilities.add(existingStarter.selectedAbility);
+					const isNewAbility = caughtMon.ability && !unlockedAbilities.has(caughtMon.ability);
+					if (caughtMon.ability) unlockedAbilities.add(caughtMon.ability);
+
+					const unlockedTeraTypes = new Set(existingStarter?.unlockedTeraTypes || []);
+					if (existingStarter?.teraType) unlockedTeraTypes.add(existingStarter.teraType);
+					const isNewTera = caughtMon.teraType && !unlockedTeraTypes.has(caughtMon.teraType);
+					if (caughtMon.teraType) unlockedTeraTypes.add(caughtMon.teraType);
+
+					const selectedNature = existingStarter?.selectedNature || caughtMon.nature;
+					const selectedAbility = existingStarter?.selectedAbility || caughtMon.ability;
+
+					const baseCaught = {
+						...caughtMon,
+						species: baseSpecies,
+						level: 5,
+						exp: expForLevel(5, getExpType(baseSpecies)),
+						expType: getExpType(baseSpecies),
+						moves: getLevelUpMoves(baseSpecies, 5, config.generation),
+						ability: selectedAbility,
+						nature: selectedNature,
+						shiny: !!isShiny,
+						ivs: bestIvs,
+						evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+						metLevel: 5,
+						metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
+						currentHp: 100,
+						ball: caughtMon.ball,
+						gender: caughtMon.gender,
+						teraType: caughtMon.teraType,
+						marks: caughtMon.marks ? [...caughtMon.marks] : [],
+						unlockedNatures: Array.from(unlockedNatures),
+						unlockedAbilities: Array.from(unlockedAbilities),
+						unlockedTeraTypes: Array.from(unlockedTeraTypes),
+						selectedNature: selectedNature,
+						selectedAbility: selectedAbility,
+					};
+					
+					delete baseCaught.status;
+					delete baseCaught.heldItem;
+
+					userData.starters[baseSpecies] = baseCaught;
+					saveUserData(match.userId);
+
+					if (!existingStarter) {
+						battleLogMsgs.push(`&nbsp;&nbsp;↳ <b style="color:#fac000">${baseDex.name} has been permanently unlocked as a Starter!</b>`);
+					} else {
+						const upgrades: string[] = [];
+						if (!existingStarter.shiny && caughtMon.shiny) upgrades.push("its Shiny form");
+						if (isNewNature) upgrades.push(`new nature ${caughtMon.nature}`);
+						if (isNewTera) upgrades.push(`new tera type ${caughtMon.teraType}`);
+						if (isNewAbility) {
+							const abilityName = Dex.abilities.get(caughtMon.ability).name || caughtMon.ability;
+							upgrades.push(`new ability ${abilityName}`);
+						}
+
+						if (upgrades.length > 0) {
+							battleLogMsgs.push(`&nbsp;&nbsp;↳ <b style="color:#4caf50">${baseDex.name} unlocked:</b> ${upgrades.join(', ')}`);
+						} else {
+							let ivImproved = false;
+							if (existingStarter.ivs) {
+								for (const stat of ['hp', 'atk', 'def', 'spa', 'spd', 'spe']) {
+									if (caughtMon.ivs[stat] > existingStarter.ivs[stat]) {
+										ivImproved = true;
+										break;
+									}
+								}
+							}
+							if (ivImproved) battleLogMsgs.push(`&nbsp;&nbsp;↳ <span style="color:#8ab4f8">${baseDex.name} upgraded its Starter IVs!</span>`);
+						}
+					}
+				}
+				
 				delete state.caughtPokemon;
 			}
 
