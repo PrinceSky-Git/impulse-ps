@@ -1037,7 +1037,7 @@ export const commands: Chat.ChatCommands = {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).view = 'main';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin'].includes(item.type)) {
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm'].includes(item.type)) {
 				state.purchasedItem = itemKey;
 				state.pendingConsumableType = item.type as any;
 				(state as any).view = 'main';
@@ -1361,7 +1361,7 @@ export const commands: Chat.ChatCommands = {
 					state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
 				} else {
 					if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
-						mon.species = toID(dexNewItem.forcedForme);
+                        mon.species = toID(dexNewItem.forcedForme);
 					} else if (mon.heldItem) {
 						const dexOldItem = Dex.items.get(mon.heldItem);
 						if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
@@ -1443,6 +1443,26 @@ export const commands: Chat.ChatCommands = {
 					mon.evs[evStat] += gain;
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
+				} else if (item.type === 'tm') {
+					const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
+					if (mon.moves.includes(moveId)) return this.errorReply("This Pokémon already knows that move.");
+
+					const fullLearn = Dex.species.getFullLearnset(toID(mon.species));
+					const canLearn = fullLearn.some(step => step.learnset[moveId]);
+					if (!canLearn) return this.errorReply("This Pokémon cannot learn that move.");
+
+					if (mon.moves.length < 4) {
+						mon.moves.push(moveId);
+						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> learned <b>${Dex.moves.get(moveId).name}</b>!`;
+					} else {
+						state.pendingMoves = state.pendingMoves || [];
+						state.pendingMoves.push({
+							pokemonIndex: slot,
+							move: moveId,
+							speciesName: mon.species
+						});
+						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${Dex.moves.get(moveId).name}</b>.`;
+					}
 				}
 
 				delete state.purchasedItem;
