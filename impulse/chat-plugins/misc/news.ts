@@ -54,8 +54,8 @@ const NewsManager = {
 		if (!newsList.length) return `<center><em>No recent news.</em></center>`;
 
 		return newsList.map(entry => (
-			`<div style="border-left: 3px solid #2a75bb; padding-left: 10px; margin-bottom: 8px;">` +
-			`<strong>${Utils.escapeHTML(entry.title)}</strong><br />` +
+			`<div style="margin-bottom: 8px; padding: 5px;">` +
+			`<div style="text-align: center;"><strong>${Utils.escapeHTML(entry.title)}</strong></div><br /><br />` +
 			`${entry.desc}<br />` +
 			`<small>— ${nameColor(entry.postedBy, true)} on ${entry.postTime}</small>` +
 			`</div>`
@@ -66,7 +66,7 @@ const NewsManager = {
 		if (!Object.keys(data.news).length || data.blocks[user.id]) return;
 
 		const display = this.generateDisplay();
-		user.send(`|pm| ${SERVER_NAME} News|${user.getIdentity()}|/raw <div class="infobox"><strong>${SERVER_NAME} News:</strong><hr />${display}</div>`);
+		user.send(`|pm| ${SERVER_NAME} News|${user.getIdentity()}|/raw <div><strong>${SERVER_NAME} News:</strong><hr />${display}</div>`);
 	},
 };
 
