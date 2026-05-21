@@ -994,7 +994,6 @@ export function getItemPrice(wave: number, multiplier: number): number {
 
 export function getRerollCost(wave: number, rerollCount: number): number {
 	const baseReward = getBaseMoneyReward(wave);
-	// In the official formula, the base reroll cost acts equivalently to an item with a 0.5 multiplier.
 	const baseRerollCost = Math.floor(baseReward / 10) * 5;
 	
 	return baseRerollCost * Math.pow(2, rerollCount);
@@ -1069,6 +1068,17 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 			if (!hasCompatibleTarget) return false;
 		}
 
+		if (item.type === 'mint') {
+			if (!state.team.some(m => m.nature !== item.nature)) return false;
+		}
+		
+		if (item.type === 'teraShard') {
+			if (!state.team.some(m => m.teraType !== item.teraType)) return false;
+		}
+
+		if (key === 'amuletcoin' && (state.keyItems ?? []).filter(k => k === 'Amulet Coin').length >= 5) return false;
+		if (key === 'goldenpunch' && (state.keyItems ?? []).filter(k => k === 'Golden Punch').length >= 5) return false;
+
 		if (item.type === 'tm' || item.type === 'TM') {
 			const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
 			let hasCompatibleTarget = false;
@@ -1095,7 +1105,6 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		});
 		
 		if (validItems.length === 0) {
-			// Fallback: If a tier roll is empty, pick any item from any tier that is contextually valid
 			const fallbackItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => isValidItem(key, item));
 			const randomFallback = fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
 			if (randomFallback) {
