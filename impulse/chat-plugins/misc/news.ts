@@ -53,21 +53,24 @@ const NewsManager = {
 
 		if (!newsList.length) return `<center><em>No recent news.</em></center>`;
 
-		return newsList.map(entry => (
+		const content = newsList.map(entry => (
 			`<div style="margin-bottom: 8px; padding: 5px;">` +
-			`<strong>${Utils.escapeHTML(entry.title)}</strong><br><br>` + // Fixed the accidental "and" typo here
+			`<strong>${Utils.escapeHTML(entry.title)}</strong><br><br>` +
 			`${entry.desc}<br><br>` +
 			`<small>— ${nameColor(entry.postedBy, true)} on ${entry.postTime}</small>` +
 			`</div>`
 		)).join('<hr>');
+
+		// Wrapped in a clean identifier class for the client-side stylesheet
+		return `<div class="impulse-news-box">${content}</div>`;
 	},
 
 	onConnect(user: User) {
 		if (!Object.keys(data.news).length || data.blocks[user.id]) return;
 
 		const display = this.generateDisplay();
-		// Changed sender from ` ${SERVER_NAME} News` to `~` to strip the challenge button and text box
-		user.send(`|pm|~|${user.getIdentity()}|/raw ${display}`);
+		// Sender set to "Impulse News", which evaluates to user ID 'impulsenews'
+		user.send(`|pm|${SERVER_NAME} News|${user.getIdentity()}|/raw ${display}`);
 	},
 };
 
