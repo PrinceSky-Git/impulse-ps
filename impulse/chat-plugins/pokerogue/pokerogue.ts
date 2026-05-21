@@ -986,7 +986,9 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
 
-			const cost = getRerollCost(state.floor, state.rerollCount || 0);
+			const isLocked = !!(state as any).isRarityLocked;
+			const cost = getRerollCost(state.floor, state.rerollCount || 0, isLocked, state.pendingRewardDraft || []);
+			
 			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
 
 			state.money -= cost;
@@ -998,7 +1000,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		buyshop(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
