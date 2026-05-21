@@ -763,6 +763,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 
 	let showAbilityArrows = false;
 	let showNatureArrows = false;
+	let showTeraArrows = false;
 
 	if (state.isConfiguringStarter && slot === 0) {
 		const userData = getUserData(user.id);
@@ -776,6 +777,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		if (starterData) {
 			if ((starterData.unlockedAbilities?.length || 0) > 1) showAbilityArrows = true;
 			if ((starterData.unlockedNatures?.length || 0) > 1) showNatureArrows = true;
+			if ((starterData.unlockedTeraTypes?.length || 0) > 1) showTeraArrows = true;
 		}
 	}
 
@@ -928,11 +930,17 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		}
 		buf += `</div></div>`;
 
-		if (mon.teraType) {
+		if (mon.teraType || showTeraArrows) {
 			buf += `<div class="pr-sv-row">`;
 			buf += `<span class="pr-sv-row-label">Tera</span>`;
-			buf += `<div class="pr-sv-row-val">${renderTypeBadge([mon.teraType])}</div>`;
-			buf += `</div>`;
+			buf += `<div class="pr-sv-row-val">`;
+			if (showTeraArrows) {
+				buf += `${renderTypeBadge([mon.teraType || 'Normal'])}&nbsp;&nbsp;&nbsp;`;
+				buf += `${renderBtn('/pokerogue cyclestarter tera next', 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
+			} else {
+				buf += `${renderTypeBadge([mon.teraType || 'Normal'])}`;
+			}
+			buf += `</div></div>`;
 		}
 
 		buf += `<div class="pr-sv-divider"></div>`;
