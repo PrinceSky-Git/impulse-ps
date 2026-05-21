@@ -59,7 +59,7 @@ const NewsManager = {
 			`${entry.desc}<br />` +
 			`<small>— ${nameColor(entry.postedBy, true)} on ${entry.postTime}</small>` +
 			`</div>`
-		)).join('');
+		)).join('<hr>');
 	},
 
 	onConnect(user: User) {
