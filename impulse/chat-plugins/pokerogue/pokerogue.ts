@@ -2094,7 +2094,15 @@ export const handlers: Chat.Handlers = {
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
 
-			const rewardMultiplier = isBossFloor ? 1.0 : 0.2;
+			let itemMultiplier = 1.0;
+			
+			const amuletCoins = (state.keyItems ?? []).filter(k => k === 'Amulet Coin').length;
+			const goldenPunches = (state.keyItems ?? []).filter(k => k === 'Golden Punch').length;
+			
+			itemMultiplier += (0.2 * Math.min(5, amuletCoins));
+			itemMultiplier += (0.5 * Math.min(5, goldenPunches));
+
+			const rewardMultiplier = (isBossFloor ? 1.0 : 0.2) * itemMultiplier;
 			const moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
 			state.money = (state.money ?? 0) + moneyGained;
 			battleLogMsgs.push(`<div style="color:#fac000; font-weight:bold;">Earned $${moneyGained}!</div>`);
@@ -2124,5 +2132,5 @@ export const handlers: Chat.Handlers = {
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
-	},
+	}
 };
