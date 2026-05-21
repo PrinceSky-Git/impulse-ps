@@ -55,11 +55,11 @@ const NewsManager = {
 
 		return newsList.map(entry => (
 			`<div style="margin-bottom: 8px; padding: 5px;">` +
-			`<div style="text-align: center;"><strong>${Utils.escapeHTML(entry.title)}</strong></div><br />` +
+			`<strong>${Utils.escapeHTML(entry.title)}</strong>and<br><br>` +
 			`${entry.desc}<br />` +
 			`<small>— ${nameColor(entry.postedBy, true)} on ${entry.postTime}</small>` +
 			`</div>`
-		)).join('<hr />');
+		)).join('');
 	},
 
 	onConnect(user: User) {
