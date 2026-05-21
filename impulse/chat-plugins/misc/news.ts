@@ -1,9 +1,8 @@
-import * as https from 'node:https';
 import { FS, Utils } from '../../../lib';
 import { toID } from '../../../sim/dex';
+import { Customization } from '../customization/manager';
 
 const DATA_FILE = 'impulse/db/server-news.json';
-const CONFIG_PATH = 'config/custom.css';
 const SERVER_NAME = 'Impulse';
 
 interface NewsEntry {
@@ -37,48 +36,28 @@ const NewsManager = {
 			data = { news: {}, blocks: {} };
 		}
 
-		try {
-			const serverId = toID(SERVER_NAME);
-			const startTag = '/* SERVER NEWS START */';
-			const endTag = '/* SERVER NEWS END */';
-			
-			const cssContent = 
-				`}\n` +
-				`.pm-window-${serverId}news .challenge { display: none !important; }\n` +
-				`.pm-window-${serverId}news .pm-buttonbar { display: none !important; }\n` +
-				`.pm-window-${serverId}news .pm-log-add { display: none !important; }\n` +
-				`.pm-window-${serverId}news form { display: none !important; }\n` +
-				`.pm-window-${serverId}news .pm-log { bottom: 0 !important; }`;
+		Customization.register({
+			name: 'news',
+			startTag: '/* SERVER NEWS START */',
+			endTag: '/* SERVER NEWS END */',
+			generateCSS() {
+				const serverId = toID(SERVER_NAME);
+				return (
+					`}\n` +
+					`.pm-window-${serverId}news .challenge { display: none !important; }\n` +
+					`.pm-window-${serverId}news .pm-buttonbar { display: none !important; }\n` +
+					`.pm-window-${serverId}news .pm-log-add { display: none !important; }\n` +
+					`.pm-window-${serverId}news form { display: none !important; }\n` +
+					`.pm-window-${serverId}news .pm-log { bottom: 0 !important; }`
+				);
+			},
+		});
 
-			const block = `${startTag}\n${cssContent}\n${endTag}`;
-			let css = await FS(CONFIG_PATH).readIfExists();
-
-			if (!css.includes(startTag)) {
-				css = `${css.trimEnd()}\n\n${block}\n`;
-			} else {
-				const startIndex = css.indexOf(startTag);
-				const endIndex = css.indexOf(endTag) + endTag.length;
-				css = css.slice(0, startIndex) + block + css.slice(endIndex);
-			}
-
-			await FS(CONFIG_PATH).safeWrite(css);
-			this.reloadClientCSS();
-		} catch (err) {
-			console.error(`Error updating server news CSS: ${err}`);
-		}
+		void Customization.updateCSS();
 	},
 
 	save() {
 		FS(DATA_FILE).writeUpdate(() => JSON.stringify(data));
-	},
-
-	reloadClientCSS() {
-		if (global.Config?.serverid) {
-			const url = `https://play.pokemonshowdown.com/customcss.php?server=${Config.serverid}&invalidate`;
-			const req = https.get(url, () => {});
-			req.on('error', () => {});
-			req.end();
-		}
 	},
 	
 	formatDate(date = new Date()) {
