@@ -56,7 +56,7 @@ const NewsManager = {
 		return newsList.map(entry => (
 			`<div style="margin-bottom: 8px; padding: 5px;">` +
 			`<strong>${Utils.escapeHTML(entry.title)}</strong>and<br><br>` +
-			`${entry.desc}<br />` +
+			`${entry.desc}<br><br>` +
 			`<small>— ${nameColor(entry.postedBy, true)} on ${entry.postTime}</small>` +
 			`</div>`
 		)).join('<hr>');
