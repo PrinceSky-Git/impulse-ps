@@ -941,20 +941,29 @@ export function packPokemon(mon: PokemonEntry): string {
 	const item = mon.heldItem ?? '';
 	const moves = mon.moves.join(',');
 
-	const base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|,,,${mon.teraType || finalSpecie.types[0]}`;
-	
-	if ((mon.currentHp ?? 100) <= 0) {
-		return base;
+	const base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
+
+	const hpPct = mon.currentHp ?? 100;
+	const status = mon.status ?? '';
+
+	const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+	const ivHp = mon.ivs?.hp ?? 31;
+	const evHp = mon.evs?.hp ?? 0;
+	const maxHp = sp.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
+	const absoluteHp = Math.round(maxHp * hpPct / 100);
+
+	const happiness = mon.happiness ?? 255;
+	const teraType = mon.teraType || sp.types[0] || '';
+	const pokeball = mon.ball || '';
+
+	let misc = `${happiness},,${pokeball},,,${teraType}`;
+	if (hpPct !== 100 || status) {
+		misc += `,${absoluteHp},${status}`;
+	} else if (hpPct <= 0) {
+		misc += `,0,`;
 	}
 
-	const hp = mon.currentHp ?? 100;
-	const status = mon.status ?? '';
-	let tail = '';
-	if (hp !== 100 || status) {
-		tail = `,,,,,,${hp !== 100 ? hp : ''},${status}`;
-		if (!status) tail = tail.replace(/,$/, '');
-	}
-	return base + tail;
+	return base + misc;
 }
 
 export function packAIPokemon(set: AIPokemonSet): string {
@@ -964,7 +973,8 @@ export function packAIPokemon(set: AIPokemonSet): string {
 	const evStr = `${set.evs.hp},${set.evs.atk},${set.evs.def},${set.evs.spa},${set.evs.spd},${set.evs.spe}`;
 	const movesStr = set.moves.map(m => Dex.moves.get(m).name || m).join(',');
 	const shinyStr = set.shiny ? 'S' : '';
-	return `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|,,,${set.teraType}`;
+	const teraType = set.teraType || sp.types[0] || '';
+	return `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|255,,,,,${teraType}`;
 }
 
 export function packTeam(mons: PokemonEntry[]): string {

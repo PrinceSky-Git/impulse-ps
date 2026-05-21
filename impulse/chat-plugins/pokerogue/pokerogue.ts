@@ -331,7 +331,21 @@ function syncBattleOutcome(
 
 	for (const [idxStr, hp] of Object.entries(teamHp)) {
 		const idx = Number(idxStr);
-		state.team[idx].currentHp = faintedIndices.has(idx) ? 0 : hp;
+		const mon = state.team[idx];
+		if (!mon) continue;
+
+		if (faintedIndices.has(idx)) {
+			mon.currentHp = 0;
+		} else {
+			const spData = Dex.species.get(toID(mon.species));
+			const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+			const ivHp = mon.ivs?.hp ?? 31;
+			const evHp = mon.evs?.hp ?? 0;
+			const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
+			
+			mon.currentHp = Math.max(1, Math.round((hp / maxHp) * 100));
+			if (mon.currentHp > 100) mon.currentHp = 100;
+		}
 	}
 	for (const idx of faintedIndices) {
 		state.team[idx].currentHp = 0;
