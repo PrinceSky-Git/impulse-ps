@@ -5,7 +5,7 @@ const ROGUELIKE_DATA_PATH = 'impulse/chat-plugins/pokerogue';
 export type ItemType =
 	| 'pokeball' |
 	'healHP' |
-	'TM' |
+	'tm' |
 	'key' |
 	'revive' |
 	'cureStatus' |
