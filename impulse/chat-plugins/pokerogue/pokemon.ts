@@ -941,8 +941,8 @@ export function packPokemon(mon: PokemonEntry): string {
 	const item = mon.heldItem ?? '';
 	const moves = mon.moves.join(',');
 
-	const base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
-
+	const base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|,,,${mon.teraType || finalSpecie.types[0]}`;
+	
 	if ((mon.currentHp ?? 100) <= 0) {
 		return base;
 	}
