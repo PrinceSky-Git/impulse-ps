@@ -1332,6 +1332,7 @@ export const commands: Chat.ChatCommands = {
 			const spaceIdx = target.indexOf(' ');
 			const action = spaceIdx === -1 ? target.trim() : target.slice(0, spaceIdx).trim();
 			const rest = spaceIdx === -1 ? '' : target.slice(spaceIdx + 1).trim();
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 
 			switch (action) {
 			case 'learnmove': {
