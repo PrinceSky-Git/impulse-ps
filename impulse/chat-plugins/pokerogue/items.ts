@@ -2,17 +2,9 @@ import { SHOP_DB } from './shopdb';
 
 const ROGUELIKE_DATA_PATH = 'impulse/chat-plugins/pokerogue';
 
-export type ItemType =
-	| 'pokeball' |
-	'healHP' |
-	'tm' |
-	'key' |
-	'revive' |
-	'cureStatus' |
-	'itemPack' |
-	'item' |
-	'evolveItem' |
-	'vitamin';
+export type ItemType = | 'pokeball' | 'healHP' | 'tm' | 'key' |
+	'revive' | 'cureStatus' | 'itemPack' | 'item' | 'evolveItem' |
+	'vitamin' | 'candy' | 'mint' | 'teraShard';
 
 export type ItemRarityTier = 'Common' | 'Rare' | 'Epic' | 'Master';
 
