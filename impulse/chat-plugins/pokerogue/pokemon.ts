@@ -992,11 +992,28 @@ export function getItemPrice(wave: number, multiplier: number): number {
 	return Math.floor(getBaseMoneyReward(wave) / 10) * 10 * multiplier;
 }
 
-export function getRerollCost(wave: number, rerollCount: number): number {
-	const baseReward = getBaseMoneyReward(wave);
-	const baseRerollCost = Math.floor(baseReward / 10) * 5;
-	
-	return baseRerollCost * Math.pow(2, rerollCount);
+export function getRerollCost(wave: number, rerollCount: number, isLocked: boolean = false, currentDraft: string[] = []): number {
+	const waveFactor = Math.ceil(Math.max(1, wave) / 10);
+	let baseCost = 250;
+
+	if (isLocked && currentDraft.length > 0) {
+		let sumI = 0;
+		for (const itemKey of currentDraft) {
+			const item = SHOP_ITEMS[itemKey];
+			if (!item) continue;
+			
+			switch (item.tier) {
+			case 'Common': sumI += 50; break;
+			case 'Rare': sumI += 125; break;
+			case 'Epic': sumI += 300; break;
+			case 'Master': sumI += 2000; break;
+			default: sumI += 50; break;
+			}
+		}
+		baseCost = sumI;
+	}
+
+	return baseCost * waveFactor * Math.pow(2, rerollCount);
 }
 
 export function calculatePartyLuck(team: PokemonEntry[]): number {
