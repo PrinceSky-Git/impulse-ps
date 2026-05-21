@@ -1468,10 +1468,42 @@ export const commands: Chat.ChatCommands = {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					mon.nature = item.nature;
 					mon.selectedNature = item.nature;
+
+					const userData = getUserData(user.id);
+					let baseSpecies = toID(mon.species);
+					while (true) {
+						const sp = Dex.species.get(baseSpecies);
+						if (!sp.prevo) break;
+						baseSpecies = toID(sp.prevo);
+					}
+					if (userData.starters[baseSpecies] && item.nature) {
+						const starterData = userData.starters[baseSpecies];
+						if (!starterData.unlockedNatures) starterData.unlockedNatures = [];
+						if (!starterData.unlockedNatures.includes(item.nature)) {
+							starterData.unlockedNatures.push(item.nature);
+						}
+						starterData.selectedNature = item.nature;
+						starterData.nature = item.nature;
+						saveUserData(user.id);
+					}
+
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Nature changed to <b>${item.nature}</b>!`;
 				} else if (item.type === 'teraShard') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					mon.teraType = item.teraType;
+
+					const userData = getUserData(user.id);
+					let baseSpecies = toID(mon.species);
+					while (true) {
+						const sp = Dex.species.get(baseSpecies);
+						if (!sp.prevo) break;
+						baseSpecies = toID(sp.prevo);
+					}
+					if (userData.starters[baseSpecies] && item.teraType) {
+						userData.starters[baseSpecies].teraType = item.teraType;
+						saveUserData(user.id);
+					}
+
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Tera Type changed to <b>${item.teraType}</b>!`;
 				} else if (item.type === 'tm') {
 					const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
