@@ -890,7 +890,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		if (showAbilityArrows) {
 			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
 			buf += `&nbsp;&nbsp;&nbsp;`;
-			buf += `${renderBtn('/pokerogue  cyclestarter ability next', 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
+			buf += `${renderBtn('/pokerogue cyclestarter ability next', 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
 		} else {
 			buf += `<b>${Utils.escapeHTML(abilityName)}</b>`;
 		}
