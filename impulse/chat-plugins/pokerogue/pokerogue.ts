@@ -1361,7 +1361,7 @@ export const commands: Chat.ChatCommands = {
 					state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
 				} else {
 					if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
-                        mon.species = toID(dexNewItem.forcedForme);
+						mon.species = toID(dexNewItem.forcedForme);
 					} else if (mon.heldItem) {
 						const dexOldItem = Dex.items.get(mon.heldItem);
 						if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
@@ -1443,6 +1443,36 @@ export const commands: Chat.ChatCommands = {
 					mon.evs[evStat] += gain;
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
+				} else if (item.type === 'candy') {
+					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+					let levelsToGain = itemKey === 'rarercandy' ? 3 : 1;
+					const candyJars = (state.keyItems ?? []).filter(k => k === 'Candy Jar').length;
+					levelsToGain += candyJars;
+					
+					mon.level += levelsToGain;
+					mon.exp = expForLevel(mon.level, mon.expType ?? getExpType(mon.species));
+					
+					let evolved = false;
+					while (true) {
+						const evo = getLevelUpEvo(mon.species, mon.happiness);
+						if (!evo || mon.level < evo.evoLevel) break;
+						mon.expType = getExpType(evo.evoTo);
+						mon.species = evo.evoTo;
+						evolved = true;
+					}
+					
+					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 10);
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
+					
+				} else if (item.type === 'mint') {
+					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+					mon.nature = item.nature;
+					mon.selectedNature = item.nature;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Nature changed to <b>${item.nature}</b>!`;
+				} else if (item.type === 'teraShard') {
+					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+					mon.teraType = item.teraType;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Tera Type changed to <b>${item.teraType}</b>!`;
 				} else if (item.type === 'tm') {
 					const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
 					if (mon.moves.includes(moveId)) return this.errorReply("This Pokémon already knows that move.");
