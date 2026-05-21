@@ -599,7 +599,6 @@ function renderConsumable(state: PokeRogueState): string {
 			disabled = !mon.status || hp <= 0;
 			reason = hp <= 0 ? 'fainted' : !mon.status ? 'no status' : '';
 			break;
-
 		case 'vitamin':
 			const evStat = (consumableItem)?.evStat as string | undefined;
 			if (!evStat) { disabled = true; reason = 'invalid'; break; }
@@ -609,6 +608,18 @@ function renderConsumable(state: PokeRogueState): string {
 			disabled = hp <= 0 || totalEvs >= 508 || statEv >= 252;
 			reason = hp <= 0 ? 'fainted' : totalEvs >= 508 ? 'EVs full' : statEv >= 252 ? `${evStat} maxed` : '';
 			break;
+		case 'tm': {
+			const moveId = toID(consumableItem?.name.replace(/^TM\d+\s*/i, ''));
+			const fullLearn = Dex.species.getFullLearnset(toID(mon.species));
+			const canLearn = fullLearn.some(step => step.learnset[moveId]);
+			
+			if (mon.moves.includes(moveId)) {
+				disabled = true; reason = 'already knows';
+			} else if (!canLearn) {
+				disabled = true; reason = 'incompatible';
+			}
+			break;
+		}
 		}
 
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${Dex.species.get(toID(mon.species)).name}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` (${reason})` : ''}</span>`;
@@ -622,7 +633,8 @@ function renderConsumable(state: PokeRogueState): string {
 			flexHtml += `<div style="font-size:9px;">${statLabel[evStat] ?? evStat} EVs: ${(mon.evs as any)[evStat] ?? 0}/252 &nbsp;·&nbsp; Total: ${totalEvs}/508</div>`;
 		}
 
-		const btnHtml = disabled ? '' : renderBtn(`/pokerogue resolve useshopitem ${i + 1}`, 'Use', 'pr-pick-btn');
+		const btnText = consumableType === 'tm' ? 'Teach' : 'Use';
+		const btnHtml = disabled ? '' : renderBtn(`/pokerogue resolve useshopitem ${i + 1}`, btnText, 'pr-pick-btn');
 		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, disabled ? 'opacity:.45' : '');
 	}
 
