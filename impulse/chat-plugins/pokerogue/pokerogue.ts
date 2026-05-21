@@ -789,71 +789,6 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
-		cyclestarter(target, room, user) {
-			const state = getState(user.id);
-			if (!state || !state.isConfiguringStarter) return;
-			const userData = getUserData(user.id);
-
-			const [trait, direction] = target.trim().split(' ');
-			const mon = state.team[0];
-
-			let baseSpecies = toID(mon.species);
-			while (true) {
-				const sp = Dex.species.get(baseSpecies);
-				const prevo = sp.prevo;
-				if (!prevo) break;
-				baseSpecies = toID(prevo);
-			}
-
-			let starterData = userData.starters[baseSpecies];
-
-			if (!starterData) {
-				starterData = {
-					unlockedNatures: [mon.nature!],
-					unlockedAbilities: [mon.ability!],
-					selectedNature: mon.nature!,
-					selectedAbility: mon.ability!,
-				} as PokemonEntry;
-				userData.starters[baseSpecies] = starterData;
-			}
-
-			if (trait === 'nature') {
-				const pool = starterData.unlockedNatures?.length ? starterData.unlockedNatures : [mon.nature!];
-				if (!pool.includes(mon.nature!)) pool.push(mon.nature!);
-
-				if (pool.length <= 1) {
-					state.notification = `You haven't unlocked any other Natures for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
-				} else {
-					let idx = pool.indexOf(mon.nature!);
-					if (direction === 'next') idx = (idx + 1) % pool.length;
-					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
-
-					mon.nature = pool[idx];
-					starterData.selectedNature = pool[idx];
-					starterData.nature = pool[idx];
-				}
-			} else if (trait === 'ability') {
-				const pool = starterData.unlockedAbilities?.length ? starterData.unlockedAbilities : [mon.ability!];
-				if (!pool.includes(mon.ability!)) pool.push(mon.ability!);
-
-				if (pool.length <= 1) {
-					state.notification = `You haven't unlocked any other Abilities for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
-				} else {
-					let idx = pool.indexOf(mon.ability!);
-					if (direction === 'next') idx = (idx + 1) % pool.length;
-					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
-
-					mon.ability = pool[idx];
-					starterData.selectedAbility = pool[idx];
-					starterData.ability = pool[idx];
-				}
-			}
-
-			saveUserData(user.id);
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-
 		confirmstarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state || !state.isConfiguringStarter) return;
@@ -1231,6 +1166,163 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
+		prebattle(target, room, user) {
+			if (!user.named) return this.errorReply("Login required.");
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+
+			clearStaleBattleRoom(state, user.id);
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve all pending choices before starting a battle.");
+			}
+
+			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
+				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
+			}
+
+			if (state.battleRoomId) {
+				return this.errorReply("You are already in a battle.");
+			}
+
+			if (state.pendingTrainer && state.pendingTrainerKey) {
+				(state as any).view = 'trainer';
+				setState(user.id, state);
+				refreshGamePage(user);
+				return;
+			}
+
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
+			const floor = state.floor;
+
+			if (config.hasTrainers && data.resolveTrainer) {
+				const resolvedTrainer = data.resolveTrainer(floor, state, config);
+
+				if (resolvedTrainer) {
+					state.pendingTrainer = resolvedTrainer.name;
+					state.pendingTrainerKey = resolvedTrainer.key;
+
+					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
+
+					if (trainerData?.spriteUrl || trainerData?.dialog) {
+						(state as any).view = 'trainer';
+						setState(user.id, state);
+						refreshGamePage(user);
+						return;
+					}
+				}
+			}
+
+			setState(user.id, state);
+			return this.parse('/pokerogue battle');
+		},
+
+		battle(target, room, user) {
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+
+			clearStaleBattleRoom(state, user.id);
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve all pending choices before starting a battle.");
+			}
+
+			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
+				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
+			}
+
+			if (startBattle(user, state)) {
+				(state as any).view = 'main';
+				setState(user.id, state);
+				refreshGamePage(user);
+			}
+		},
+
+		cyclestarter(target, room, user) {
+			const state = getState(user.id);
+			if (!state || !state.isConfiguringStarter) return;
+			const userData = getUserData(user.id);
+
+			const [trait, direction] = target.trim().split(' ');
+			const mon = state.team[0];
+
+			let baseSpecies = toID(mon.species);
+			while (true) {
+				const sp = Dex.species.get(baseSpecies);
+				const prevo = sp.prevo;
+				if (!prevo) break;
+				baseSpecies = toID(prevo);
+			}
+
+			let starterData = userData.starters[baseSpecies];
+
+			if (!starterData) {
+				starterData = {
+					unlockedNatures: [mon.nature!],
+					unlockedAbilities: [mon.ability!],
+					selectedNature: mon.nature!,
+					selectedAbility: mon.ability!,
+				} as PokemonEntry;
+				userData.starters[baseSpecies] = starterData;
+			}
+
+			if (trait === 'nature') {
+				const pool = starterData.unlockedNatures?.length ? starterData.unlockedNatures : [mon.nature!];
+				if (!pool.includes(mon.nature!)) pool.push(mon.nature!);
+
+				if (pool.length <= 1) {
+					state.notification = `You haven't unlocked any other Natures for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
+				} else {
+					let idx = pool.indexOf(mon.nature!);
+					if (direction === 'next') idx = (idx + 1) % pool.length;
+					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+
+					mon.nature = pool[idx];
+					starterData.selectedNature = pool[idx];
+					starterData.nature = pool[idx];
+				}
+			} else if (trait === 'ability') {
+				const pool = starterData.unlockedAbilities?.length ? starterData.unlockedAbilities : [mon.ability!];
+				if (!pool.includes(mon.ability!)) pool.push(mon.ability!);
+
+				if (pool.length <= 1) {
+					state.notification = `You haven't unlocked any other Abilities for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
+				} else {
+					let idx = pool.indexOf(mon.ability!);
+					if (direction === 'next') idx = (idx + 1) % pool.length;
+					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+
+					mon.ability = pool[idx];
+					starterData.selectedAbility = pool[idx];
+					starterData.ability = pool[idx];
+				}
+			} else if (trait === 'tera') {
+				const pool = starterData.unlockedTeraTypes?.length ? starterData.unlockedTeraTypes : [mon.teraType!];
+				if (!pool.includes(mon.teraType!)) pool.push(mon.teraType!);
+
+				if (pool.length <= 1) {
+					state.notification = `You haven't unlocked any other Tera Types for this Pokémon yet! Catch duplicates or use Tera Shards to expand your options.`;
+				} else {
+					let idx = pool.indexOf(mon.teraType!);
+					if (direction === 'next') idx = (idx + 1) % pool.length;
+					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+
+					mon.teraType = pool[idx];
+					starterData.teraType = pool[idx];
+				}
+			}
+
+			saveUserData(user.id);
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
 		resolve(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
@@ -1500,7 +1592,12 @@ export const commands: Chat.ChatCommands = {
 						baseSpecies = toID(sp.prevo);
 					}
 					if (userData.starters[baseSpecies] && item.teraType) {
-						userData.starters[baseSpecies].teraType = item.teraType;
+						const starterData = userData.starters[baseSpecies];
+						if (!starterData.unlockedTeraTypes) starterData.unlockedTeraTypes = [];
+						if (!starterData.unlockedTeraTypes.includes(item.teraType)) {
+							starterData.unlockedTeraTypes.push(item.teraType);
+						}
+						starterData.teraType = item.teraType;
 						saveUserData(user.id);
 					}
 
@@ -1545,84 +1642,6 @@ export const commands: Chat.ChatCommands = {
 
 			setState(user.id, state);
 			refreshGamePage(user);
-		},
-
-		prebattle(target, room, user) {
-			if (!user.named) return this.errorReply("Login required.");
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
-
-			clearStaleBattleRoom(state, user.id);
-
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve all pending choices before starting a battle.");
-			}
-
-			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
-				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
-			}
-
-			if (state.battleRoomId) {
-				return this.errorReply("You are already in a battle.");
-			}
-
-			if (state.pendingTrainer && state.pendingTrainerKey) {
-				(state as any).view = 'trainer';
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
-
-			const floor = state.floor;
-
-			if (config.hasTrainers && data.resolveTrainer) {
-				const resolvedTrainer = data.resolveTrainer(floor, state, config);
-
-				if (resolvedTrainer) {
-					state.pendingTrainer = resolvedTrainer.name;
-					state.pendingTrainerKey = resolvedTrainer.key;
-
-					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
-
-					if (trainerData?.spriteUrl || trainerData?.dialog) {
-						(state as any).view = 'trainer';
-						setState(user.id, state);
-						refreshGamePage(user);
-						return;
-					}
-				}
-			}
-
-			setState(user.id, state);
-			return this.parse('/pokerogue battle');
-		},
-
-		battle(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
-
-			clearStaleBattleRoom(state, user.id);
-
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve all pending choices before starting a battle.");
-			}
-
-			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
-				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
-			}
-
-			if (startBattle(user, state)) {
-				(state as any).view = 'main';
-				setState(user.id, state);
-				refreshGamePage(user);
-			}
 		},
 
 		catch(target, room, user) {
@@ -1926,6 +1945,10 @@ export const commands: Chat.ChatCommands = {
 					if (existingStarter?.selectedAbility) unlockedAbilities.add(existingStarter.selectedAbility);
 					if (caught.ability) unlockedAbilities.add(caught.ability);
 
+					const unlockedTeraTypes = new Set(existingStarter?.unlockedTeraTypes || []);
+					if (existingStarter?.teraType) unlockedTeraTypes.add(existingStarter.teraType);
+					if (caught.teraType) unlockedTeraTypes.add(caught.teraType);
+
 					const selectedNature = existingStarter?.selectedNature || caught.nature;
 					const selectedAbility = existingStarter?.selectedAbility || caught.ability;
 
@@ -1950,6 +1973,7 @@ export const commands: Chat.ChatCommands = {
 						marks: caught.marks ? [...caught.marks] : [],
 						unlockedNatures: Array.from(unlockedNatures),
 						unlockedAbilities: Array.from(unlockedAbilities),
+						unlockedTeraTypes: Array.from(unlockedTeraTypes),
 						selectedNature: selectedNature,
 						selectedAbility: selectedAbility,
 					};
@@ -1989,7 +2013,7 @@ export const commands: Chat.ChatCommands = {
 				room.add(escapeMsg).update();
 			}
 		},
-
+		
 		help(target, room, user) {
 			if (!this.runBroadcast()) return;
 			const isStaff = user.can('lock');
