@@ -1037,7 +1037,7 @@ export const commands: Chat.ChatCommands = {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).view = 'main';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm'].includes(item.type)) {
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'candy', 'mint', 'teraShard'].includes(item.type)) {
 				state.purchasedItem = itemKey;
 				state.pendingConsumableType = item.type as any;
 				(state as any).view = 'main';
@@ -1046,7 +1046,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		reroll(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
