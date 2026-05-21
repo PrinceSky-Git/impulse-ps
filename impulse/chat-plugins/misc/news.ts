@@ -55,7 +55,7 @@ const NewsManager = {
 
 		return newsList.map(entry => (
 			`<div style="margin-bottom: 8px; padding: 5px;">` +
-			`<strong>${Utils.escapeHTML(entry.title)}</strong>and<br><br>` +
+			`<strong>${Utils.escapeHTML(entry.title)}</strong><br><br>` + // Fixed the accidental "and" typo here
 			`${entry.desc}<br><br>` +
 			`<small>— ${nameColor(entry.postedBy, true)} on ${entry.postTime}</small>` +
 			`</div>`
@@ -66,7 +66,8 @@ const NewsManager = {
 		if (!Object.keys(data.news).length || data.blocks[user.id]) return;
 
 		const display = this.generateDisplay();
-		user.send(`|pm| ${SERVER_NAME} News|${user.getIdentity()}|/raw ${display}`);
+		// Changed sender from ` ${SERVER_NAME} News` to `~` to strip the challenge button and text box
+		user.send(`|pm|~|${user.getIdentity()}|/raw ${display}`);
 	},
 };
 
