@@ -1037,17 +1037,27 @@ export function calculatePartyLuck(team: PokemonEntry[]): number {
 }
 
 export function rollRarity(luck: number): ItemRarityTier {
-	const tiers: ItemRarityTier[] = ['Common', 'Great', 'Rare', 'Ultra', 'Master'];
-	let tierIndex = 0;
-	const upgradeOdds = Math.floor(32 / ((luck + 2) / 2));
-	while (tierIndex < tiers.length - 1) {
-		if (upgradeOdds > 0 && Math.floor(Math.random() * upgradeOdds) === 0) {
-			tierIndex++;
-		} else {
-			break;
-		}
+	let wCommon = 75.00;
+	let wGreat = 19.04;
+	let wRare = 4.69;
+	let wUltra = 1.17;
+	let wMaster = 0.10;
+	
+	if (luck > 0) {
+		wGreat *= (1 + 0.15 * luck);
+		wRare *= (1 + 0.30 * luck);
+		wUltra *= (1 + 0.45 * luck);
+		wMaster *= (1 + 0.60 * luck);
 	}
-	return tiers[tierIndex];
+
+	const totalWeight = wCommon + wGreat + wRare + wUltra + wMaster;
+	const rand = Math.random() * totalWeight;
+
+	if (rand < wCommon) return 'Common';
+	if (rand < wCommon + wGreat) return 'Great';
+	if (rand < wCommon + wGreat + wRare) return 'Rare';
+	if (rand < wCommon + wGreat + wRare + wUltra) return 'Ultra';
+	return 'Master';
 }
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
