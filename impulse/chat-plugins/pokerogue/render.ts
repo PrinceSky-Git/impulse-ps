@@ -914,7 +914,6 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 			buf += `${getShopItemIcon(heldItem.name, 14)} <b>${Utils.escapeHTML(heldItem.name)}</b>`;
 			if (heldItem.shortDesc) buf += `<div class="pr-sv-subdesc">${Utils.escapeHTML(heldItem.shortDesc)}</div>`;
 			buf += `</div>`;
-			buf += renderBtn(`/pokerogue unequip ${slot + 1}`, 'Take Item', 'pr-shop-buy', 'padding:5px 10px; font-size:11px; margin-left: 10px; white-space:nowrap;');
 			buf += `</div>`;
 		} else {
 			buf += `<span style="color:#aaa">None</span>`;
