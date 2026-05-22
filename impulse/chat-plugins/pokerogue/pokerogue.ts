@@ -213,7 +213,8 @@ function applyExpShare(
 	const expAllMax = expAllItem?.maxStack ?? 5;
 	const expAllStacks = Math.min(expAllMax, state.keyItems?.[EXP_SHARE_NAME] || 0);
 	const expCharmStacks = state.keyItems?.['Exp. Charm'] || 0;
-	const charmMult = expCharmStacks > 0 ? (1 + 0.25 * expCharmStacks) : 1;
+	const superExpCharmStacks = state.keyItems?.['Super Exp. Charm'] || 0;
+	const charmMult = 1 + (0.25 * expCharmStacks) + (0.60 * superExpCharmStacks);
 	const result = new Map<number, number>();
 	for (const [teamIdx, baseExp] of expMap) {
 		result.set(teamIdx, Math.max(1, Math.floor(baseExp * charmMult)));
@@ -1085,6 +1086,9 @@ export const commands: Chat.ChatCommands = {
 				} else if (itemKey === 'big_nugget') {
 					updatedMoney += 20000;
 					updatedNotification = `You sold the Big Nugget for $20,000!`;
+				} else if (itemKey === 'relicgold') {
+					updatedMoney += 50000;
+					updatedNotification = `You sold the Relic Gold for $50,000!`;
 				} else if (itemKey === 'starter_token') {
 					updatedNotification = `You unlocked a new Starter!`;
 				}
@@ -1804,19 +1808,33 @@ export const commands: Chat.ChatCommands = {
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
 				} else if (item.type === 'candy') {
-					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
-					let levelsToGain = itemKey === 'rarercandy' ? 3 : 1;
-					const candyJars = state.keyItems?.['Candy Jar'] || 0;
-					levelsToGain += candyJars;
+					if (itemKey === 'rarercandy') {
+						const candyJars = state.keyItems?.['Candy Jar'] || 0;
+						const levelsToGain = 1 + candyJars;
+						const { cap: levelCap } = getLevelScaling(state.floor, config);
+						
+						for (const member of state.team) {
+							const targetLevel = Math.min(levelCap, member.level + levelsToGain);
+							const expType = member.expType ?? getExpType(member.species);
+							const expNeeded = expForLevel(targetLevel, expType) - member.exp;
+							applyExpAndLevelUp(member, Math.max(0, expNeeded), state.floor, config);
+							member.happiness = Math.min(255, (member.happiness ?? 70) + 10);
+						}
+						updatedNotification = `All party members grew by ${levelsToGain} level(s)!`;
+					} else {
+						if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+						const candyJars = state.keyItems?.['Candy Jar'] || 0;
+						const levelsToGain = 1 + candyJars;
 
-					const { cap: levelCap } = getLevelScaling(state.floor, config);
-					const targetLevel = Math.min(levelCap, mon.level + levelsToGain);
-					const expNeeded = expForLevel(targetLevel, mon.expType ?? getExpType(mon.species)) - mon.exp;
+						const { cap: levelCap } = getLevelScaling(state.floor, config);
+						const targetLevel = Math.min(levelCap, mon.level + levelsToGain);
+						const expNeeded = expForLevel(targetLevel, mon.expType ?? getExpType(mon.species)) - mon.exp;
 
-					applyExpAndLevelUp(mon, Math.max(0, expNeeded), state.floor, config);
+						applyExpAndLevelUp(mon, Math.max(0, expNeeded), state.floor, config);
 
-					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 10);
-					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
+						mon.happiness = Math.min(255, (mon.happiness ?? 70) + 10);
+						updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
+					}
 				} else if (item.type === 'mint') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					mon.nature = item.nature;
