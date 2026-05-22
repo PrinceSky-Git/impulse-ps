@@ -193,8 +193,8 @@ function applyExpShare(
 	baseShareExpMap: Map<number, number>,
 	state: PokeRogueState,
 ): Map<number, number> {
-	const expAllStacks = Math.min(5, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length);
-	const expCharmStacks = (state.keyItems ?? []).filter(k => k === 'Exp. Charm').length;
+	const expAllStacks = Math.min(5, (state.keyItems?.[EXP_SHARE_NAME] || 0));
+	const expCharmStacks = state.keyItems?.['Exp. Charm'] || 0;
 	const charmMult = expCharmStacks > 0 ? (1 + 0.25 * expCharmStacks) : 1;
 
 	const result = new Map<number, number>();
@@ -412,16 +412,19 @@ function processFloorRewards(
 			const trigger = reward.interval ? clearedFloor % reward.floor === 0 : clearedFloor === reward.floor;
 			if (trigger) {
 				if (reward.itemType === 'keyItem') {
-					state.keyItems = state.keyItems ?? [];
+					state.keyItems = state.keyItems ?? {};
 					let added = 0;
+					const currentAmount = state.keyItems[reward.itemName] || 0;
+					
 					for (let i = 0; i < reward.amount; i++) {
-						if (reward.itemName === 'Exp. All' && state.keyItems.filter(k => k === 'Exp. All').length >= 5) continue;
-						if (reward.itemName === 'Exp. Charm' && state.keyItems.filter(k => k === 'Exp. Charm').length >= 99) continue;
-						if (reward.itemName !== 'Exp. All' && reward.itemName !== 'Exp. Charm' && state.keyItems.includes(reward.itemName)) continue;
-						state.keyItems.push(reward.itemName);
+						if (reward.itemName === 'Exp. All' && (currentAmount + added) >= 5) continue;
+						if (reward.itemName === 'Exp. Charm' && (currentAmount + added) >= 99) continue;
+						if (reward.itemName !== 'Exp. All' && reward.itemName !== 'Exp. Charm' && (currentAmount + added) >= 1) continue;
 						added++;
 					}
+					
 					if (added > 0) {
+						state.keyItems[reward.itemName] = currentAmount + added;
 						extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received ${added}x ${reward.itemName} for clearing Floor ${clearedFloor}!</b></div>`);
 					}
 				} else if (reward.itemType === 'inventory') {
@@ -458,8 +461,10 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 	delete state.pendingRewardDraft;
 	delete state.rerollCount;
 
-	if ((state.keyItems ?? []).includes('Revive')) {
-		state.keyItems = state.keyItems.filter(k => k !== 'Revive');
+	if ((state.keyItems?.['Revive'] || 0) > 0) {
+		state.keyItems['Revive']--;
+		if (state.keyItems['Revive'] <= 0) delete state.keyItems['Revive'];
+		
 		state.notification = (state.notification ?? '') +
 			`<br><b>Revive used!</b> Retrying Floor ${floor}`;
 	} else {
@@ -486,6 +491,15 @@ export const commands: Chat.ChatCommands = {
 		start(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			let state = getState(user.id);
+
+			if (state && Array.isArray(state.keyItems)) {
+				const migratedItems: Record<string, number> = {};
+				for (const item of state.keyItems) {
+					migratedItems[item] = (migratedItems[item] || 0) + 1;
+				}
+				state.keyItems = migratedItems;
+				setState(user.id, state);
+			}
 
 			if (state?.battleRoomId) {
 				const bRoom = Rooms.get(state.battleRoomId as RoomID);
@@ -515,7 +529,7 @@ export const commands: Chat.ChatCommands = {
 					money: defaultConfig.economy.startingMoney || 0,
 					timesRerolled: 0,
 					rotationalShop: [],
-					keyItems: [...(defaultConfig.economy.startingKeyItems || [])],
+					keyItems: { ...(defaultConfig.economy.startingKeyItems || {}) },
 					inventory: { ...(defaultConfig.economy.startingInventory || {}) },
 					highestFloor,
 					displayName,
@@ -582,7 +596,7 @@ export const commands: Chat.ChatCommands = {
 				money: config.economy.startingMoney || 0,
 				timesRerolled: 0,
 				rotationalShop: [],
-				keyItems: [...(config.economy.startingKeyItems || [])],
+				keyItems: { ...(config.economy.startingKeyItems || {}) },
 				inventory: { ...(config.economy.startingInventory || {}) },
 				pendingChoice: useNewStarterSelectionUI ? starterPool : pickStarterOptions(starterPool),
 				pendingChoiceType: 'starter',
@@ -1011,8 +1025,8 @@ export const commands: Chat.ChatCommands = {
 				state.floor++;
 				(state as any).view = 'main';
 			} else if (item.type === 'key') {
-				state.keyItems = state.keyItems || [];
-				state.keyItems.push(item.name);
+				state.keyItems = state.keyItems || {};
+				state.keyItems[item.name] = (state.keyItems[item.name] || 0) + 1;
 				state.notification = `Obtained Key Item: <b>${item.name}</b>!`;
 				state.floor++;
 				(state as any).view = 'main';
@@ -1104,7 +1118,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-		
+
 		choose(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
