@@ -45,19 +45,19 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	},
 	pokeball: {
 		name: "Poke Ball", icon: "Poke Ball", type: "pokeball", category: "Pokéballs",
-		desc: "A standard ball for catching wild Pokemon.", tier: "Common", weight: 12, maxStack: 99
+		desc: "A standard ball for catching wild Pokemon.", tier: "Common", weight: 12, maxStack: 99, draftAmount: 3
 	},
 	greatball: {
 		name: "Great Ball", icon: "Great Ball", type: "pokeball", category: "Pokéballs",
-		desc: "A good ball with a higher catch rate.", tier: "Great", weight: 6, maxStack: 99
+		desc: "A good ball with a higher catch rate.", tier: "Great", weight: 6, maxStack: 99, draftAmount: 2
 	},
 	ultraball: {
 		name: "Ultra Ball", icon: "Ultra Ball", type: "pokeball", category: "Pokéballs",
-		desc: "An excellent ball with a very high catch rate.", tier: "Ultra", weight: 4, maxStack: 99
+		desc: "An excellent ball with a very high catch rate.", tier: "Ultra", weight: 4, maxStack: 99, draftAmount: 1
 	},
 	masterball: {
 		name: "Master Ball", icon: "Master Ball", type: "pokeball", category: "Pokéballs",
-		desc: "Catches any wild Pokemon without fail.", tier: "Master", weight: 1, maxStack: 99
+		desc: "Catches any wild Pokemon without fail.", tier: "Master", weight: 1, maxStack: 99, draftAmount: 1
 	},
 	potion: {
 		name: "Potion", icon: "Potion", type: "healHP", category: "Medicine",
