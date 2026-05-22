@@ -262,7 +262,7 @@ function syncBattleOutcome(
 	const idxOf = (slot: string): number | undefined => slotToTeamIdx[slot];
 
 	for (const line of logLines) {
-		const switchMatch = /^\|(?:switch|drag)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/\d+)?/.exec(line);
+		const switchMatch = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/\d+)?/.exec(line);
 		if (switchMatch) {
 			const slot = 'p1' + switchMatch[1];
 			const sid = toID(switchMatch[2].trim());
@@ -364,7 +364,7 @@ function syncBattleOutcome(
 	const itemSlotMap: Record<string, number> = {};
 	const itemAssigned = new Set<number>();
 	for (const line of logLines) {
-		const sw = /^\|(?:switch|drag)\|p1([a-z]): [^|]+\|([^|,]+)/.exec(line);
+		const sw = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)/.exec(line);
 		if (sw) {
 			const slot = 'p1' + sw[1];
 			const sid = toID(sw[2].trim());
@@ -382,15 +382,32 @@ function syncBattleOutcome(
 			continue;
 		}
 		const endItemMatch = /^\|-enditem\|p1([a-z]): [^|]+\|([^|]+)/.exec(line);
-		if (!endItemMatch) continue;
-		if (line.includes('[from] move: Knock Off') || line.includes('[from] move: Thief') || line.includes('[from] move: Incinerate')) continue;
-		const slot = 'p1' + endItemMatch[1];
-		const itemId = toID(endItemMatch[2].trim());
-		const teamIdx = itemSlotMap[slot];
-		if (teamIdx !== undefined && state.team[teamIdx].heldItem === itemId) {
-			delete state.team[teamIdx].heldItem;
-			const dexItem = Dex.items.get(itemId);
-			consumedItems.push(dexItem.name || itemId);
+		if (endItemMatch) {
+			if (line.includes('[from] move: Knock Off') || line.includes('[from] move: Thief') || line.includes('[from] move: Incinerate')) continue;
+			const slot = 'p1' + endItemMatch[1];
+			const itemId = toID(endItemMatch[2].trim());
+			const teamIdx = itemSlotMap[slot];
+			if (teamIdx !== undefined && state.team[teamIdx].heldItem === itemId) {
+				delete state.team[teamIdx].heldItem;
+				const dexItem = Dex.items.get(itemId);
+				consumedItems.push(dexItem.name || itemId);
+			}
+			continue;
+		}
+		const itemMatch = /^\|-item\|p1([a-z]): [^|]+\|([^|]+)/.exec(line);
+		if (itemMatch) {
+			const slot = 'p1' + itemMatch[1];
+			const itemId = toID(itemMatch[2].trim());
+			const teamIdx = itemSlotMap[slot];
+			if (teamIdx !== undefined) {
+				state.team[teamIdx].heldItem = itemId;
+				const dexItem = Dex.items.get(itemId);
+				const consumedIdx = consumedItems.indexOf(dexItem.name || itemId);
+				if (consumedIdx > -1) {
+					consumedItems.splice(consumedIdx, 1);
+				}
+			}
+			continue;
 		}
 	}
 
@@ -1687,7 +1704,7 @@ export const commands: Chat.ChatCommands = {
 				if (/^\|faint\|p1[a-z]:/.test(line)) p1Fainted = true;
 				else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) p1Fainted = false;
 
-				const swMatch = /^\|(?:switch|drag)\|(p2[a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+				const swMatch = /^\|(?:switch|drag|replace)\|(p2[a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 				if (swMatch) {
 					const parsedSpecies = toID(swMatch[2]);
 					const parsedLevel = swMatch[3] ? parseInt(swMatch[3]) : botLevel(floor, config);
@@ -1713,6 +1730,15 @@ export const commands: Chat.ChatCommands = {
 						fainted: false,
 						botTeamIndex: assignedIdx !== -1 ? assignedIdx : undefined
 					});
+					continue;
+				}
+
+				const transformMatch = /^\|-transform\|(p2[a-z]): [^|]+\|([^|]+)/.exec(line);
+				if (transformMatch) {
+					const s = p2State.get(transformMatch[1]);
+					if (s) {
+						s.species = toID(transformMatch[2]);
+					}
 					continue;
 				}
 
