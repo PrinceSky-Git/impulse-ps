@@ -263,32 +263,35 @@ function processBattleExperience(
 	}
 
 	return detailMsgs;
-}
-
+}.
 function syncBattleOutcome(
 	logLines: string[],
 	state: PokeRogueState,
 ): { consumedItems: string[] } {
 	const slotToTeamIdx: Record<string, number> = {};
 	const activelyAssigned = new Set<number>();
-	const teamHp: Record<number, number> = {};
+	// FIX 1: Track both current HP and the max denominator from the log
+	const teamHp: Record<number, { hp: number, max: number }> = {};
 	const teamStatus: Record<number, StatusCondition | ''> = {};
 	const faintedIndices = new Set<number>();
 	const idxOf = (slot: string): number | undefined => slotToTeamIdx[slot];
 
 	for (const line of logLines) {
-		const switchMatch = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/\d+)?/.exec(line);
+		// FIX 3: Cleaned up regex to natively capture the denominator and status
+		const switchMatch = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 		if (switchMatch) {
 			const slot = 'p1' + switchMatch[1];
 			const sid = toID(switchMatch[2].trim());
-			const hp = parseInt(switchMatch[3]);
+			// FIX 2: Compare base species to prevent Mega Evolutions from breaking tracking
+			const logBase = toID(Dex.species.get(sid).baseSpecies || sid);
 
 			const prev = slotToTeamIdx[slot];
 			if (prev !== undefined) activelyAssigned.delete(prev);
 
 			let matched = -1;
 			for (let i = 0; i < state.team.length; i++) {
-				if (!activelyAssigned.has(i) && toID(state.team[i].species) === sid && !faintedIndices.has(i) && (state.team[i].currentHp ?? 100) > 0) {
+				const teamBase = toID(Dex.species.get(state.team[i].species).baseSpecies || state.team[i].species);
+				if (!activelyAssigned.has(i) && teamBase === logBase && !faintedIndices.has(i) && (state.team[i].currentHp ?? 100) > 0) {
 					matched = i;
 					break;
 				}
@@ -297,20 +300,19 @@ function syncBattleOutcome(
 			if (matched !== -1) {
 				slotToTeamIdx[slot] = matched;
 				activelyAssigned.add(matched);
-				teamHp[matched] = hp;
-
-				const statusInSwitch = /\|\d+\/\d+ (brn|psn|tox|par|slp|frz)/.exec(line);
-				teamStatus[matched] = statusInSwitch ? statusInSwitch[1] as StatusCondition : '';
+				teamHp[matched] = { hp: parseInt(switchMatch[3]), max: switchMatch[4] ? parseInt(switchMatch[4]) : 100 };
+				teamStatus[matched] = switchMatch[5] ? switchMatch[5] as StatusCondition : '';
 			}
 			continue;
 		}
 
-		const hpMatch = /^\|(?:-damage|-heal)\|p1([a-z]): [^|]+\|(\d+)(?:\/\d+)?( (brn|psn|tox|par|slp|frz))?/.exec(line);
+		// Cleaned up regex for damage/heal tracking
+		const hpMatch = /^\|(?:-damage|-heal)\|p1([a-z]): [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 		if (hpMatch) {
 			const idx = idxOf('p1' + hpMatch[1]);
 			if (idx !== undefined) {
-				teamHp[idx] = parseInt(hpMatch[2]);
-				if (hpMatch[4]) teamStatus[idx] = hpMatch[4].trim() as StatusCondition;
+				teamHp[idx] = { hp: parseInt(hpMatch[2]), max: hpMatch[3] ? parseInt(hpMatch[3]) : (teamHp[idx]?.max || 100) };
+				if (hpMatch[4]) teamStatus[idx] = hpMatch[4] as StatusCondition;
 			}
 			continue;
 		}
@@ -334,7 +336,7 @@ function syncBattleOutcome(
 			const slot = 'p1' + faintP1[1];
 			const idx = idxOf(slot);
 			if (idx !== undefined) {
-				teamHp[idx] = 0;
+				teamHp[idx] = { hp: 0, max: 100 };
 				teamStatus[idx] = '';
 				faintedIndices.add(idx);
 				activelyAssigned.delete(idx);
@@ -344,7 +346,7 @@ function syncBattleOutcome(
 		}
 	}
 
-	for (const [idxStr, hp] of Object.entries(teamHp)) {
+	for (const [idxStr, hpData] of Object.entries(teamHp)) {
 		const idx = Number(idxStr);
 		const mon = state.team[idx];
 		if (!mon) continue;
@@ -352,13 +354,9 @@ function syncBattleOutcome(
 		if (faintedIndices.has(idx)) {
 			mon.currentHp = 0;
 		} else {
-			const spData = Dex.species.get(toID(mon.species));
-			const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-			const ivHp = mon.ivs?.hp ?? 31;
-			const evHp = mon.evs?.hp ?? 0;
-			const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
-			
-			mon.currentHp = Math.max(1, Math.round((hp / maxHp) * 100));
+			// Apply HP strictly based on the extracted log denominator
+			const finalMaxHp = hpData.max || 100;
+			mon.currentHp = Math.max(1, Math.round((hpData.hp / finalMaxHp) * 100));
 			if (mon.currentHp > 100) mon.currentHp = 100;
 		}
 	}
