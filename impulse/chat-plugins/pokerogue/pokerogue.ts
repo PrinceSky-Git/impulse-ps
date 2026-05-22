@@ -1037,7 +1037,7 @@ export const commands: Chat.ChatCommands = {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).view = 'main';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin'].includes(item.type)) {
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm'].includes(item.type)) {
 				state.purchasedItem = itemKey;
 				state.pendingConsumableType = item.type as any;
 				(state as any).view = 'main';
@@ -1093,9 +1093,10 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			state.purchasedItem = itemKey;
-			if (item.type === 'item') {
+			if (item.type === 'item' || item.type === 'evolveItem') {
 				state.pendingItemName = item.name;
-			} else {
+				state.pendingItemIsEvo = item.type === 'evolveItem';
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm'].includes(item.type)) {
 				state.pendingConsumableType = item.type as any;
 			}
 			(state as any).view = 'main';
@@ -1103,7 +1104,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		choose(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
@@ -1443,6 +1444,25 @@ export const commands: Chat.ChatCommands = {
 					mon.evs[evStat] += gain;
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
+				} else if (item.type === 'tm') {
+					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+					const moveId = itemKey.includes('_') ? itemKey.substring(itemKey.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') : toID(item.name.replace(/^TM\d+\s*/i, ''));
+					const moveData = Dex.moves.get(moveId);
+					if (!moveData.exists) return this.errorReply("This TM is invalid or unimplemented.");
+					if (mon.moves.includes(moveData.id)) return this.errorReply("This Pokémon already knows this move.");
+
+					if (mon.moves.length < 4) {
+						mon.moves.push(moveData.id);
+						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> learned <b>${moveData.name}</b>!`;
+					} else {
+						state.pendingMoves = state.pendingMoves || [];
+						state.pendingMoves.push({
+							pokemonIndex: slot,
+							move: moveData.id,
+							speciesName: mon.species
+						});
+						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${moveData.name}</b>!`;
+					}
 				}
 
 				delete state.purchasedItem;
