@@ -2411,8 +2411,9 @@ export const handlers: Chat.Handlers = {
 			const lossState = {
 				...state,
 				battleRoomId: undefined,
-			};
+			} as any;
 			handleBattleLoss(lossState, match.floor, match.userId);
+			setState(match.userId, lossState as PokeRogueState);
 		}
 		if (battleLogMsgs.length > 0 && room) {
 			const infoboxHtml = `<div class="pr" style="background:transparent; border:none; min-height:0; max-width:100%; margin:4px 0;">` +
