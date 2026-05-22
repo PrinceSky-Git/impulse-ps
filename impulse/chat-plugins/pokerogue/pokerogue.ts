@@ -1,3 +1,4 @@
+// pokerogue.ts
 import { Utils } from '../../../lib';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
 import { type AIPokemonSet } from './pokemon';
@@ -1008,6 +1009,11 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft' || !state.pendingRewardDraft) return;
 
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined) {
+				return this.errorReply("You must resolve your pending actions first.");
+			}
+
 			const idx = parseInt(target.trim()) - 1;
 			if (isNaN(idx) || idx < 0 || idx >= state.pendingRewardDraft.length) return;
 
@@ -1065,6 +1071,11 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
 
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined) {
+				return this.errorReply("You must resolve your pending actions first.");
+			}
+
 			const cost = getRerollCost(state.floor, state.rerollCount || 0);
 			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
 
@@ -1081,6 +1092,11 @@ export const commands: Chat.ChatCommands = {
 		buyshop(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined) {
+				return this.errorReply("You must resolve your pending actions first.");
+			}
 
 			const itemKey = toID(target);
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
@@ -2110,3 +2126,4 @@ export const handlers: Chat.Handlers = {
 		if (hUser) refreshGamePage(hUser);
 	},
 };
+}

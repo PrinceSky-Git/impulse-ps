@@ -1,3 +1,4 @@
+// render.ts
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
@@ -1210,9 +1211,14 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStatsView(state, user)}</div></div>`;
 	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'save')}</div></div>`;
 	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'load')}</div></div>`;
-	if (view === 'draft') return buf + renderHeader('draft', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderDraftView(state)}</div></div>`;
 
-	buf += renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
+	let displayView = view;
+	if (view === 'draft' && (state.pendingChoice?.length || state.pendingSwap || state.pendingMoves?.length || state.itemOptions?.length || state.pendingItemName || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined)) {
+		displayView = 'main';
+	}
+	if (state.gameWon) displayView = 'victory';
+
+	buf += renderHeader(displayView, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 
 	if (state.pendingChoice?.length) return buf + renderPendingChoice(state) + `</div></div>`;
 	if (state.pendingSwap) return buf + renderPendingSwap(state) + `</div></div>`;
@@ -1223,7 +1229,9 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'trainer' && state.pendingTrainer) return buf + renderTrainerIntroView(state) + `</div></div>`;
 	if (state.pendingMoveSlot !== undefined) return buf + renderMoveMon(state) + `</div></div>`;
 	if (state.pendingReleaseSlot !== undefined) return buf + renderReleaseMon(state) + `</div></div>`;
-	if (state.gameWon) return buf + renderHeader('victory', false) + `<div style="padding:0 14px 14px">${renderVictoryView(state)}</div></div>`;
+	if (state.gameWon) return buf + renderVictoryView(state) + `</div></div>`;
+
+	if (view === 'draft') return buf + renderDraftView(state) + `</div></div>`;
 
 	return buf + renderMainView(state, user) + `</div></div>`;
 }
