@@ -993,7 +993,7 @@ export const commands: Chat.ChatCommands = {
 			if (!state || (state as any).view !== 'draft') return;
 
 			const isLocked = !!(state as any).isRarityLocked;
-			const cost = getRerollCost(state.floor, state.rerollCount || 0, isLocked, state.pendingRewardDraft || []);
+			const cost = getRerollCost(state, isLocked, state.pendingRewardDraft || []);
 			
 			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
 
