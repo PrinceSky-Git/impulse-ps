@@ -1002,14 +1002,15 @@ export function getItemPrice(wave: number, multiplier: number): number {
 	return Math.floor(getBaseMoneyReward(wave) / 10) * 10 * multiplier;
 }
 
-export function getRerollCost(wave: number, rerollCount: number, isLocked: boolean = false, currentDraft: string[] = []): number {
-	const waveFactor = Math.ceil(Math.max(1, wave) / 10);
+export function getRerollCost(state: PokeRogueState, isLocked: boolean = false, currentDraft: string[] = []): number {
+	const waveFactor = Math.ceil(Math.max(1, state.floor) / 10);
 	let baseCost = 250;
 
 	if (isLocked && currentDraft.length > 0) {
 		let sumI = 0;
+		const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 		for (const itemKey of currentDraft) {
-			const item = SHOP_ITEMS[itemKey];
+			const item = activeShop[itemKey];
 			if (!item) continue;
 			
 			switch (item.tier) {
@@ -1023,7 +1024,7 @@ export function getRerollCost(wave: number, rerollCount: number, isLocked: boole
 		baseCost = sumI;
 	}
 
-	return baseCost * waveFactor * Math.pow(2, rerollCount);
+	return baseCost * waveFactor * Math.pow(2, state.rerollCount || 0);
 }
 
 export function calculatePartyLuck(team: PokemonEntry[]): number {
