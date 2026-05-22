@@ -271,19 +271,16 @@ function syncBattleOutcome(
 ): { consumedItems: string[] } {
 	const slotToTeamIdx: Record<string, number> = {};
 	const activelyAssigned = new Set<number>();
-	// FIX 1: Track both current HP and the max denominator from the log
 	const teamHp: Record<number, { hp: number, max: number }> = {};
 	const teamStatus: Record<number, StatusCondition | ''> = {};
 	const faintedIndices = new Set<number>();
 	const idxOf = (slot: string): number | undefined => slotToTeamIdx[slot];
 
 	for (const line of logLines) {
-		// FIX 3: Cleaned up regex to natively capture the denominator and status
 		const switchMatch = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 		if (switchMatch) {
 			const slot = 'p1' + switchMatch[1];
 			const sid = toID(switchMatch[2].trim());
-			// FIX 2: Compare base species to prevent Mega Evolutions from breaking tracking
 			const logBase = toID(Dex.species.get(sid).baseSpecies || sid);
 
 			const prev = slotToTeamIdx[slot];
@@ -1769,7 +1766,12 @@ export const commands: Chat.ChatCommands = {
 					const spData = Dex.species.get(toID(mon.species));
 					const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 					const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-					const maxHpActual = Math.floor((2 * bs.hp + 31 + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
+					const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 }; // Extract actual IVs
+					
+					let maxHpActual = 1;
+					if (spData.id !== 'shedinja') {
+						maxHpActual = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
+					}
 					
 					const healPctCalculated = item.healAmount ? Math.max(item.healPercent || 0, (item.healAmount / maxHpActual) * 100) : (item.healPercent || 0);
 					
@@ -1808,8 +1810,7 @@ export const commands: Chat.ChatCommands = {
 					const candyJars = state.keyItems?.['Candy Jar'] || 0;
 					levelsToGain += candyJars;
 
-					const { cap: levelCap } = getLevelScaling(state.floor, config);
-					const targetLevel = Math.min(levelCap, mon.level + levelsToGain);
+					const targetLevel = mon.level + levelsToGain;
 					const expNeeded = expForLevel(targetLevel, mon.expType ?? getExpType(mon.species)) - mon.exp;
 
 					applyExpAndLevelUp(mon, Math.max(0, expNeeded), state.floor, config);
