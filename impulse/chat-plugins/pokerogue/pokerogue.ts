@@ -273,29 +273,23 @@ function syncBattleOutcome(
 	const slotToTeamIdx: Record<string, number> = {};
 	const activelyAssigned = new Set<number>();
 	const teamHp: Record<number, number> = {};
-	const teamMaxHp: Record<number, number> = {};
 	const teamStatus: Record<number, StatusCondition | ''> = {};
 	const faintedIndices = new Set<number>();
 	const idxOf = (slot: string): number | undefined => slotToTeamIdx[slot];
 
 	for (const line of logLines) {
-		const switchMatch = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/(\d+))?/.exec(line);
+		const switchMatch = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/\d+)?/.exec(line);
 		if (switchMatch) {
 			const slot = 'p1' + switchMatch[1];
 			const sid = toID(switchMatch[2].trim());
 			const hp = parseInt(switchMatch[3]);
-			const maxHpFromLog = switchMatch[4] ? parseInt(switchMatch[4]) : 0;
 
 			const prev = slotToTeamIdx[slot];
 			if (prev !== undefined) activelyAssigned.delete(prev);
 
 			let matched = -1;
 			for (let i = 0; i < state.team.length; i++) {
-				const teamSpeciesId = toID(state.team[i].species);
-				const teamBase = toID(Dex.species.get(teamSpeciesId).baseSpecies || teamSpeciesId);
-				const logBase = toID(Dex.species.get(sid).baseSpecies || sid);
-
-				if (!activelyAssigned.has(i) && (teamSpeciesId === sid || teamBase === logBase) && !faintedIndices.has(i) && (state.team[i].currentHp ?? 100) > 0) {
+				if (!activelyAssigned.has(i) && toID(state.team[i].species) === sid && !faintedIndices.has(i) && (state.team[i].currentHp ?? 100) > 0) {
 					matched = i;
 					break;
 				}
@@ -305,7 +299,6 @@ function syncBattleOutcome(
 				slotToTeamIdx[slot] = matched;
 				activelyAssigned.add(matched);
 				teamHp[matched] = hp;
-				if (maxHpFromLog > 0) teamMaxHp[matched] = maxHpFromLog;
 
 				const statusInSwitch = /\|\d+\/\d+ (brn|psn|tox|par|slp|frz)/.exec(line);
 				teamStatus[matched] = statusInSwitch ? statusInSwitch[1] as StatusCondition : '';
@@ -313,12 +306,11 @@ function syncBattleOutcome(
 			continue;
 		}
 
-		const hpMatch = /^\|(?:-damage|-heal)\|p1([a-z]): [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+		const hpMatch = /^\|(?:-damage|-heal)\|p1([a-z]): [^|]+\|(\d+)(?:\/\d+)?( (brn|psn|tox|par|slp|frz))?/.exec(line);
 		if (hpMatch) {
 			const idx = idxOf('p1' + hpMatch[1]);
 			if (idx !== undefined) {
 				teamHp[idx] = parseInt(hpMatch[2]);
-				if (hpMatch[3]) teamMaxHp[idx] = parseInt(hpMatch[3]);
 				if (hpMatch[4]) teamStatus[idx] = hpMatch[4].trim() as StatusCondition;
 			}
 			continue;
@@ -361,17 +353,13 @@ function syncBattleOutcome(
 		if (faintedIndices.has(idx)) {
 			mon.currentHp = 0;
 		} else {
-			const logMaxHp = teamMaxHp[idx] || 0;
-			if (logMaxHp > 0) {
-				mon.currentHp = Math.max(1, Math.round((hp / logMaxHp) * 100));
-			} else {
-				const spData = Dex.species.get(toID(mon.species));
-				const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-				const ivHp = mon.ivs?.hp ?? 31;
-				const evHp = mon.evs?.hp ?? 0;
-				const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
-				mon.currentHp = Math.max(1, Math.round((hp / maxHp) * 100));
-			}
+			const spData = Dex.species.get(toID(mon.species));
+			const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+			const ivHp = mon.ivs?.hp ?? 31;
+			const evHp = mon.evs?.hp ?? 0;
+			const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
+			
+			mon.currentHp = Math.max(1, Math.round((hp / maxHp) * 100));
 			if (mon.currentHp > 100) mon.currentHp = 100;
 		}
 	}
@@ -405,8 +393,8 @@ function syncBattleOutcome(
 					itemSlotMap[slot] = i;
 					itemAssigned.add(i);
 					break;
-                }
-            }
+				}
+			}
 			continue;
 		}
 		const endItemMatch = /^\|-enditem\|p1([a-z]): [^|]+\|([^|]+)/.exec(line);
