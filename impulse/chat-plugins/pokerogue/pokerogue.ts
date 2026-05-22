@@ -1,4 +1,3 @@
-// pokerogue.ts
 import { Utils } from '../../../lib';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
 import { type AIPokemonSet } from './pokemon';
@@ -2126,4 +2125,3 @@ export const handlers: Chat.Handlers = {
 		if (hUser) refreshGamePage(hUser);
 	},
 };
-}
