@@ -93,6 +93,18 @@ function clearStaleBattleRoom(state: PokeRogueState, userId: string): void {
 	}
 }
 
+function hasAnyActiveBattle(userId: string): boolean {
+	const userData = getUserData(userId);
+	for (const mode of Object.keys(userData.runs)) {
+		const run = userData.runs[mode as GameMode];
+		if (run?.battleRoomId) {
+			const bRoom = Rooms.get(run.battleRoomId as RoomID);
+			if (bRoom?.battle && !bRoom.battle.ended) return true;
+		}
+	}
+	return false;
+}
+
 function processLevelUp(
 	mon: PokemonEntry,
 	oldLevel: number,
@@ -565,6 +577,8 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		newgame(target, room, user) {
+			if (hasAnyActiveBattle(user.id)) return this.errorReply("You cannot start a new game while a battle is in progress in any mode!");
+
 			const targetParts = target.trim().toLowerCase().split(' ');
 			const isConfirm = targetParts.includes('confirm');
 			let modeStr = targetParts[0];
@@ -660,6 +674,8 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		loadslot(target, room, user) {
+			if (hasAnyActiveBattle(user.id)) return this.errorReply("You cannot load a game while a battle is in progress in any mode!");
+
 			const slot = parseInt(target.trim());
 			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
 
@@ -667,14 +683,6 @@ export const commands: Chat.ChatCommands = {
 			const slotData = userData.saveSlots?.[slot];
 
 			if (!slotData) return this.errorReply("That save slot is empty.");
-
-			const currentState = getState(user.id);
-			if (currentState?.battleRoomId) {
-				const bRoom = Rooms.get(currentState.battleRoomId as RoomID);
-				if (bRoom?.battle && !bRoom.battle.ended) {
-					return this.errorReply("You cannot load a game while currently in a battle!");
-				}
-			}
 
 			const restoredState = JSON.parse(JSON.stringify(slotData));
 			userData.runs[restoredState.gameMode] = restoredState;
@@ -1917,7 +1925,7 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("You can only catch Pokémon in your own battle.");
 			}
 
-			if (!room.battle.turn) return this.errorReply("The battle hasnt started yet!");
+			if (!room.battle.turn) return this.errorReply("The battle hasn't started yet!");
 			if (state.caughtPokemon) return this.errorReply("You already caught this Pokémon!");
 
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
@@ -1952,7 +1960,7 @@ export const commands: Chat.ChatCommands = {
 
 			for (const line of log) {
 				if (/^\|faint\|p1[a-z]:/.test(line)) p1Fainted = true;
-				else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) p1Fainted = false;
+				else if (/^\|(switch|drag)\|p1[a-z]:/.test(line)) p1Fainted = false;
 
 				const swMatch = /^\|(?:switch|drag|replace)\|(p2[a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 				if (swMatch) {
@@ -2116,14 +2124,14 @@ export const commands: Chat.ChatCommands = {
 				let p2SwitchIdx = 0;
 
 				for (let i = log.length - 1; i >= 0; i--) {
-					if (/^\|(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
+					if (/^\|(switch|drag)\|p2[a-z]:/.test(log[i])) {
 						p2SwitchIdx = i;
 						break;
 					}
 				}
 
 				for (let i = p2SwitchIdx; i >= 0; i--) {
-					const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
+					const match = /^\|(switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
 					if (match) {
 						p1Participants.add(toID(match[1]));
 						break;
@@ -2131,7 +2139,7 @@ export const commands: Chat.ChatCommands = {
 				}
 
 				for (let i = p2SwitchIdx; i < log.length; i++) {
-					const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
+					const match = /^\|(switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
 					if (match) {
 						p1Participants.add(toID(match[1]));
 					}
@@ -2273,8 +2281,21 @@ export const handlers: Chat.Handlers = {
 		activeMatches.delete(battle.roomid);
 		const botUser = Users.get(match.botUserId);
 		if (botUser) destroyBotUser(botUser);
-		const state = getState(match.userId);
+
+		const userData = getUserData(match.userId);
+		let state: PokeRogueState | null = null;
+
+		for (const mode of Object.keys(userData.runs)) {
+			const run = userData.runs[mode as GameMode];
+			if (run && run.battleRoomId === battle.roomid) {
+				state = run;
+				break;
+			}
+		}
+
+		if (!state) state = getState(match.userId);
 		if (!state) return;
+
 		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 		const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 		const isBossFloor = match.floor % config.bossInterval === 0;
@@ -2343,7 +2364,7 @@ export const handlers: Chat.Handlers = {
 					state.pendingSwap = caughtMon;
 					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught! (Team full, swap pending)</b>`);
 				}
-				const userData = getUserData(match.userId);
+				const userDataObj = getUserData(match.userId);
 				if (state.gameMode === 'classic') {
 					let baseSpecies = caughtMon.species;
 					while (true) {
@@ -2352,7 +2373,7 @@ export const handlers: Chat.Handlers = {
 						if (!prevo) break;
 						baseSpecies = toID(prevo);
 					}
-					const existingStarter = userData.starters[baseSpecies];
+					const existingStarter = userDataObj.starters[baseSpecies];
 					const baseDex = Dex.species.get(baseSpecies);
 					const bestIvs = existingStarter?.ivs ? {
 						hp: Math.max(existingStarter.ivs.hp, caughtMon.ivs.hp),
@@ -2406,7 +2427,7 @@ export const handlers: Chat.Handlers = {
 					};
 					baseCaught.status = undefined;
 					baseCaught.heldItem = undefined;
-					userData.starters[baseSpecies] = baseCaught;
+					userDataObj.starters[baseSpecies] = baseCaught;
 					saveUserData(match.userId);
 					if (!existingStarter) {
 						battleLogMsgs.push(`&nbsp;&nbsp;↳ <b style="color:#fac000">${baseDex.name} has been permanently unlocked as a Starter!</b>`);
@@ -2465,8 +2486,8 @@ export const handlers: Chat.Handlers = {
 			const lossState = {
 				...state,
 				battleRoomId: undefined,
-			} as any;
-			handleBattleLoss(lossState, match.floor, match.userId);
+			};
+			handleBattleLoss(lossState as PokeRogueState, match.floor, match.userId);
 			setState(match.userId, lossState as PokeRogueState);
 		}
 		if (battleLogMsgs.length > 0 && room) {
