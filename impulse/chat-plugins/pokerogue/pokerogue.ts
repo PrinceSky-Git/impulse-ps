@@ -196,8 +196,8 @@ function applyExpShare(
 ): Map<number, number> {
 	const expAllItem = Object.values(SHOP_ITEMS).find(i => i.name === EXP_SHARE_NAME);
 	const expAllMax = expAllItem?.maxStack ?? 5;
-	const expAllStacks = Math.min(expAllMax, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length);
-	const expCharmStacks = (state.keyItems ?? []).filter(k => k === 'Exp. Charm').length;
+	const expAllStacks = Math.min(expAllMax, state.keyItems?.[EXP_SHARE_NAME] || 0);
+	const expCharmStacks = state.keyItems?.['Exp. Charm'] || 0;
 	const charmMult = expCharmStacks > 0 ? (1 + 0.25 * expCharmStacks) : 1;
 	const result = new Map<number, number>();
 	for (const [teamIdx, baseExp] of expMap) {
@@ -419,14 +419,14 @@ function processFloorRewards(
 			const trigger = reward.interval ? clearedFloor % reward.floor === 0 : clearedFloor === reward.floor;
 			if (trigger) {
 				if (reward.itemType === 'keyItem') {
-					state.keyItems = state.keyItems ?? [];
+					state.keyItems = state.keyItems ?? {};
 					const shopItemEntry = Object.values(SHOP_ITEMS).find(item => item.name === reward.itemName);
 					const maxStack = shopItemEntry?.maxStack ?? 1;
 					let added = 0;
 					for (let i = 0; i < reward.amount; i++) {
-						const currentCount = state.keyItems.filter(k => k === reward.itemName).length;
+						const currentCount = state.keyItems[reward.itemName] || 0;
 						if (currentCount >= maxStack) continue;
-						state.keyItems.push(reward.itemName);
+						state.keyItems[reward.itemName] = currentCount + 1;
 						added++;
 					}
 					if (added > 0) {
@@ -464,8 +464,8 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 	delete state.pendingRewardDraft;
 	delete state.rerollCount;
 
-	if ((state.keyItems ?? []).includes('Revive')) {
-		state.keyItems = state.keyItems.filter(k => k !== 'Revive');
+	if (state.keyItems?.['Revive'] > 0) {
+		state.keyItems['Revive']--;
 		state.notification = (state.notification ?? '') +
 			`<br><b>Revive used!</b> Retrying Floor ${floor}`;
 	} else {
@@ -521,7 +521,7 @@ export const commands: Chat.ChatCommands = {
 					money: defaultConfig.economy.startingMoney || 0,
 					timesRerolled: 0,
 					rotationalShop: [],
-					keyItems: [...(defaultConfig.economy.startingKeyItems || [])],
+					keyItems: { ...(defaultConfig.economy.startingKeyItems || {}) },
 					inventory: { ...(defaultConfig.economy.startingInventory || {}) },
 					highestFloor,
 					displayName,
@@ -588,7 +588,7 @@ export const commands: Chat.ChatCommands = {
 				money: config.economy.startingMoney || 0,
 				timesRerolled: 0,
 				rotationalShop: [],
-				keyItems: [...(config.economy.startingKeyItems || [])],
+				keyItems: { ...(config.economy.startingKeyItems || {}) },
 				inventory: { ...(config.economy.startingInventory || {}) },
 				pendingChoice: useNewStarterSelectionUI ? starterPool : pickStarterOptions(starterPool),
 				pendingChoiceType: 'starter',
@@ -952,8 +952,8 @@ export const commands: Chat.ChatCommands = {
 				state.floor++;
 				(state as any).view = 'main';
 			} else if (item.type === 'key') {
-				state.keyItems = state.keyItems || [];
-				state.keyItems.push(item.name);
+				state.keyItems = state.keyItems || {};
+				state.keyItems[item.name] = (state.keyItems[item.name] || 0) + 1;
 				state.notification = `Obtained Key Item: <b>${item.name}</b>!`;
 				state.floor++;
 				(state as any).view = 'main';
@@ -1541,7 +1541,7 @@ export const commands: Chat.ChatCommands = {
 				} else if (item.type === 'candy') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					let levelsToGain = itemKey === 'rarercandy' ? 3 : 1;
-					const candyJars = (state.keyItems ?? []).filter(k => k === 'Candy Jar').length;
+					const candyJars = state.keyItems?.['Candy Jar'] || 0;
 					levelsToGain += candyJars;
 
 					const { cap: levelCap } = getLevelScaling(state.floor, config);
@@ -2145,8 +2145,8 @@ export const handlers: Chat.Handlers = {
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
 			let itemMultiplier = 1.0;
-			const amuletCoins = (state.keyItems ?? []).filter(k => k === 'Amulet Coin').length;
-			const goldenPunches = (state.keyItems ?? []).filter(k => k === 'Golden Punch').length;
+			const amuletCoins = state.keyItems?.['Amulet Coin'] || 0;
+			const goldenPunches = state.keyItems?.['Golden Punch'] || 0;
 			const amuletCoinItem = Object.values(SHOP_ITEMS).find(i => i.name === 'Amulet Coin');
 			const goldenPunchItem = Object.values(SHOP_ITEMS).find(i => i.name === 'Golden Punch');
 			itemMultiplier += (0.2 * Math.min(amuletCoinItem?.maxStack ?? 5, amuletCoins));

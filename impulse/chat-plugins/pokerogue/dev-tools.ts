@@ -21,41 +21,41 @@ function fullHealPP(mon: PokemonEntry): void {
 }
 
 export const devCommands: Chat.ChatCommands = {
-	givebp(target, room, user) {
+	givemoney(target, room, user) {
 		this.checkCan("bypassall");
 		let [name, amt] = target.split(',').map(s => s?.trim());
 		if (!amt && !isNaN(parseInt(name))) { amt = name; name = user.id; }
 		const tId = toID(name) || user.id;
 		const s = getState(tId);
 		if (s) {
-			const bpAmount = parseInt(amt || '5');
-			if (isNaN(bpAmount) || bpAmount <= 0) {
+			const amount = parseInt(amt || '500');
+			if (isNaN(amount) || amount <= 0) {
 				return this.errorReply(`Amount must be a positive number.`);
 			}
-			s.battlePoints = (s.battlePoints ?? 0) + bpAmount;
+			s.money = (s.money ?? 0) + amount;
 			setState(tId, s);
-			this.sendReply(`Gave ${bpAmount} BP to ${tId}.`);
+			this.sendReply(`Gave $${amount} to ${tId}.`);
 			const staffName = nameColor(user.name, false, true);
-			notifyUser(tId, `You have been given ${bpAmount} BP by ${staffName}.`);
+			notifyUser(tId, `You have been given $${amount} by ${staffName}.`);
 		}
 	},
 
-	removebp(target, room, user) {
+	removemoney(target, room, user) {
 		this.checkCan("bypassall");
 		let [name, amt] = target.split(',').map(s => s?.trim());
 		if (!amt && !isNaN(parseInt(name))) { amt = name; name = user.id; }
 		const tId = toID(name) || user.id;
 		const s = getState(tId);
 		if (s) {
-			const bpAmount = parseInt(amt || '5');
-			if (isNaN(bpAmount) || bpAmount <= 0) {
+			const amount = parseInt(amt || '500');
+			if (isNaN(amount) || amount <= 0) {
 				return this.errorReply(`Amount must be a positive number.`);
 			}
-			s.battlePoints = Math.max(0, (s.battlePoints ?? 0) - bpAmount);
+			s.money = Math.max(0, (s.money ?? 0) - amount);
 			setState(tId, s);
-			this.sendReply(`Removed ${bpAmount} BP from ${tId}.`);
+			this.sendReply(`Removed $${amount} from ${tId}.`);
 			const staffName = nameColor(user.name, false, true);
-			notifyUser(tId, `${staffName} has removed ${bpAmount} BP from you.`);
+			notifyUser(tId, `${staffName} has removed $${amount} from you.`);
 		}
 	},
 
@@ -72,10 +72,10 @@ export const devCommands: Chat.ChatCommands = {
 				floor: 1,
 				gameMode: 'classic',
 				team: [],
-				battlePoints: 20,
+				money: 1000,
 				timesRerolled: 0,
 				rotationalShop: [],
-				keyItems: [],
+				keyItems: {},
 				inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 				pendingChoice: [],
 				highestFloor,

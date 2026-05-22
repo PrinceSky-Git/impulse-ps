@@ -57,7 +57,7 @@ export interface ModeConfig {
 
 	economy: {
 		startingMoney: number,
-		startingKeyItems?: string[],
+		startingKeyItems?: Record<string, number>,
 		startingInventory?: Record<string, number>,
 		draftChoicesCount?: number,
 		maxDraftChoicesCount?: number,
@@ -161,7 +161,7 @@ export interface PokeRogueState {
 	
 	timesRerolled: number;
 	rotationalShop: string[];
-	keyItems: string[];
+	keyItems: Record<string, number>;
 	inventory?: Record<string, number>;
 	caughtPokemon?: PokemonEntry;
 	pendingChoice?: string[];

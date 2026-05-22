@@ -36,6 +36,26 @@ export function getUserData(userid: string): UserSaveData {
 				if (!s.selectedNature && s.nature) s.selectedNature = s.nature;
 				if (!s.selectedAbility && s.ability) s.selectedAbility = s.ability;
 			}
+			for (const runMode in data.runs) {
+				const run = data.runs[runMode as GameMode];
+				if (run && Array.isArray(run.keyItems)) {
+					const newKeyItems: Record<string, number> = {};
+					for (const item of run.keyItems) {
+						newKeyItems[item] = (newKeyItems[item] || 0) + 1;
+					}
+					run.keyItems = newKeyItems as any;
+				}
+			}
+			for (const slotId in data.saveSlots) {
+				const slot = data.saveSlots[slotId];
+				if (slot && Array.isArray(slot.keyItems)) {
+					const newKeyItems: Record<string, number> = {};
+					for (const item of slot.keyItems) {
+						newKeyItems[item] = (newKeyItems[item] || 0) + 1;
+					}
+					slot.keyItems = newKeyItems as any;
+				}
+			}
 			userCache[userid] = data;
 			return userCache[userid];
 		}

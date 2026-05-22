@@ -1089,7 +1089,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		if (item.type === 'mint') {
 			if (!state.team.some(m => m.nature !== item.nature)) return false;
 		}
-		const currentStackCount = (state.keyItems?.filter(k => k === item.name).length || 0) + (state.inventory?.[key] || 0);
+		const currentStackCount = (state.keyItems?.[item.name] || 0) + (state.inventory?.[key] || 0);
 		if (item.maxStack && currentStackCount >= item.maxStack) return false;
 		if (item.type === 'tm' || item.type === 'TM') {
 			const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
