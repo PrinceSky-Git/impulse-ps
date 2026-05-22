@@ -1,7 +1,9 @@
 // shopdb.ts
 import { type ShopItem } from './items';
+import { TMS_DB } from './tms-db';
 
 export const SHOP_DB: Record<string, ShopItem> = {
+	...TMS_DB,
 	pokeball: {
 		name: "Poke Ball", icon: "Poke Ball", type: "pokeball", category: "Pokéballs",
 		desc: "A standard ball for catching wild Pokemon.",
