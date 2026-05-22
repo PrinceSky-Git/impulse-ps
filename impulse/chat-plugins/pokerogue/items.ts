@@ -14,7 +14,7 @@ export type ItemType =
 	'evolveItem' |
 	'vitamin';
 
-export type ItemRarityTier = 'Common' | 'Rare' | 'Epic' | 'Master';
+export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
 export interface ShopItem {
 	name: string;
