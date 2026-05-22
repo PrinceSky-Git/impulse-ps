@@ -27,16 +27,7 @@ export function getUserData(userid: string): UserSaveData {
 	try {
 		const raw = FS(`${USERS_DIR}${userid}.json`).readIfExistsSync();
 		if (raw) {
-			const data: UserSaveData = JSON.parse(raw);
-			for (const sid in data.starters) {
-				const s = data.starters[sid];
-				if (!s.unlockedNatures) s.unlockedNatures = s.nature ? [s.nature] : [];
-				if (!s.unlockedAbilities) s.unlockedAbilities = s.ability ? [s.ability] : [];
-				if (!s.unlockedTeraTypes) s.unlockedTeraTypes = s.teraType ? [s.teraType] : [];
-				if (!s.selectedNature && s.nature) s.selectedNature = s.nature;
-				if (!s.selectedAbility && s.ability) s.selectedAbility = s.ability;
-			}
-			userCache[userid] = data;
+			userCache[userid] = JSON.parse(raw);
 			return userCache[userid];
 		}
 	} catch {}

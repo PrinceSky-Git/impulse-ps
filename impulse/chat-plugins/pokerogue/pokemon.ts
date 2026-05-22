@@ -943,27 +943,18 @@ export function packPokemon(mon: PokemonEntry): string {
 
 	const base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
 
-	const hpPct = mon.currentHp ?? 100;
-	const status = mon.status ?? '';
-
-	const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-	const ivHp = mon.ivs?.hp ?? 31;
-	const evHp = mon.evs?.hp ?? 0;
-	const maxHp = sp.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
-	const absoluteHp = Math.round(maxHp * hpPct / 100);
-
-	const happiness = mon.happiness ?? 255;
-	const teraType = mon.teraType || sp.types[0] || '';
-	const pokeball = mon.ball || '';
-
-	let misc = `${happiness},,${pokeball},,,${teraType}`;
-	if (hpPct !== 100 || status) {
-		misc += `,${absoluteHp},${status}`;
-	} else if (hpPct <= 0) {
-		misc += `,0,`;
+	if ((mon.currentHp ?? 100) <= 0) {
+		return base;
 	}
 
-	return base + misc;
+	const hp = mon.currentHp ?? 100;
+	const status = mon.status ?? '';
+	let tail = '';
+	if (hp !== 100 || status) {
+		tail = `,,,,,,${hp !== 100 ? hp : ''},${status}`;
+		if (!status) tail = tail.replace(/,$/, '');
+	}
+	return base + tail;
 }
 
 export function packAIPokemon(set: AIPokemonSet): string {
@@ -973,8 +964,7 @@ export function packAIPokemon(set: AIPokemonSet): string {
 	const evStr = `${set.evs.hp},${set.evs.atk},${set.evs.def},${set.evs.spa},${set.evs.spd},${set.evs.spe}`;
 	const movesStr = set.moves.map(m => Dex.moves.get(m).name || m).join(',');
 	const shinyStr = set.shiny ? 'S' : '';
-	const teraType = set.teraType || sp.types[0] || '';
-	return `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|255,,,,,${teraType}`;
+	return `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|,,,${set.teraType}`;
 }
 
 export function packTeam(mons: PokemonEntry[]): string {
@@ -1002,28 +992,9 @@ export function getItemPrice(wave: number, multiplier: number): number {
 	return Math.floor(getBaseMoneyReward(wave) / 10) * 10 * multiplier;
 }
 
-export function getRerollCost(wave: number, rerollCount: number, isLocked: boolean = false, currentDraft: string[] = []): number {
-	const waveFactor = Math.ceil(Math.max(1, wave) / 10);
-	let baseCost = 250;
-
-	if (isLocked && currentDraft.length > 0) {
-		let sumI = 0;
-		for (const itemKey of currentDraft) {
-			const item = SHOP_ITEMS[itemKey];
-			if (!item) continue;
-			
-			switch (item.tier) {
-			case 'Common': sumI += 50; break;
-			case 'Rare': sumI += 125; break;
-			case 'Epic': sumI += 300; break;
-			case 'Master': sumI += 2000; break;
-			default: sumI += 50; break;
-			}
-		}
-		baseCost = sumI;
-	}
-
-	return baseCost * waveFactor * Math.pow(2, rerollCount);
+export function getRerollCost(wave: number, rerollCount: number): number {
+	const base = 250 * Math.ceil(Math.max(1, wave) / 10);
+	return base * Math.pow(2, rerollCount);
 }
 
 export function calculatePartyLuck(team: PokemonEntry[]): number {
@@ -1035,9 +1006,11 @@ export function calculatePartyLuck(team: PokemonEntry[]): number {
 }
 
 export function rollRarity(luck: number): ItemRarityTier {
-	const tiers: ItemRarityTier[] = ['Common', 'Great', 'Rare', 'Ultra', 'Master'];
+	const tiers: ItemRarityTier[] = ['Common', 'Rare', 'Epic', 'Master'];
 	let tierIndex = 0;
+
 	const upgradeOdds = Math.floor(32 / ((luck + 2) / 2));
+
 	while (tierIndex < tiers.length - 1) {
 		if (upgradeOdds > 0 && Math.floor(Math.random() * upgradeOdds) === 0) {
 			tierIndex++;
@@ -1045,16 +1018,20 @@ export function rollRarity(luck: number): ItemRarityTier {
 			break;
 		}
 	}
+
 	return tiers[tierIndex];
 }
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
 	const luck = calculatePartyLuck(state.team);
 	const draft: string[] = [];
+	
 	const partySpecies = new Set(state.team.map(m => toID(m.species)));
+
 	const needsHeal = state.team.some(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100);
 	const needsRevive = state.team.some(m => (m.currentHp ?? 100) <= 0);
 	const needsCure = state.team.some(m => m.status);
+
 	const baseCount = config?.economy?.draftChoicesCount ?? 3;
 	const maxCount = config?.economy?.maxDraftChoicesCount ?? Math.max(4, baseCount);
 
@@ -1064,64 +1041,51 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 	}
 
 	const draftCount = Math.min(maxCount, baseCount + extraOptions);
-
-	const isValidItem = (key: string, item: any) => {
-		if (item.type === 'healHP' && !needsHeal) return false;
-		if (item.type === 'revive' && !needsRevive) return false;
-		if (item.type === 'cureStatus' && !needsCure) return false;
-		if (key === 'sacredash' && !needsRevive) return false;
-		if (item.type === 'evolveItem') {
-			let hasCompatibleTarget = false;
-			for (const species of partySpecies) {
-				const evos = Dex.species.get(species).evos;
-				if (!evos) continue;
-				for (const evoTarget of evos) {
-					const evoData = Dex.species.get(evoTarget);
-					if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade')) {
-						hasCompatibleTarget = true;
-						break;
-					}
-				}
-				if (hasCompatibleTarget) break;
-			}
-			if (!hasCompatibleTarget) return false;
-		}
-		if (item.type === 'mint') {
-			if (!state.team.some(m => m.nature !== item.nature)) return false;
-		}
-		const currentStackCount = (state.keyItems?.filter(k => k === item.name).length || 0) + (state.inventory?.[key] || 0);
-		if (item.maxStack && currentStackCount >= item.maxStack) return false;
-		if (item.type === 'tm' || item.type === 'TM') {
-			const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
-			let hasCompatibleTarget = false;
-			for (const mon of state.team) {
-				if (mon.moves.includes(moveId)) continue; 
-				const fullLearn = Dex.species.getFullLearnset(toID(mon.species));
-				if (fullLearn.some(step => step.learnset[moveId])) {
-					hasCompatibleTarget = true;
-					break;
-				}
-			}
-			if (!hasCompatibleTarget) return false;
-		}
-		return true;
-	};
+	const pickedKeys = new Set<string>();
 
 	for (let i = 0; i < draftCount; i++) {
 		const targetTier = rollRarity(luck);
+		
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
+			if (pickedKeys.has(key)) return false;
 			if (item.tier !== targetTier) return false;
-			return isValidItem(key, item);
+			
+			if (item.type === 'healHP' && !needsHeal) return false;
+			if (item.type === 'revive' && !needsRevive) return false;
+			if (item.type === 'cureStatus' && !needsCure) return false;
+			if (key === 'sacredash' && !needsRevive) return false;
+
+			if (item.type === 'evolveItem') {
+				let hasCompatibleTarget = false;
+				for (const species of partySpecies) {
+					const evos = Dex.species.get(species).evos;
+					if (!evos) continue;
+					
+					for (const evoTarget of evos) {
+						const evoData = Dex.species.get(evoTarget);
+						if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade')) {
+							hasCompatibleTarget = true;
+							break;
+						}
+					}
+					if (hasCompatibleTarget) break;
+				}
+				if (!hasCompatibleTarget) return false;
+			}
+			return true;
 		});
+		
 		if (validItems.length === 0) {
-			const fallbackItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => isValidItem(key, item));
-			const randomFallback = fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
+			const anyUnpicked = Object.entries(SHOP_ITEMS).filter(([key]) => !pickedKeys.has(key));
+			const randomFallback = anyUnpicked[Math.floor(Math.random() * anyUnpicked.length)];
 			if (randomFallback) {
 				draft.push(randomFallback[0]);
+				pickedKeys.add(randomFallback[0]);
 			}
 		} else {
 			const randomValid = validItems[Math.floor(Math.random() * validItems.length)];
 			draft.push(randomValid[0]);
+			pickedKeys.add(randomValid[0]);
 		}
 	}
 	return draft;

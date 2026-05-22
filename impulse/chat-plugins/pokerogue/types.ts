@@ -141,7 +141,6 @@ export interface PokemonEntry {
 
 	unlockedNatures?: string[];
 	unlockedAbilities?: string[];
-	unlockedTeraTypes?: string[];
 	selectedNature?: string;
 	selectedAbility?: string;
 }
@@ -169,7 +168,7 @@ export interface PokeRogueState {
 	pendingSwap?: PokemonEntry;
 	pendingMoves?: { pokemonIndex: number, move: string, speciesName: string }[];
 	purchasedItem?: string;
-	pendingConsumableType?: 'healHP' | 'revive' | 'cureStatus' | 'vitamin' | 'tm' | 'candy' | 'mint' | 'teraShard';
+	pendingConsumableType?: 'healHP' | 'revive' | 'cureStatus' | 'vitamin';
 	pendingItemName?: string;
 	pendingItemIsEvo?: boolean;
 	isRotationalItem?: boolean;

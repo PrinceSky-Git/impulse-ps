@@ -11,8 +11,7 @@ import {
 import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon, getRewardMoney, getItemPrice, getRerollCost, generateDraftOptions,
-	getLevelScaling
+	packTeam, genPokemon, getRewardMoney, getItemPrice, getRerollCost, generateDraftOptions
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -194,26 +193,31 @@ function applyExpShare(
 	baseShareExpMap: Map<number, number>,
 	state: PokeRogueState,
 ): Map<number, number> {
-	const expAllItem = Object.values(SHOP_ITEMS).find(i => i.name === EXP_SHARE_NAME);
-	const expAllMax = expAllItem?.maxStack ?? 5;
-	const expAllStacks = Math.min(expAllMax, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length);
+	const expAllStacks = Math.min(5, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length);
 	const expCharmStacks = (state.keyItems ?? []).filter(k => k === 'Exp. Charm').length;
 	const charmMult = expCharmStacks > 0 ? (1 + 0.25 * expCharmStacks) : 1;
+
 	const result = new Map<number, number>();
+
 	for (const [teamIdx, baseExp] of expMap) {
 		result.set(teamIdx, Math.max(1, Math.floor(baseExp * charmMult)));
 	}
+
 	if (expAllStacks === 0) return result;
+
 	for (const [teamIdx, basePerParticipant] of baseShareExpMap) {
 		if (expMap.has(teamIdx)) continue;
 		const mon = state.team[teamIdx];
 		if (!mon || (mon.currentHp ?? 100) <= 0) continue;
+
 		let benchedExp = Math.floor(basePerParticipant * expAllStacks * 0.2);
 		const hasLuckyEgg = mon.heldItem === 'luckyegg';
 		if (hasLuckyEgg) benchedExp = Math.floor(benchedExp * 1.4);
 		benchedExp = Math.max(1, Math.floor(benchedExp * charmMult));
+
 		result.set(teamIdx, benchedExp);
 	}
+
 	return result;
 }
 
@@ -331,21 +335,7 @@ function syncBattleOutcome(
 
 	for (const [idxStr, hp] of Object.entries(teamHp)) {
 		const idx = Number(idxStr);
-		const mon = state.team[idx];
-		if (!mon) continue;
-
-		if (faintedIndices.has(idx)) {
-			mon.currentHp = 0;
-		} else {
-			const spData = Dex.species.get(toID(mon.species));
-			const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-			const ivHp = mon.ivs?.hp ?? 31;
-			const evHp = mon.evs?.hp ?? 0;
-			const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
-			
-			mon.currentHp = Math.max(1, Math.round((hp / maxHp) * 100));
-			if (mon.currentHp > 100) mon.currentHp = 100;
-		}
+		state.team[idx].currentHp = faintedIndices.has(idx) ? 0 : hp;
 	}
 	for (const idx of faintedIndices) {
 		state.team[idx].currentHp = 0;
@@ -404,9 +394,11 @@ function processFloorRewards(
 	userId: string
 ): { extraNotifs: string[] } {
 	const extraNotifs: string[] = [];
+
 	if (clearedFloor > (state.highestFloor ?? 0)) {
 		state.highestFloor = clearedFloor;
 		state.recordTeam = state.team.map(m => ({ ...m }));
+
 		globalStats[userId] = {
 			highestFloor: clearedFloor,
 			displayName: state.displayName || userId,
@@ -414,18 +406,18 @@ function processFloorRewards(
 		};
 		saveGlobalStats();
 	}
+
 	if (config.milestoneRewards) {
 		for (const reward of config.milestoneRewards) {
 			const trigger = reward.interval ? clearedFloor % reward.floor === 0 : clearedFloor === reward.floor;
 			if (trigger) {
 				if (reward.itemType === 'keyItem') {
 					state.keyItems = state.keyItems ?? [];
-					const shopItemEntry = Object.values(SHOP_ITEMS).find(item => item.name === reward.itemName);
-					const maxStack = shopItemEntry?.maxStack ?? 1;
 					let added = 0;
 					for (let i = 0; i < reward.amount; i++) {
-						const currentCount = state.keyItems.filter(k => k === reward.itemName).length;
-						if (currentCount >= maxStack) continue;
+						if (reward.itemName === 'Exp. All' && state.keyItems.filter(k => k === 'Exp. All').length >= 5) continue;
+						if (reward.itemName === 'Exp. Charm' && state.keyItems.filter(k => k === 'Exp. Charm').length >= 99) continue;
+						if (reward.itemName !== 'Exp. All' && reward.itemName !== 'Exp. Charm' && state.keyItems.includes(reward.itemName)) continue;
 						state.keyItems.push(reward.itemName);
 						added++;
 					}
@@ -441,6 +433,7 @@ function processFloorRewards(
 			}
 		}
 	}
+
 	if (isBossFloorBoundary(clearedFloor, config.bossInterval)) {
 		for (const mon of state.team) {
 			mon.currentHp = 100;
@@ -448,6 +441,7 @@ function processFloorRewards(
 		}
 		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
 	}
+
 	return { extraNotifs };
 }
 
@@ -795,6 +789,71 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
+		cyclestarter(target, room, user) {
+			const state = getState(user.id);
+			if (!state || !state.isConfiguringStarter) return;
+			const userData = getUserData(user.id);
+
+			const [trait, direction] = target.trim().split(' ');
+			const mon = state.team[0];
+
+			let baseSpecies = toID(mon.species);
+			while (true) {
+				const sp = Dex.species.get(baseSpecies);
+				const prevo = sp.prevo;
+				if (!prevo) break;
+				baseSpecies = toID(prevo);
+			}
+
+			let starterData = userData.starters[baseSpecies];
+
+			if (!starterData) {
+				starterData = {
+					unlockedNatures: [mon.nature!],
+					unlockedAbilities: [mon.ability!],
+					selectedNature: mon.nature!,
+					selectedAbility: mon.ability!,
+				} as PokemonEntry;
+				userData.starters[baseSpecies] = starterData;
+			}
+
+			if (trait === 'nature') {
+				const pool = starterData.unlockedNatures?.length ? starterData.unlockedNatures : [mon.nature!];
+				if (!pool.includes(mon.nature!)) pool.push(mon.nature!);
+
+				if (pool.length <= 1) {
+					state.notification = `You haven't unlocked any other Natures for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
+				} else {
+					let idx = pool.indexOf(mon.nature!);
+					if (direction === 'next') idx = (idx + 1) % pool.length;
+					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+
+					mon.nature = pool[idx];
+					starterData.selectedNature = pool[idx];
+					starterData.nature = pool[idx];
+				}
+			} else if (trait === 'ability') {
+				const pool = starterData.unlockedAbilities?.length ? starterData.unlockedAbilities : [mon.ability!];
+				if (!pool.includes(mon.ability!)) pool.push(mon.ability!);
+
+				if (pool.length <= 1) {
+					state.notification = `You haven't unlocked any other Abilities for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
+				} else {
+					let idx = pool.indexOf(mon.ability!);
+					if (direction === 'next') idx = (idx + 1) % pool.length;
+					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+
+					mon.ability = pool[idx];
+					starterData.selectedAbility = pool[idx];
+					starterData.ability = pool[idx];
+				}
+			}
+
+			saveUserData(user.id);
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
 		confirmstarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state || !state.isConfiguringStarter) return;
@@ -978,7 +1037,7 @@ export const commands: Chat.ChatCommands = {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).view = 'main';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'candy', 'mint', 'teraShard'].includes(item.type)) {
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin'].includes(item.type)) {
 				state.purchasedItem = itemKey;
 				state.pendingConsumableType = item.type as any;
 				(state as any).view = 'main';
@@ -987,14 +1046,12 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-		
+
 		reroll(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
 
-			const isLocked = !!(state as any).isRarityLocked;
-			const cost = getRerollCost(state.floor, state.rerollCount || 0, isLocked, state.pendingRewardDraft || []);
-			
+			const cost = getRerollCost(state.floor, state.rerollCount || 0);
 			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
 
 			state.money -= cost;
@@ -1010,13 +1067,18 @@ export const commands: Chat.ChatCommands = {
 		buyshop(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
+
 			const itemKey = toID(target);
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 			const item = activeShop[itemKey];
+
 			if (!item || !item.isShopItem) return this.errorReply("Unknown shop item.");
-			const price = getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
+
+			const price = getItemPrice(state.floor, item.moneyMultiplier);
 			if ((state.money || 0) < price) return this.errorReply(`Not enough money! Need $${price}.`);
+
 			state.money -= price;
+
 			if (itemKey === 'sacredash') {
 				for (const mon of state.team) {
 					if ((mon.currentHp ?? 100) <= 0) {
@@ -1029,6 +1091,7 @@ export const commands: Chat.ChatCommands = {
 				refreshGamePage(user);
 				return;
 			}
+
 			state.purchasedItem = itemKey;
 			if (item.type === 'item') {
 				state.pendingItemName = item.name;
@@ -1036,6 +1099,7 @@ export const commands: Chat.ChatCommands = {
 				state.pendingConsumableType = item.type as any;
 			}
 			(state as any).view = 'main';
+
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
@@ -1144,7 +1208,6 @@ export const commands: Chat.ChatCommands = {
 						...newMon,
 						unlockedNatures: [newMon.nature!],
 						unlockedAbilities: [newMon.ability!],
-						unlockedTeraTypes: [newMon.teraType!],
 						selectedNature: newMon.nature,
 						selectedAbility: newMon.ability,
 					};
@@ -1168,163 +1231,6 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
-		prebattle(target, room, user) {
-			if (!user.named) return this.errorReply("Login required.");
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
-
-			clearStaleBattleRoom(state, user.id);
-
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve all pending choices before starting a battle.");
-			}
-
-			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
-				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
-			}
-
-			if (state.battleRoomId) {
-				return this.errorReply("You are already in a battle.");
-			}
-
-			if (state.pendingTrainer && state.pendingTrainerKey) {
-				(state as any).view = 'trainer';
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
-
-			const floor = state.floor;
-
-			if (config.hasTrainers && data.resolveTrainer) {
-				const resolvedTrainer = data.resolveTrainer(floor, state, config);
-
-				if (resolvedTrainer) {
-					state.pendingTrainer = resolvedTrainer.name;
-					state.pendingTrainerKey = resolvedTrainer.key;
-
-					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
-
-					if (trainerData?.spriteUrl || trainerData?.dialog) {
-						(state as any).view = 'trainer';
-						setState(user.id, state);
-						refreshGamePage(user);
-						return;
-					}
-				}
-			}
-
-			setState(user.id, state);
-			return this.parse('/pokerogue battle');
-		},
-
-		battle(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
-
-			clearStaleBattleRoom(state, user.id);
-
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve all pending choices before starting a battle.");
-			}
-
-			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
-				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
-			}
-
-			if (startBattle(user, state)) {
-				(state as any).view = 'main';
-				setState(user.id, state);
-				refreshGamePage(user);
-			}
-		},
-
-		cyclestarter(target, room, user) {
-			const state = getState(user.id);
-			if (!state || !state.isConfiguringStarter) return;
-			const userData = getUserData(user.id);
-
-			const [trait, direction] = target.trim().split(' ');
-			const mon = state.team[0];
-
-			let baseSpecies = toID(mon.species);
-			while (true) {
-				const sp = Dex.species.get(baseSpecies);
-				const prevo = sp.prevo;
-				if (!prevo) break;
-				baseSpecies = toID(prevo);
-			}
-
-			let starterData = userData.starters[baseSpecies];
-
-			if (!starterData) {
-				starterData = {
-					unlockedNatures: [mon.nature!],
-					unlockedAbilities: [mon.ability!],
-					selectedNature: mon.nature!,
-					selectedAbility: mon.ability!,
-				} as PokemonEntry;
-				userData.starters[baseSpecies] = starterData;
-			}
-
-			if (trait === 'nature') {
-				const pool = starterData.unlockedNatures?.length ? starterData.unlockedNatures : [mon.nature!];
-				if (!pool.includes(mon.nature!)) pool.push(mon.nature!);
-
-				if (pool.length <= 1) {
-					state.notification = `You haven't unlocked any other Natures for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
-				} else {
-					let idx = pool.indexOf(mon.nature!);
-					if (direction === 'next') idx = (idx + 1) % pool.length;
-					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
-
-					mon.nature = pool[idx];
-					starterData.selectedNature = pool[idx];
-					starterData.nature = pool[idx];
-				}
-			} else if (trait === 'ability') {
-				const pool = starterData.unlockedAbilities?.length ? starterData.unlockedAbilities : [mon.ability!];
-				if (!pool.includes(mon.ability!)) pool.push(mon.ability!);
-
-				if (pool.length <= 1) {
-					state.notification = `You haven't unlocked any other Abilities for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
-				} else {
-					let idx = pool.indexOf(mon.ability!);
-					if (direction === 'next') idx = (idx + 1) % pool.length;
-					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
-
-					mon.ability = pool[idx];
-					starterData.selectedAbility = pool[idx];
-					starterData.ability = pool[idx];
-				}
-			} else if (trait === 'tera') {
-				const pool = starterData.unlockedTeraTypes?.length ? starterData.unlockedTeraTypes : [mon.teraType!];
-				if (!pool.includes(mon.teraType!)) pool.push(mon.teraType!);
-
-				if (pool.length <= 1) {
-					state.notification = `You haven't unlocked any other Tera Types for this Pokémon yet! Catch duplicates or use Tera Shards to expand your options.`;
-				} else {
-					let idx = pool.indexOf(mon.teraType!);
-					if (direction === 'next') idx = (idx + 1) % pool.length;
-					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
-
-					mon.teraType = pool[idx];
-					starterData.teraType = pool[idx];
-				}
-			}
-
-			saveUserData(user.id);
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-
 		resolve(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
@@ -1332,7 +1238,6 @@ export const commands: Chat.ChatCommands = {
 			const spaceIdx = target.indexOf(' ');
 			const action = spaceIdx === -1 ? target.trim() : target.slice(0, spaceIdx).trim();
 			const rest = spaceIdx === -1 ? '' : target.slice(spaceIdx + 1).trim();
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 
 			switch (action) {
 			case 'learnmove': {
@@ -1538,93 +1443,6 @@ export const commands: Chat.ChatCommands = {
 					mon.evs[evStat] += gain;
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
-				} else if (item.type === 'candy') {
-					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
-					let levelsToGain = itemKey === 'rarercandy' ? 3 : 1;
-					const candyJars = (state.keyItems ?? []).filter(k => k === 'Candy Jar').length;
-					levelsToGain += candyJars;
-
-					const { cap: levelCap } = getLevelScaling(state.floor, config);
-					mon.level = Math.min(levelCap, mon.level + levelsToGain);
-					mon.exp = expForLevel(mon.level, mon.expType ?? getExpType(mon.species));
-
-					let evolved = false;
-					while (true) {
-						const evo = getLevelUpEvo(mon.species, mon.happiness);
-						if (!evo || mon.level < evo.evoLevel) break;
-						mon.expType = getExpType(evo.evoTo);
-						mon.species = evo.evoTo;
-						evolved = true;
-					}
-
-					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 10);
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
-				} else if (item.type === 'mint') {
-					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
-					mon.nature = item.nature;
-					mon.selectedNature = item.nature;
-
-					const userData = getUserData(user.id);
-					let baseSpecies = toID(mon.species);
-					while (true) {
-						const sp = Dex.species.get(baseSpecies);
-						if (!sp.prevo) break;
-						baseSpecies = toID(sp.prevo);
-					}
-					if (userData.starters[baseSpecies] && item.nature) {
-						const starterData = userData.starters[baseSpecies];
-						if (!starterData.unlockedNatures) starterData.unlockedNatures = [];
-						if (!starterData.unlockedNatures.includes(item.nature)) {
-							starterData.unlockedNatures.push(item.nature);
-						}
-						starterData.selectedNature = item.nature;
-						starterData.nature = item.nature;
-						saveUserData(user.id);
-					}
-
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Nature changed to <b>${item.nature}</b>!`;
-				} else if (item.type === 'teraShard') {
-					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
-					mon.teraType = item.teraType;
-
-					const userData = getUserData(user.id);
-					let baseSpecies = toID(mon.species);
-					while (true) {
-						const sp = Dex.species.get(baseSpecies);
-						if (!sp.prevo) break;
-						baseSpecies = toID(sp.prevo);
-					}
-					if (userData.starters[baseSpecies] && item.teraType) {
-						const starterData = userData.starters[baseSpecies];
-						if (!starterData.unlockedTeraTypes) starterData.unlockedTeraTypes = [];
-						if (!starterData.unlockedTeraTypes.includes(item.teraType)) {
-							starterData.unlockedTeraTypes.push(item.teraType);
-						}
-						starterData.teraType = item.teraType;
-						saveUserData(user.id);
-					}
-
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Tera Type changed to <b>${item.teraType}</b>!`;
-				} else if (item.type === 'tm') {
-					const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
-					if (mon.moves.includes(moveId)) return this.errorReply("This Pokémon already knows that move.");
-
-					const fullLearn = Dex.species.getFullLearnset(toID(mon.species));
-					const canLearn = fullLearn.some(step => step.learnset[moveId]);
-					if (!canLearn) return this.errorReply("This Pokémon cannot learn that move.");
-
-					if (mon.moves.length < 4) {
-						mon.moves.push(moveId);
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> learned <b>${Dex.moves.get(moveId).name}</b>!`;
-					} else {
-						state.pendingMoves = state.pendingMoves || [];
-						state.pendingMoves.push({
-							pokemonIndex: slot,
-							move: moveId,
-							speciesName: mon.species
-						});
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${Dex.moves.get(moveId).name}</b>.`;
-					}
 				}
 
 				delete state.purchasedItem;
@@ -1645,6 +1463,84 @@ export const commands: Chat.ChatCommands = {
 
 			setState(user.id, state);
 			refreshGamePage(user);
+		},
+
+		prebattle(target, room, user) {
+			if (!user.named) return this.errorReply("Login required.");
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+
+			clearStaleBattleRoom(state, user.id);
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve all pending choices before starting a battle.");
+			}
+
+			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
+				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
+			}
+
+			if (state.battleRoomId) {
+				return this.errorReply("You are already in a battle.");
+			}
+
+			if (state.pendingTrainer && state.pendingTrainerKey) {
+				(state as any).view = 'trainer';
+				setState(user.id, state);
+				refreshGamePage(user);
+				return;
+			}
+
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
+			const floor = state.floor;
+
+			if (config.hasTrainers && data.resolveTrainer) {
+				const resolvedTrainer = data.resolveTrainer(floor, state, config);
+
+				if (resolvedTrainer) {
+					state.pendingTrainer = resolvedTrainer.name;
+					state.pendingTrainerKey = resolvedTrainer.key;
+
+					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
+
+					if (trainerData?.spriteUrl || trainerData?.dialog) {
+						(state as any).view = 'trainer';
+						setState(user.id, state);
+						refreshGamePage(user);
+						return;
+					}
+				}
+			}
+
+			setState(user.id, state);
+			return this.parse('/pokerogue battle');
+		},
+
+		battle(target, room, user) {
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+
+			clearStaleBattleRoom(state, user.id);
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve all pending choices before starting a battle.");
+			}
+
+			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
+				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
+			}
+
+			if (startBattle(user, state)) {
+				(state as any).view = 'main';
+				setState(user.id, state);
+				refreshGamePage(user);
+			}
 		},
 
 		catch(target, room, user) {
@@ -1913,6 +1809,84 @@ export const commands: Chat.ChatCommands = {
 				state.caughtPokemon = caught;
 				setState(user.id, state);
 
+				const userData = getUserData(user.id);
+
+				if (state.gameMode === 'classic') {
+					let baseSpecies = p2Species;
+					while (true) {
+						const sp = Dex.species.get(baseSpecies);
+						const prevo = sp.prevo;
+						if (!prevo) break;
+						baseSpecies = toID(prevo);
+					}
+
+					const existingStarter = userData.starters[baseSpecies];
+					const baseDex = Dex.species.get(baseSpecies);
+
+					const bestIvs = existingStarter?.ivs ? {
+						hp: Math.max(existingStarter.ivs.hp, caught.ivs.hp),
+						atk: Math.max(existingStarter.ivs.atk, caught.ivs.atk),
+						def: Math.max(existingStarter.ivs.def, caught.ivs.def),
+						spa: Math.max(existingStarter.ivs.spa, caught.ivs.spa),
+						spd: Math.max(existingStarter.ivs.spd, caught.ivs.spd),
+						spe: Math.max(existingStarter.ivs.spe, caught.ivs.spe),
+					} : { ...caught.ivs };
+
+					const isShiny = existingStarter?.shiny || caught.shiny;
+
+					const unlockedNatures = new Set(existingStarter?.unlockedNatures || []);
+					if (existingStarter?.nature) unlockedNatures.add(existingStarter.nature);
+					if (existingStarter?.selectedNature) unlockedNatures.add(existingStarter.selectedNature);
+					if (caught.nature) unlockedNatures.add(caught.nature);
+
+					const unlockedAbilities = new Set(existingStarter?.unlockedAbilities || []);
+					if (existingStarter?.ability) unlockedAbilities.add(existingStarter.ability);
+					if (existingStarter?.selectedAbility) unlockedAbilities.add(existingStarter.selectedAbility);
+					if (caught.ability) unlockedAbilities.add(caught.ability);
+
+					const selectedNature = existingStarter?.selectedNature || caught.nature;
+					const selectedAbility = existingStarter?.selectedAbility || caught.ability;
+
+					const baseCaught = {
+						...caught,
+						species: baseSpecies,
+						level: 5,
+						exp: expForLevel(5, getExpType(baseSpecies)),
+						expType: getExpType(baseSpecies),
+						moves: getLevelUpMoves(baseSpecies, 5, config.generation),
+						ability: selectedAbility,
+						nature: selectedNature,
+						shiny: !!isShiny,
+						ivs: bestIvs,
+						evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+						metLevel: 5,
+						metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
+						currentHp: 100,
+						ball: caught.ball,
+						gender: caught.gender,
+						teraType: caught.teraType,
+						marks: caught.marks ? [...caught.marks] : [],
+						unlockedNatures: Array.from(unlockedNatures),
+						unlockedAbilities: Array.from(unlockedAbilities),
+						selectedNature: selectedNature,
+						selectedAbility: selectedAbility,
+					};
+					
+					delete baseCaught.status;
+					delete baseCaught.heldItem;
+
+					userData.starters[baseSpecies] = baseCaught;
+					saveUserData(user.id);
+
+					if (!existingStarter) {
+						room.add(`|c|~|${baseDex.name} has been permanently unlocked as a Starter!`).update();
+					} else {
+						let upgradeMsg = " upgraded its Starter data!";
+						if (!existingStarter.shiny && caught.shiny) upgradeMsg = " unlocked its Shiny form!";
+						room.add(`|c|~|${baseDex.name}${upgradeMsg}`).update();
+					}
+				}
+
 				const match = activeMatches.get(room.roomid);
 				if (match) {
 					const botUser = Users.get(match.botUserId);
@@ -1933,7 +1907,7 @@ export const commands: Chat.ChatCommands = {
 				room.add(escapeMsg).update();
 			}
 		},
-		
+
 		help(target, room, user) {
 			if (!this.runBroadcast()) return;
 			const isStaff = user.can('lock');
@@ -1978,32 +1952,43 @@ export const handlers: Chat.Handlers = {
 	onBattleEnd(battle, winner, players) {
 		const match = activeMatches.get(battle.roomid);
 		if (!match) return;
+
 		activeMatches.delete(battle.roomid);
 		const botUser = Users.get(match.botUserId);
 		if (botUser) destroyBotUser(botUser);
+
 		const state = getState(match.userId);
 		if (!state) return;
+
 		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 		const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
 		const isBossFloor = match.floor % config.bossInterval === 0;
 		const room = Rooms.get(battle.roomid);
 		const logLines: string[] = room?.log?.log ?? [];
+
 		const { consumedItems } = syncBattleOutcome(logLines, state);
+
 		const battleLogMsgs: string[] = [];
+
 		if (consumedItems.length) {
 			battleLogMsgs.push(`<b>Consumed items:</b> ${consumedItems.join(', ')}`);
 		}
+
 		delete state.battleRoomId;
+
 		if (toID(winner) === match.userId) {
 			const isTrainerBattle = match.isTrainerBattle ?? false;
 			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle, config);
 			const prevFloor = state.floor;
+
 			if (config.maxFloor && prevFloor >= config.maxFloor) {
 				state.gameWon = true;
 				state.lastRunFloor = prevFloor;
 				if (prevFloor > (state.highestFloor ?? 0)) {
 					state.highestFloor = prevFloor;
 					state.recordTeam = state.team.map(m => ({ ...m }));
+
 					globalStats[match.userId] = {
 						highestFloor: prevFloor,
 						displayName: state.displayName || match.userId,
@@ -2011,11 +1996,13 @@ export const handlers: Chat.Handlers = {
 					};
 					saveGlobalStats();
 				}
+
 				setState(match.userId, state);
 				const hUser = Users.get(match.userId);
 				if (hUser) refreshGamePage(hUser);
 				return;
 			}
+
 			const nextFloor = prevFloor + 1;
 			if (nextFloor % config.biomeRotationInterval === 1 && nextFloor > config.biomeRotationInterval) {
 				if (config.lastBiome && !data.resolveBiome) {
@@ -2037,10 +2024,13 @@ export const handlers: Chat.Handlers = {
 			} else if (!state.currentBiome) {
 				state.currentBiome = config.startingBiome;
 			}
+
 			const { extraNotifs } = processFloorRewards(state, prevFloor, config, match.userId);
+
 			if (state.caughtPokemon) {
 				const caughtMon = state.caughtPokemon;
 				const spName = Dex.species.get(toID(caughtMon.species)).name;
+
 				if (state.team.length < 6) {
 					state.team.push(caughtMon);
 					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught and joined the team!</b>`);
@@ -2048,131 +2038,41 @@ export const handlers: Chat.Handlers = {
 					state.pendingSwap = caughtMon;
 					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught! (Team full, swap pending)</b>`);
 				}
-				const userData = getUserData(match.userId);
-				if (state.gameMode === 'classic') {
-					let baseSpecies = caughtMon.species;
-					while (true) {
-						const sp = Dex.species.get(baseSpecies);
-						const prevo = sp.prevo;
-						if (!prevo) break;
-						baseSpecies = toID(prevo);
-					}
-					const existingStarter = userData.starters[baseSpecies];
-					const baseDex = Dex.species.get(baseSpecies);
-					const bestIvs = existingStarter?.ivs ? {
-						hp: Math.max(existingStarter.ivs.hp, caughtMon.ivs.hp),
-						atk: Math.max(existingStarter.ivs.atk, caughtMon.ivs.atk),
-						def: Math.max(existingStarter.ivs.def, caughtMon.ivs.def),
-						spa: Math.max(existingStarter.ivs.spa, caughtMon.ivs.spa),
-						spd: Math.max(existingStarter.ivs.spd, caughtMon.ivs.spd),
-						spe: Math.max(existingStarter.ivs.spe, caughtMon.ivs.spe),
-					} : { ...caughtMon.ivs };
-					const isShiny = existingStarter?.shiny || caughtMon.shiny;
-					const unlockedNatures = new Set(existingStarter?.unlockedNatures || []);
-					if (existingStarter?.nature) unlockedNatures.add(existingStarter.nature);
-					if (existingStarter?.selectedNature) unlockedNatures.add(existingStarter.selectedNature);
-					const isNewNature = caughtMon.nature && !unlockedNatures.has(caughtMon.nature);
-					if (caughtMon.nature) unlockedNatures.add(caughtMon.nature);
-					const unlockedAbilities = new Set(existingStarter?.unlockedAbilities || []);
-					if (existingStarter?.ability) unlockedAbilities.add(existingStarter.ability);
-					if (existingStarter?.selectedAbility) unlockedAbilities.add(existingStarter.selectedAbility);
-					const isNewAbility = caughtMon.ability && !unlockedAbilities.has(caughtMon.ability);
-					if (caughtMon.ability) unlockedAbilities.add(caughtMon.ability);
-					const unlockedTeraTypes = new Set(existingStarter?.unlockedTeraTypes || []);
-					if (existingStarter?.teraType) unlockedTeraTypes.add(existingStarter.teraType);
-					const isNewTera = caughtMon.teraType && !unlockedTeraTypes.has(caughtMon.teraType);
-					if (caughtMon.teraType) unlockedTeraTypes.add(caughtMon.teraType);
-					const selectedNature = existingStarter?.selectedNature || caughtMon.nature;
-					const selectedAbility = existingStarter?.selectedAbility || caughtMon.ability;
-					const baseCaught = {
-						...caughtMon,
-						species: baseSpecies,
-						level: 5,
-						exp: expForLevel(5, getExpType(baseSpecies)),
-						expType: getExpType(baseSpecies),
-						moves: getLevelUpMoves(baseSpecies, 5, config.generation),
-						ability: selectedAbility,
-						nature: selectedNature,
-						shiny: !!isShiny,
-						ivs: bestIvs,
-						evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-						metLevel: 5,
-						metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`,
-						currentHp: 100,
-						ball: caughtMon.ball,
-						gender: caughtMon.gender,
-						teraType: caughtMon.teraType,
-						marks: caughtMon.marks ? [...caughtMon.marks] : [],
-						unlockedNatures: Array.from(unlockedNatures),
-						unlockedAbilities: Array.from(unlockedAbilities),
-						unlockedTeraTypes: Array.from(unlockedTeraTypes),
-						selectedNature: selectedNature,
-						selectedAbility: selectedAbility,
-					};
-					delete baseCaught.status;
-					delete baseCaught.heldItem;
-					userData.starters[baseSpecies] = baseCaught;
-					saveUserData(match.userId);
-					if (!existingStarter) {
-						battleLogMsgs.push(`&nbsp;&nbsp;↳ <b style="color:#fac000">${baseDex.name} has been permanently unlocked as a Starter!</b>`);
-					} else {
-						const upgrades: string[] = [];
-						if (!existingStarter.shiny && caughtMon.shiny) upgrades.push("its Shiny form");
-						if (isNewNature) upgrades.push(`new nature ${caughtMon.nature}`);
-						if (isNewTera) upgrades.push(`new tera type ${caughtMon.teraType}`);
-						if (isNewAbility) {
-							const abilityName = Dex.abilities.get(caughtMon.ability).name || caughtMon.ability;
-							upgrades.push(`new ability ${abilityName}`);
-						}
-						if (upgrades.length > 0) {
-							battleLogMsgs.push(`&nbsp;&nbsp;↳ <b style="color:#4caf50">${baseDex.name} unlocked:</b> ${upgrades.join(', ')}`);
-						} else {
-							let ivImproved = false;
-							if (existingStarter.ivs) {
-								for (const stat of ['hp', 'atk', 'def', 'spa', 'spd', 'spe']) {
-									if (caughtMon.ivs[stat] > existingStarter.ivs[stat]) {
-										ivImproved = true;
-										break;
-									}
-								}
-							}
-							if (ivImproved) battleLogMsgs.push(`&nbsp;&nbsp;↳ <span style="color:#8ab4f8">${baseDex.name} upgraded its Starter IVs!</span>`);
-						}
-					}
-				}
 				delete state.caughtPokemon;
 			}
+
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
-			let itemMultiplier = 1.0;
-			const amuletCoins = (state.keyItems ?? []).filter(k => k === 'Amulet Coin').length;
-			const goldenPunches = (state.keyItems ?? []).filter(k => k === 'Golden Punch').length;
-			const amuletCoinItem = Object.values(SHOP_ITEMS).find(i => i.name === 'Amulet Coin');
-			const goldenPunchItem = Object.values(SHOP_ITEMS).find(i => i.name === 'Golden Punch');
-			itemMultiplier += (0.2 * Math.min(amuletCoinItem?.maxStack ?? 5, amuletCoins));
-			itemMultiplier += (0.5 * Math.min(goldenPunchItem?.maxStack ?? 5, goldenPunches));
-			const rewardMultiplier = (isBossFloor ? 1.0 : 0.2) * itemMultiplier;
+
+			const rewardMultiplier = isBossFloor ? 1.0 : 0.2;
 			const moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
 			state.money = (state.money ?? 0) + moneyGained;
 			battleLogMsgs.push(`<div style="color:#fac000; font-weight:bold;">Earned $${moneyGained}!</div>`);
+
 			state.displayName = Users.get(match.userId)?.name || match.userId;
 			state.timesRerolled = 0;
+			
 			state.pendingRewardDraft = generateDraftOptions(state, config);
+			
 			state.rerollCount = 0;
 			(state as any).view = 'draft';
+
 		} else {
 			handleBattleLoss(state, match.floor, match.userId);
 		}
+
 		if (battleLogMsgs.length > 0 && room) {
 			const infoboxHtml = `<div class="pr" style="background:transparent; border:none; min-height:0; max-width:100%; margin:4px 0;">` +
 				`<div class="pr-card" style="margin: 0; padding: 10px 14px;">` +
 				`<div class="pr-choice-heading" style="font-size: 14px; margin-bottom: 6px; text-align: center;">Floor ${match.floor} - Battle Report</div>` +
 				`<div style="font-size: 12px; line-height: 1.55;">${battleLogMsgs.join('<br>')}</div>` +
 				`</div></div>`;
+
 			room.add(`|html|${infoboxHtml}`).update();
 		}
+
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
-	}
+	},
 };
