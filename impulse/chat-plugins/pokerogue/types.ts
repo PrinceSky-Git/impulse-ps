@@ -174,8 +174,6 @@ export interface PokeRogueState {
 	pendingItemIsEvo?: boolean;
 	isRotationalItem?: boolean;
 	moveToLearn?: string;
-	pokemonForTM?: number;
-	moveForgotten?: string;
 	itemOptions?: string[];
 	battleRoomId?: string;
 	streaksWon?: number;
