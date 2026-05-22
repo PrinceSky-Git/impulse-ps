@@ -788,11 +788,13 @@ export const commands: Chat.ChatCommands = {
 
 		statstab(target, room, user) {
 			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
+			if (!state || state.view !== 'stats') return this.parse('/pokerogue start');
+			
 			const args = target.trim().split(' ');
 			const dir = args[0];
 			const TAB_COUNT = 3;
-			let current = (state as any).statsTab ?? 0;
+			let current = state.statsTab ?? 0;
+			
 			if (dir === 'next') {
 				current = (current + 1) % TAB_COUNT;
 			} else if (dir === 'prev') {
@@ -802,16 +804,23 @@ export const commands: Chat.ChatCommands = {
 				if (!isNaN(n) && n >= 0 && n < TAB_COUNT) current = n;
 			}
 
-			(state as any).statsTab = current;
-			setState(user.id, state);
+			const nextState: StatsViewState = {
+				...state,
+				statsTab: current,
+			};
+			setState(user.id, nextState);
 			refreshGamePage(user);
 		},
 
 		startersearch(target, room, user) {
 			const state = getState(user.id);
-			if (!state || (state as any).view !== 'starterselect') return;
-			(state as any).starterSearch = target.trim().toLowerCase();
-			setState(user.id, state);
+			if (!state || state.view !== 'starterselect') return;
+			
+			const nextState: StarterSelectViewState = {
+				...state,
+				starterSearch: target.trim().toLowerCase(),
+			};
+			setState(user.id, nextState);
 			refreshGamePage(user);
 		},
 
@@ -1396,6 +1405,7 @@ export const commands: Chat.ChatCommands = {
 					state.notification = `Forgot ${oldMoveName} and learned <b>${Dex.moves.get(pending.move).name}</b>!`;
 				}
 				state.pendingMoves.shift();
+				setState(user.id, state);
 				break;
 			}
 
@@ -1404,31 +1414,46 @@ export const commands: Chat.ChatCommands = {
 				const newMon = state.pendingSwap;
 				const newMonName = Dex.species.get(toID(newMon.species)).name;
 				
+				let updatedNotification = '';
 				if (rest === 'skip') {
-					state.notification = `You released <b>${newMonName}</b> into the wild.`;
+					updatedNotification = `You released <b>${newMonName}</b> into the wild.`;
 				} else {
 					const slot = parseInt(rest) - 1;
 					if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
 					const oldMonName = Dex.species.get(toID(state.team[slot].species)).name;
 					state.team[slot] = newMon;
 					if (state.pendingMoves) state.pendingMoves = state.pendingMoves.filter(p => p.pokemonIndex !== slot);
-					state.notification = `You replaced ${oldMonName} with <b>${newMonName}</b>!`;
+					updatedNotification = `You replaced ${oldMonName} with <b>${newMonName}</b>!`;
 				}
-				delete state.pendingSwap;
+
+				const nextState = {
+					...state,
+					notification: updatedNotification,
+					pendingSwap: undefined,
+				};
+				setState(user.id, nextState);
 				break;
 			}
 
 			case 'pickitem': {
 				if (!state.itemOptions?.length) return;
 				if (rest === 'skip') {
-					delete state.itemOptions;
-					delete state.purchasedItem;
+					const nextState = {
+						...state,
+						itemOptions: undefined,
+						purchasedItem: undefined,
+					};
+					setState(user.id, nextState);
 				} else {
 					const dexItem = Dex.items.get(rest);
 					if (!dexItem.exists) return this.errorReply("Unknown item.");
-					state.pendingItemName = dexItem.name;
-					delete state.itemOptions;
-					delete state.purchasedItem;
+					const nextState = {
+						...state,
+						pendingItemName: dexItem.name,
+						itemOptions: undefined,
+						purchasedItem: undefined,
+					};
+					setState(user.id, nextState);
 				}
 				break;
 			}
@@ -1438,19 +1463,37 @@ export const commands: Chat.ChatCommands = {
 				const itemKey = state.purchasedItem;
 
 				if (rest === 'skip') {
+					let currentMoney = state.money || 0;
 					if (itemKey) {
 						const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 						const item = activeShop[itemKey];
 						if (item && item.isShopItem) {
-							state.money = (state.money || 0) + getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
+							currentMoney += getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
 						}
 					}
-					delete state.pendingItemName;
-					delete state.purchasedItem;
-					delete state.pendingItemIsEvo;
 					
-					if (state.pendingRewardDraft) (state as any).view = 'draft';
-					else { state.floor++; (state as any).view = 'main'; }
+					if (state.pendingRewardDraft) {
+						const nextState = {
+							...state,
+							money: currentMoney,
+							pendingItemName: undefined,
+							purchasedItem: undefined,
+							pendingItemIsEvo: undefined,
+							view: 'draft' as const,
+						};
+						setState(user.id, nextState);
+					} else {
+						const nextState = {
+							...state,
+							money: currentMoney,
+							floor: state.floor + 1,
+							pendingItemName: undefined,
+							purchasedItem: undefined,
+							pendingItemIsEvo: undefined,
+							view: 'main' as const,
+						};
+						setState(user.id, nextState);
+					}
 					break;
 				}
 
@@ -1466,17 +1509,32 @@ export const commands: Chat.ChatCommands = {
 					
 					if (allMoves.length === 0) return this.errorReply("This Pokémon has no moves to remember.");
 
-					state.pendingMoves = [{
+					const nextPendingMoves = [{
 						pokemonIndex: slot,
 						move: allMoves[Math.floor(Math.random() * allMoves.length)], 
 						speciesName: mon.species
 					}];
 					
-					delete state.purchasedItem;
-					delete state.pendingItemName;
-					
-					if (state.pendingRewardDraft) (state as any).view = 'draft';
-					else { state.floor++; (state as any).view = 'main'; }
+					if (state.pendingRewardDraft) {
+						const nextState = {
+							...state,
+							pendingMoves: nextPendingMoves,
+							purchasedItem: undefined,
+							pendingItemName: undefined,
+							view: 'draft' as const,
+						};
+						setState(user.id, nextState);
+					} else {
+						const nextState = {
+							...state,
+							pendingMoves: nextPendingMoves,
+							floor: state.floor + 1,
+							purchasedItem: undefined,
+							pendingItemName: undefined,
+							view: 'main' as const,
+						};
+						setState(user.id, nextState);
+					}
 					break;
 				}
 
@@ -1490,8 +1548,7 @@ export const commands: Chat.ChatCommands = {
 							const evoItemId = toID(evoData.evoItem);
 							const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
 							const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
-							const isPlainTradeEvolution =
-								evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
+							const isPlainTradeEvolution = evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
 							if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
 								evoTarget = evoData.id;
 								break;
@@ -1501,11 +1558,12 @@ export const commands: Chat.ChatCommands = {
 					if (!evoTarget) return this.errorReply("That Pokémon can't evolve with this item.");
 				}
 
+				let updatedNotification = '';
 				if (state.pendingItemIsEvo) {
 					mon.species = evoTarget;
 					mon.expType = getExpType(evoTarget);
 					const evoName = Dex.species.get(evoTarget).name;
-					state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
+					updatedNotification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
 				} else {
 					if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
 						mon.species = toID(dexNewItem.forcedForme);
@@ -1516,15 +1574,31 @@ export const commands: Chat.ChatCommands = {
 						}
 					}
 					mon.heldItem = toID(state.pendingItemName);
-					state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
+					updatedNotification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
 				}
 
-				delete state.pendingItemName;
-				delete state.purchasedItem;
-				delete state.pendingItemIsEvo;
-				
-				if (state.pendingRewardDraft) (state as any).view = 'draft';
-				else { state.floor++; (state as any).view = 'main'; }
+				if (state.pendingRewardDraft) {
+					const nextState = {
+						...state,
+						notification: updatedNotification,
+						pendingItemName: undefined,
+						purchasedItem: undefined,
+						pendingItemIsEvo: undefined,
+						view: 'draft' as const,
+					};
+					setState(user.id, nextState);
+				} else {
+					const nextState = {
+						...state,
+						notification: updatedNotification,
+						floor: state.floor + 1,
+						pendingItemName: undefined,
+						purchasedItem: undefined,
+						pendingItemIsEvo: undefined,
+						view: 'main' as const,
+					};
+					setState(user.id, nextState);
+				}
 				break;
 			}
 
@@ -1533,18 +1607,35 @@ export const commands: Chat.ChatCommands = {
 				const itemKey = state.purchasedItem;
 
 				if (rest === 'skip') {
+					let currentMoney = state.money || 0;
 					if (itemKey) {
 						const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 						const item = activeShop[itemKey];
 						if (item && item.isShopItem) {
-							state.money = (state.money || 0) + getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
+							currentMoney += getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
 						}
 					}
-					delete state.purchasedItem;
-					delete state.pendingConsumableType;
 					
-					if (state.pendingRewardDraft) (state as any).view = 'draft';
-					else { state.floor++; (state as any).view = 'main'; }
+					if (state.pendingRewardDraft) {
+						const nextState = {
+							...state,
+							money: currentMoney,
+							purchasedItem: undefined,
+							pendingConsumableType: undefined,
+							view: 'draft' as const,
+						};
+						setState(user.id, nextState);
+					} else {
+						const nextState = {
+							...state,
+							money: currentMoney,
+							floor: state.floor + 1,
+							purchasedItem: undefined,
+							pendingConsumableType: undefined,
+							view: 'main' as const,
+						};
+						setState(user.id, nextState);
+					}
 					break;
 				}
 
@@ -1556,6 +1647,8 @@ export const commands: Chat.ChatCommands = {
 				if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
 				const mon = state.team[slot];
 				const hp = mon.currentHp ?? 100;
+
+				let updatedNotification = '';
 
 				if (item.type === 'healHP') {
 					if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
@@ -1569,22 +1662,22 @@ export const commands: Chat.ChatCommands = {
 					const healPctCalculated = item.healAmount ? Math.max(item.healPercent || 0, (item.healAmount / maxHpActual) * 100) : (item.healPercent || 0);
 					
 					mon.currentHp = item.isMax ? 100 : Math.min(100, hp + Math.round(healPctCalculated));
-					if (item.curesStatus) delete mon.status;
+					if (item.curesStatus) mon.status = undefined;
 					
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
+					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
 				} else if (item.type === 'cureStatus') {
 					if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
 					if (!mon.status) return this.errorReply("That Pokémon has no status condition.");
 					const oldStatus = mon.status;
-					delete mon.status;
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
+					mon.status = undefined;
+					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
 				} else if (item.type === 'revive') {
 					if (hp > 0) return this.errorReply("That Pokémon hasn't fainted.");
 					const revAmt = item.reviveAmount || 50;
 					mon.currentHp = (item.isMax || mon.species === 'shedinja') ? 100 : revAmt;
-					delete mon.status;
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
+					mon.status = undefined;
+					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
 				} else if (item.type === 'vitamin') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					const evStat = (item).evStat as keyof NonNullable<PokemonEntry['evs']>;
@@ -1596,7 +1689,7 @@ export const commands: Chat.ChatCommands = {
 					const gain = Math.min(EV_VITAMIN_GAIN, MAX_EV_STAT - mon.evs[evStat], MAX_EV_TOTAL - totalEvs);
 					mon.evs[evStat] += gain;
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
+					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
 				} else if (item.type === 'candy') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					let levelsToGain = itemKey === 'rarercandy' ? 3 : 1;
@@ -1610,7 +1703,7 @@ export const commands: Chat.ChatCommands = {
 					applyExpAndLevelUp(mon, Math.max(0, expNeeded), state.floor, config);
 
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 10);
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
+					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
 				} else if (item.type === 'mint') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					mon.nature = item.nature;
@@ -1634,7 +1727,7 @@ export const commands: Chat.ChatCommands = {
 						saveUserData(user.id);
 					}
 
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Nature changed to <b>${item.nature}</b>!`;
+					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Nature changed to <b>${item.nature}</b>!`;
 				} else if (item.type === 'teraShard') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					mon.teraType = item.teraType;
@@ -1656,7 +1749,7 @@ export const commands: Chat.ChatCommands = {
 						saveUserData(user.id);
 					}
 
-					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Tera Type changed to <b>${item.teraType}</b>!`;
+					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Tera Type changed to <b>${item.teraType}</b>!`;
 				} else if (item.type === 'tm') {
 					const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
 					if (mon.moves.includes(moveId)) return this.errorReply("This Pokémon already knows that move.");
@@ -1667,7 +1760,7 @@ export const commands: Chat.ChatCommands = {
 
 					if (mon.moves.length < 4) {
 						mon.moves.push(moveId);
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> learned <b>${Dex.moves.get(moveId).name}</b>!`;
+						updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> learned <b>${Dex.moves.get(moveId).name}</b>!`;
 					} else {
 						state.pendingMoves = state.pendingMoves || [];
 						state.pendingMoves.push({
@@ -1675,18 +1768,29 @@ export const commands: Chat.ChatCommands = {
 							move: moveId,
 							speciesName: mon.species
 						});
-						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${Dex.moves.get(moveId).name}</b>.`;
+						updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${Dex.moves.get(moveId).name}</b>.`;
 					}
 				}
 
-				delete state.purchasedItem;
-				delete state.pendingConsumableType;
-				
 				if (state.pendingRewardDraft) {
-					(state as any).view = 'draft';
+					const nextState = {
+						...state,
+						notification: updatedNotification,
+						purchasedItem: undefined,
+						pendingConsumableType: undefined,
+						view: 'draft' as const,
+					};
+					setState(user.id, nextState);
 				} else {
-					state.floor++;
-					(state as any).view = 'main';
+					const nextState = {
+						...state,
+						notification: updatedNotification,
+						floor: state.floor + 1,
+						purchasedItem: undefined,
+						pendingConsumableType: undefined,
+						view: 'main' as const,
+					};
+					setState(user.id, nextState);
 				}
 				break;
 			}
@@ -1695,7 +1799,6 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("Unknown resolve action.");
 			}
 
-			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
@@ -2077,25 +2180,28 @@ export const handlers: Chat.Handlers = {
 		if (consumedItems.length) {
 			battleLogMsgs.push(`<b>Consumed items:</b> ${consumedItems.join(', ')}`);
 		}
-		delete state.battleRoomId;
 		if (toID(winner) === match.userId) {
 			const isTrainerBattle = match.isTrainerBattle ?? false;
 			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle, config);
 			const prevFloor = state.floor;
 			if (config.maxFloor && prevFloor >= config.maxFloor) {
-				state.gameWon = true;
-				state.lastRunFloor = prevFloor;
+				const nextState = {
+					...state,
+					battleRoomId: undefined,
+					gameWon: true,
+					lastRunFloor: prevFloor,
+				};
 				if (prevFloor > (state.highestFloor ?? 0)) {
-					state.highestFloor = prevFloor;
-					state.recordTeam = JSON.parse(JSON.stringify(state.team));
+					nextState.highestFloor = prevFloor;
+					nextState.recordTeam = JSON.parse(JSON.stringify(state.team));
 					globalStats[match.userId] = {
 						highestFloor: prevFloor,
 						displayName: state.displayName || match.userId,
-						recordTeam: state.recordTeam,
+						recordTeam: nextState.recordTeam,
 					};
 					saveGlobalStats();
 				}
-				setState(match.userId, state);
+				setState(match.userId, nextState);
 				const hUser = Users.get(match.userId);
 				if (hUser) refreshGamePage(hUser);
 				return;
@@ -2193,8 +2299,8 @@ export const handlers: Chat.Handlers = {
 						selectedNature: selectedNature,
 						selectedAbility: selectedAbility,
 					};
-					delete baseCaught.status;
-					delete baseCaught.heldItem;
+					baseCaught.status = undefined;
+					baseCaught.heldItem = undefined;
 					userData.starters[baseSpecies] = baseCaught;
 					saveUserData(match.userId);
 					if (!existingStarter) {
@@ -2224,7 +2330,7 @@ export const handlers: Chat.Handlers = {
 						}
 					}
 				}
-				delete state.caughtPokemon;
+				state.caughtPokemon = undefined;
 			}
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
@@ -2239,13 +2345,23 @@ export const handlers: Chat.Handlers = {
 			const moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
 			state.money = (state.money ?? 0) + moneyGained;
 			battleLogMsgs.push(`<div style="color:#fac000; font-weight:bold;">Earned $${moneyGained}!</div>`);
-			state.displayName = Users.get(match.userId)?.name || match.userId;
-			state.timesRerolled = 0;
-			state.pendingRewardDraft = generateDraftOptions(state, config);
-			state.rerollCount = 0;
-			(state as any).view = 'draft';
+			
+			const nextState = {
+				...state,
+				battleRoomId: undefined,
+				displayName: Users.get(match.userId)?.name || match.userId,
+				timesRerolled: 0,
+				pendingRewardDraft: generateDraftOptions(state, config),
+				rerollCount: 0,
+				view: 'draft' as const,
+			};
+			setState(match.userId, nextState);
 		} else {
-			handleBattleLoss(state, match.floor, match.userId);
+			const lossState = {
+				...state,
+				battleRoomId: undefined,
+			};
+			handleBattleLoss(lossState, match.floor, match.userId);
 		}
 		if (battleLogMsgs.length > 0 && room) {
 			const infoboxHtml = `<div class="pr" style="background:transparent; border:none; min-height:0; max-width:100%; margin:4px 0;">` +
@@ -2255,7 +2371,6 @@ export const handlers: Chat.Handlers = {
 				`</div></div>`;
 			room.add(`|html|${infoboxHtml}`).update();
 		}
-		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
 	}
