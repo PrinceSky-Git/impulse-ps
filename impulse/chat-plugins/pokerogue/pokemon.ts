@@ -1000,26 +1000,35 @@ export function getRerollCost(wave: number, rerollCount: number): number {
 export function calculatePartyLuck(team: PokemonEntry[]): number {
 	let luck = 0;
 	for (const mon of team) {
-		if (mon.shiny) luck += 1;
+		if (mon.shiny) luck += 2;
 	}
 	return luck;
 }
 
 export function rollRarity(luck: number): ItemRarityTier {
-	const tiers: ItemRarityTier[] = ['Common', 'Rare', 'Epic', 'Master'];
-	let tierIndex = 0;
+	const tiers: ItemRarityTier[] = ['Common', 'Great', 'Ultra', 'Rogue', 'Master'];
+	const weights = [7500, 1904, 469, 117, 10];
+	const totalWeight = weights.reduce((acc, val) => acc + val, 0);
+	let roll = Math.random() * totalWeight;
+	let currentTier = 0;
 
-	const upgradeOdds = Math.floor(32 / ((luck + 2) / 2));
+	for (let i = 0; i < weights.length; i++) {
+		roll -= weights[i];
+		if (roll <= 0) {
+			currentTier = i;
+			break;
+		}
+	}
 
-	while (tierIndex < tiers.length - 1) {
-		if (upgradeOdds > 0 && Math.floor(Math.random() * upgradeOdds) === 0) {
-			tierIndex++;
+	while (currentTier < tiers.length - 1) {
+		if (Math.floor(Math.random() * 64) < luck) {
+			currentTier++;
 		} else {
 			break;
 		}
 	}
 
-	return tiers[tierIndex];
+	return tiers[currentTier];
 }
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
