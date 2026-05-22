@@ -785,8 +785,7 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 		trainerKey,
 		state.currentBiome || config.startingBiome,
 		config,
-		data,
-		state
+		data
 	);
 
 	return {
