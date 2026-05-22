@@ -406,7 +406,7 @@ function processFloorRewards(
 	const extraNotifs: string[] = [];
 	if (clearedFloor > (state.highestFloor ?? 0)) {
 		state.highestFloor = clearedFloor;
-		state.recordTeam = state.team.map(m => ({ ...m }));
+		state.recordTeam = JSON.parse(JSON.stringify(state.team));
 		globalStats[userId] = {
 			highestFloor: clearedFloor,
 			displayName: state.displayName || userId,
@@ -471,7 +471,7 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 	} else {
 		if (floor > (state.highestFloor ?? 0)) {
 			state.highestFloor = floor;
-			state.recordTeam = state.team.map(m => ({ ...m }));
+			state.recordTeam = JSON.parse(JSON.stringify(state.team));
 
 			globalStats[userId] = {
 				highestFloor: floor,
@@ -1545,17 +1545,10 @@ export const commands: Chat.ChatCommands = {
 					levelsToGain += candyJars;
 
 					const { cap: levelCap } = getLevelScaling(state.floor, config);
-					mon.level = Math.min(levelCap, mon.level + levelsToGain);
-					mon.exp = expForLevel(mon.level, mon.expType ?? getExpType(mon.species));
+					const targetLevel = Math.min(levelCap, mon.level + levelsToGain);
+					const expNeeded = expForLevel(targetLevel, mon.expType ?? getExpType(mon.species)) - mon.exp;
 
-					let evolved = false;
-					while (true) {
-						const evo = getLevelUpEvo(mon.species, mon.happiness);
-						if (!evo || mon.level < evo.evoLevel) break;
-						mon.expType = getExpType(evo.evoTo);
-						mon.species = evo.evoTo;
-						evolved = true;
-					}
+					applyExpAndLevelUp(mon, Math.max(0, expNeeded), state.floor, config);
 
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 10);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
@@ -1686,8 +1679,9 @@ export const commands: Chat.ChatCommands = {
 
 			const log = room.log?.log || [];
 
-			const p2State = new Map<string, { species: string, level: number, hp: number, maxHp: number, status: string, fainted: boolean }>();
+			const p2State = new Map<string, { species: string, level: number, hp: number, maxHp: number, status: string, fainted: boolean, botTeamIndex?: number }>();
 			let p1Fainted = false;
+			const p2Assigned = new Set<number>();
 
 			for (const line of log) {
 				if (/^\|faint\|p1[a-z]:/.test(line)) p1Fainted = true;
@@ -1695,13 +1689,29 @@ export const commands: Chat.ChatCommands = {
 
 				const swMatch = /^\|(?:switch|drag)\|(p2[a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 				if (swMatch) {
+					const parsedSpecies = toID(swMatch[2]);
+					const parsedLevel = swMatch[3] ? parseInt(swMatch[3]) : botLevel(floor, config);
+					
+					let assignedIdx = -1;
+					if (catchMatch.botTeam) {
+						for (let i = 0; i < catchMatch.botTeam.length; i++) {
+							const m = catchMatch.botTeam[i];
+							if (!p2Assigned.has(i) && (toID(m.species) === parsedSpecies || toID(m.name) === parsedSpecies) && m.level === parsedLevel) {
+								assignedIdx = i;
+								p2Assigned.add(i);
+								break;
+							}
+						}
+					}
+					
 					p2State.set(swMatch[1], {
-						species: toID(swMatch[2]),
-						level: swMatch[3] ? parseInt(swMatch[3]) : botLevel(floor, config),
+						species: parsedSpecies,
+						level: parsedLevel,
 						hp: parseInt(swMatch[4]),
 						maxHp: swMatch[5] ? parseInt(swMatch[5]) : 100,
 						status: swMatch[6] || '',
-						fainted: false
+						fainted: false,
+						botTeamIndex: assignedIdx !== -1 ? assignedIdx : undefined
 					});
 					continue;
 				}
@@ -1872,7 +1882,13 @@ export const commands: Chat.ChatCommands = {
 				let caughtTera = Dex.species.get(p2Species).types[0];
 
 				if (catchMatch.botTeam) {
-					const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
+					let botMon;
+					if (targetMon.botTeamIndex !== undefined) {
+						botMon = catchMatch.botTeam[targetMon.botTeamIndex];
+					} else {
+						botMon = catchMatch.botTeam.find(m => (toID(m.species) === p2Species || toID(m.name) === p2Species) && m.level === p2Level);
+					}
+
 					if (botMon) {
 						if (botMon.moves && botMon.moves.length > 0) caughtMoves = botMon.moves;
 						if (botMon.ability) caughtAbility = botMon.ability;
@@ -2003,7 +2019,7 @@ export const handlers: Chat.Handlers = {
 				state.lastRunFloor = prevFloor;
 				if (prevFloor > (state.highestFloor ?? 0)) {
 					state.highestFloor = prevFloor;
-					state.recordTeam = state.team.map(m => ({ ...m }));
+					state.recordTeam = JSON.parse(JSON.stringify(state.team));
 					globalStats[match.userId] = {
 						highestFloor: prevFloor,
 						displayName: state.displayName || match.userId,
