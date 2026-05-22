@@ -369,19 +369,25 @@ function renderStarterSelectionView(state: StarterSelectViewState, user: User): 
 	const pending = state.pendingChoice || [];
 	const userData = getUserData(user.id);
 	const unlockedCount = Object.keys(userData.starters || {}).length;
-	const search = state.starterSearch;
+	
+	// FIX: Fallback to an empty string if the property is undefined in existing save files
+	const search = (state.starterSearch || '').trim().toLowerCase();
 
 	const filtered = search.length > 0
 		? pending.filter(sid => {
-			const sp = Dex.species.get(toID(sid));
-			const saved = userData.starters[toID(sid)];
+			if (!sid) return false;
+			const sidClean = toID(sid);
+			const sp = Dex.species.get(sidClean);
+			if (!sp.exists) return false;
+			
+			const saved = userData.starters[sidClean];
 
 			if (search === 'shiny') return !!saved?.shiny;
 
 			const types = (sp.types ?? []).map(t => t.toLowerCase());
 			if (types.includes(search)) return true;
 
-			return sp.name.toLowerCase().includes(search) || toID(sid).includes(search);
+			return sp.name.toLowerCase().includes(search) || sidClean.includes(search);
 		})
 		: pending;
 
@@ -391,7 +397,7 @@ function renderStarterSelectionView(state: StarterSelectViewState, user: User): 
 	buf += `</div>`;
 
 	buf += `<form data-submitsend="/pokerogue startersearch {data}" style="text-align:center;margin-bottom:12px">`;
-	buf += `<input name="data" value="${Utils.escapeHTML(search)}" placeholder="Name, type, or 'shiny'..." ` +
+	buf += `<input name="data" value="${Utils.escapeHTML(state.starterSearch || '')}" placeholder="Name, type, or 'shiny'..." ` +
 		`style="padding:5px 10px;border-radius:6px;border:1px solid rgba(150,150,150,0.4);background:rgba(0,0,0,0.2);color:inherit;font-size:12px;width:180px;" />`;
 	buf += `&nbsp;&nbsp;<button type="submit" class="pr-btn" style="font-size:11px;padding:5px 10px;">Search</button>`;
 	if (search) {
@@ -400,7 +406,7 @@ function renderStarterSelectionView(state: StarterSelectViewState, user: User): 
 	buf += `</form>`;
 
 	if (filtered.length === 0) {
-		buf += `<div style="text-align:center;padding:16px;color:#888;">No Pokémon found for "<b>${Utils.escapeHTML(search)}</b>".</div>`;
+		buf += `<div style="text-align:center;padding:16px;color:#888;">No Pokémon found for "<b>${Utils.escapeHTML(state.starterSearch || '')}</b>".</div>`;
 		return buf;
 	}
 
