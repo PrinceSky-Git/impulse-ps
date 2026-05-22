@@ -1051,6 +1051,9 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 
 	const draftCount = Math.min(maxCount, baseCount + extraOptions);
 	const pickedKeys = new Set<string>();
+	
+	// Track how many TMs have been rolled in this draft
+	let tmsInDraft = 0;
 
 	for (let i = 0; i < draftCount; i++) {
 		const targetTier = rollRarity(luck);
@@ -1083,6 +1086,9 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 			}
 			
 			if (item.type === 'tm') {
+				// Prevent more than 1 TM from appearing in the draft choices
+				if (tmsInDraft >= 1) return false;
+
 				let anyoneCanLearn = false;
 				const moveId = key.includes('_') ? 
 					key.substring(key.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') : 
@@ -1127,11 +1133,13 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 			if (randomFallback) {
 				draft.push(randomFallback[0]);
 				pickedKeys.add(randomFallback[0]);
+				if (randomFallback[1].type === 'tm') tmsInDraft++;
 			}
 		} else {
 			const randomValid = validItems[Math.floor(Math.random() * validItems.length)];
 			draft.push(randomValid[0]);
 			pickedKeys.add(randomValid[0]);
+			if (randomValid[1].type === 'tm') tmsInDraft++;
 		}
 	}
 	return draft;
