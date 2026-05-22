@@ -1014,11 +1014,12 @@ export function getRerollCost(state: PokeRogueState, isLocked: boolean = false, 
 			if (!item) continue;
 			
 			switch (item.tier) {
-			case 'Common': sumI += 50; break;
-			case 'Rare': sumI += 125; break;
-			case 'Epic': sumI += 300; break;
-			case 'Master': sumI += 2000; break;
-			default: sumI += 50; break;
+				case 'Common': sumI += 50; break;
+				case 'Great': sumI += 100; break;
+				case 'Rare': sumI += 150; break;
+				case 'Ultra': sumI += 400; break;
+				case 'Master': sumI += 1000; break;
+				default: sumI += 50; break;
 			}
 		}
 		baseCost = sumI;
