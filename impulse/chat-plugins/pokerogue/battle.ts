@@ -804,12 +804,74 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		return false;
 	}
 
-	const playerTeam = packTeam(livingTeam);
+	let playerTeam = packTeam(livingTeam);
+
+	playerTeam = playerTeam.split(']').map((monStr, index) => {
+		if (!monStr) return monStr;
+		const parts = monStr.split('|');
+		const mon = livingTeam[index];
+		if (!mon) return monStr;
+
+		const spData = Dex.species.get(toID(mon.species));
+		const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+		const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+		const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+		
+		let maxHpActual = 1;
+		if (spData.id !== 'shedinja') {
+			maxHpActual = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
+		}
+		
+		const absoluteHp = Math.max(1, Math.floor(((mon.currentHp ?? 100) / 100) * maxHpActual));
+		
+		while (parts.length < 15) parts.push('');
+		parts[14] = absoluteHp.toString(); // Index 14 is Showdown's CustomHP field
+		
+		if (mon.status) {
+			while (parts.length < 16) parts.push('');
+			parts[15] = mon.status;
+		} else if (parts.length > 15) {
+			parts[15] = '';
+		}
+		
+		return parts.join('|');
+	}).join(']');
 
 	const botTeamData = buildBotTeam(state);
-	const botTeam = botTeamData.packedTeam;
+	let botTeam = botTeamData.packedTeam;
 	const isTrainer = botTeamData.isTrainer;
 	const trainerName = botTeamData.trainerName;
+
+	botTeam = botTeam.split(']').map((monStr, index) => {
+		if (!monStr) return monStr;
+		const parts = monStr.split('|');
+		const mon = botTeamData.team[index];
+		if (!mon) return monStr;
+
+		const spData = Dex.species.get(toID(mon.species));
+		const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+		const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+		const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+		
+		let maxHpActual = 1;
+		if (spData.id !== 'shedinja') {
+			maxHpActual = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
+		}
+		
+		const absoluteHp = Math.max(1, Math.floor(((mon.currentHp ?? 100) / 100) * maxHpActual));
+		
+		while (parts.length < 15) parts.push('');
+		parts[14] = absoluteHp.toString();
+		
+		if (mon.status) {
+			while (parts.length < 16) parts.push('');
+			parts[15] = mon.status;
+		} else if (parts.length > 15) {
+			parts[15] = '';
+		}
+		
+		return parts.join('|');
+	}).join(']');
 
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 	const isBoss = state.floor % config.bossInterval === 0;
