@@ -506,56 +506,6 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
-		start(target, room, user) {
-			if (!user.named) return this.errorReply("Login required.");
-			let state = getState(user.id);
-
-			if (state?.battleRoomId) {
-				const bRoom = Rooms.get(state.battleRoomId as RoomID);
-				if (!bRoom?.battle || bRoom.battle.ended) delete state.battleRoomId;
-			}
-
-			const hasActiveRun = state && (
-				(state.team?.length > 0) ||
-				((state.floor ?? 1) > 1) ||
-				(state.pendingChoice?.length ?? 0) > 0
-			);
-			const isGameOver = state?.gameOver;
-
-			if (!state || (!hasActiveRun && !isGameOver)) {
-				const highestFloor = state?.highestFloor || 0;
-				const displayName = state?.displayName || user.name;
-				const recordTeam = state?.recordTeam || [];
-				const isFirstEverVisit = !state && highestFloor === 0;
-
-				const defaultConfig = MODE_CONFIGS['classic'];
-
-				state = {
-					floor: 1,
-					gameMode: 'classic',
-					currentBiome: defaultConfig.startingBiome,
-					team: [],
-					money: defaultConfig.economy.startingMoney || 0,
-					timesRerolled: 0,
-					rotationalShop: [],
-					keyItems: { ...(defaultConfig.economy.startingKeyItems || {}) },
-					inventory: { ...(defaultConfig.economy.startingInventory || {}) },
-					highestFloor,
-					displayName,
-					recordTeam,
-				} as PokeRogueState;
-
-				(state as any).view = isFirstEverVisit ? 'welcome' : 'main';
-				setState(user.id, state);
-			}
-
-			if ((state as any).view !== 'welcome') {
-				repairEmptyPendingChoice(state, user.id);
-			}
-
-			return this.parse('/join view-pokerogue');
-		},
-
 		newgame(target, room, user) {
 			const targetParts = target.trim().toLowerCase().split(' ');
 			const isConfirm = targetParts.includes('confirm');
@@ -617,6 +567,250 @@ export const commands: Chat.ChatCommands = {
 			(newState as any).view = useNewStarterSelectionUI ? 'starterselect' : 'main';
 			setState(user.id, newState);
 			return this.parse('/pokerogue start');
+		},
+
+		start(target, room, user) {
+			if (!user.named) return this.errorReply("Login required.");
+			let state = getState(user.id);
+
+			if (state?.battleRoomId) {
+				const bRoom = Rooms.get(state.battleRoomId as RoomID);
+				if (!bRoom?.battle || bRoom.battle.ended) {
+					state = {
+						...state,
+						battleRoomId: undefined,
+					} as PokeRogueState;
+				}
+			}
+
+			const hasActiveRun = state && (
+				(state.team?.length > 0) ||
+				((state.floor ?? 1) > 1) ||
+				(state.pendingChoice?.length ?? 0) > 0
+			);
+			const isGameOver = state?.gameOver;
+
+			if (!state || (!hasActiveRun && !isGameOver)) {
+				const highestFloor = state?.highestFloor || 0;
+				const displayName = state?.displayName || user.name;
+				const recordTeam = state?.recordTeam || [];
+				const isFirstEverVisit = !state && highestFloor === 0;
+
+				const defaultConfig = MODE_CONFIGS['classic'];
+
+				state = {
+					floor: 1,
+					gameMode: 'classic',
+					currentBiome: defaultConfig.startingBiome,
+					team: [],
+					money: defaultConfig.economy.startingMoney || 0,
+					timesRerolled: 0,
+					rotationalShop: [],
+					keyItems: { ...(defaultConfig.economy.startingKeyItems || {}) },
+					inventory: { ...(defaultConfig.economy.startingInventory || {}) },
+					highestFloor,
+					displayName,
+					recordTeam,
+					view: isFirstEverVisit ? 'welcome' : 'main',
+				} as PokeRogueState;
+
+				setState(user.id, state);
+			}
+
+			if (state.view !== 'welcome') {
+				repairEmptyPendingChoice(state, user.id);
+			}
+
+			return this.parse('/join view-pokerogue');
+		},
+
+		prebattle(target, room, user) {
+			if (!user.named) return this.errorReply("Login required.");
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+
+			clearStaleBattleRoom(state, user.id);
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve all pending choices before starting a battle.");
+			}
+
+			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
+				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
+			}
+
+			if (state.battleRoomId) {
+				return this.errorReply("You are already in a battle.");
+			}
+
+			if (state.pendingTrainer && state.pendingTrainerKey) {
+				const nextState = {
+					...state,
+					view: 'trainer' as const,
+				};
+				setState(user.id, nextState);
+				refreshGamePage(user);
+				return;
+			}
+
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
+			const floor = state.floor;
+
+			if (config.hasTrainers && data.resolveTrainer) {
+				const resolvedTrainer = data.resolveTrainer(floor, state, config);
+
+				if (resolvedTrainer) {
+					state.pendingTrainer = resolvedTrainer.name;
+					state.pendingTrainerKey = resolvedTrainer.key;
+
+					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
+
+					if (trainerData?.spriteUrl || trainerData?.dialog) {
+						const nextState = {
+							...state,
+							view: 'trainer' as const,
+						};
+						setState(user.id, nextState);
+						refreshGamePage(user);
+						return;
+					}
+				}
+			}
+
+			setState(user.id, state);
+			return this.parse('/pokerogue battle');
+		},
+
+		draft(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.view !== 'draft' || !state.pendingRewardDraft) return;
+
+			const idx = parseInt(target.trim()) - 1;
+			if (isNaN(idx) || idx < 0 || idx >= state.pendingRewardDraft.length) return;
+
+			const itemKey = state.pendingRewardDraft[idx];
+			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+			const item = activeShop[itemKey];
+
+			const clearedDraftState = {
+				...state,
+				pendingRewardDraft: undefined,
+				rerollCount: undefined,
+			};
+
+			if (item.type === 'pokeball') {
+				const currentInventory = clearedDraftState.inventory || {};
+				const nextState = {
+					...clearedDraftState,
+					inventory: {
+						...currentInventory,
+						[itemKey]: (currentInventory[itemKey] || 0) + 1,
+					},
+					notification: `You took 1x <b>${item.name}</b>!`,
+					floor: clearedDraftState.floor + 1,
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
+			} else if (item.type === 'key') {
+				const currentKeyItems = clearedDraftState.keyItems || {};
+				const nextState = {
+					...clearedDraftState,
+					keyItems: {
+						...currentKeyItems,
+						[item.name]: (currentKeyItems[item.name] || 0) + 1,
+					},
+					notification: `Obtained Key Item: <b>${item.name}</b>!`,
+					floor: clearedDraftState.floor + 1,
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
+			} else if (item.type === 'itemPack') {
+				let updatedNotification = '';
+				let updatedMoney = clearedDraftState.money || 0;
+				if (itemKey === 'nugget') {
+					updatedMoney += 5000;
+					updatedNotification = `You sold the Nugget for $5000!`;
+				} else if (itemKey === 'big_nugget') {
+					updatedMoney += 20000;
+					updatedNotification = `You sold the Big Nugget for $20,000!`;
+				} else if (itemKey === 'starter_token') {
+					updatedNotification = `You unlocked a new Starter!`;
+				}
+				
+				const nextState = {
+					...clearedDraftState,
+					money: updatedMoney,
+					notification: updatedNotification,
+					floor: clearedDraftState.floor + 1,
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
+			} else if (item.type === 'item' || item.type === 'evolveItem') {
+				const nextState = {
+					...clearedDraftState,
+					purchasedItem: itemKey,
+					pendingItemName: item.name,
+					pendingItemIsEvo: item.type === 'evolveItem',
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'candy', 'mint', 'teraShard'].includes(item.type)) {
+				const nextState = {
+					...clearedDraftState,
+					purchasedItem: itemKey,
+					pendingConsumableType: item.type as any,
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
+			}
+
+			refreshGamePage(user);
+		},
+
+		buyshop(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.view !== 'draft') return;
+			const itemKey = toID(target);
+			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+			const item = activeShop[itemKey];
+			if (!item || !item.isShopItem) return this.errorReply("Unknown shop item.");
+			const price = getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
+			if ((state.money || 0) < price) return this.errorReply(`Not enough money! Need $${price}.`);
+			
+			const updatedMoney = (state.money || 0) - price;
+
+			if (itemKey === 'sacredash') {
+				for (const mon of state.team) {
+					if ((mon.currentHp ?? 100) <= 0) {
+						mon.currentHp = 100;
+						mon.status = undefined;
+					}
+				}
+				const nextState = {
+					...state,
+					money: updatedMoney,
+					notification: `Sacred Ash revived all fainted Pokémon!`,
+					view: 'draft' as const,
+				};
+				setState(user.id, nextState);
+				refreshGamePage(user);
+				return;
+			}
+
+			const nextState = {
+				...state,
+				money: updatedMoney,
+				purchasedItem: itemKey,
+				pendingItemName: item.type === 'item' ? item.name : undefined,
+				pendingConsumableType: item.type !== 'item' ? item.type as any : undefined,
+				view: 'main' as const,
+			};
+			setState(user.id, nextState);
+			refreshGamePage(user);
 		},
 
 		saveslot(target, room, user) {
@@ -965,63 +1159,6 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
-		draft(target, room, user) {
-			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft' || !state.pendingRewardDraft) return;
-
-			const idx = parseInt(target.trim()) - 1;
-			if (isNaN(idx) || idx < 0 || idx >= state.pendingRewardDraft.length) return;
-
-			const itemKey = state.pendingRewardDraft[idx];
-			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-			const item = activeShop[itemKey];
-
-			delete state.pendingRewardDraft;
-			delete state.rerollCount;
-
-			if (item.type === 'pokeball') {
-				state.inventory = state.inventory || {};
-				state.inventory[itemKey] = (state.inventory[itemKey] || 0) + 1;
-				state.notification = `You took 1x <b>${item.name}</b>!`;
-				state.floor++;
-				(state as any).view = 'main';
-			} else if (item.type === 'key') {
-				state.keyItems = state.keyItems || {};
-				state.keyItems[item.name] = (state.keyItems[item.name] || 0) + 1;
-				state.notification = `Obtained Key Item: <b>${item.name}</b>!`;
-				state.floor++;
-				(state as any).view = 'main';
-			} else if (item.type === 'itemPack') {
-				if (itemKey === 'nugget') {
-					state.money = (state.money || 0) + 5000;
-					state.notification = `You sold the Nugget for $5000!`;
-					state.floor++;
-					(state as any).view = 'main';
-				} else if (itemKey === 'big_nugget') {
-					state.money = (state.money || 0) + 20000;
-					state.notification = `You sold the Big Nugget for $20,000!`;
-					state.floor++;
-					(state as any).view = 'main';
-				} else if (itemKey === 'starter_token') {
-					state.notification = `You unlocked a new Starter!`;
-					state.floor++;
-					(state as any).view = 'main';
-				}
-			} else if (item.type === 'item' || item.type === 'evolveItem') {
-				state.purchasedItem = itemKey;
-				state.pendingItemName = item.name;
-				state.pendingItemIsEvo = item.type === 'evolveItem';
-				(state as any).view = 'main';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'candy', 'mint', 'teraShard'].includes(item.type)) {
-				state.purchasedItem = itemKey;
-				state.pendingConsumableType = item.type as any;
-				(state as any).view = 'main';
-			}
-
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
 		
 		reroll(target, room, user) {
 			const state = getState(user.id);
@@ -1037,39 +1174,6 @@ export const commands: Chat.ChatCommands = {
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 			state.pendingRewardDraft = generateDraftOptions(state, config);
 
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-
-		buyshop(target, room, user) {
-			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft') return;
-			const itemKey = toID(target);
-			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-			const item = activeShop[itemKey];
-			if (!item || !item.isShopItem) return this.errorReply("Unknown shop item.");
-			const price = getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
-			if ((state.money || 0) < price) return this.errorReply(`Not enough money! Need $${price}.`);
-			state.money -= price;
-			if (itemKey === 'sacredash') {
-				for (const mon of state.team) {
-					if ((mon.currentHp ?? 100) <= 0) {
-						mon.currentHp = 100;
-						delete mon.status;
-					}
-				}
-				state.notification = `Sacred Ash revived all fainted Pokémon!`;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-			state.purchasedItem = itemKey;
-			if (item.type === 'item') {
-				state.pendingItemName = item.name;
-			} else {
-				state.pendingConsumableType = item.type as any;
-			}
-			(state as any).view = 'main';
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
@@ -1220,61 +1324,6 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			refreshGamePage(user);
-		},
-
-		prebattle(target, room, user) {
-			if (!user.named) return this.errorReply("Login required.");
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
-
-			clearStaleBattleRoom(state, user.id);
-
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve all pending choices before starting a battle.");
-			}
-
-			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
-				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
-			}
-
-			if (state.battleRoomId) {
-				return this.errorReply("You are already in a battle.");
-			}
-
-			if (state.pendingTrainer && state.pendingTrainerKey) {
-				(state as any).view = 'trainer';
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
-
-			const floor = state.floor;
-
-			if (config.hasTrainers && data.resolveTrainer) {
-				const resolvedTrainer = data.resolveTrainer(floor, state, config);
-
-				if (resolvedTrainer) {
-					state.pendingTrainer = resolvedTrainer.name;
-					state.pendingTrainerKey = resolvedTrainer.key;
-
-					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
-
-					if (trainerData?.spriteUrl || trainerData?.dialog) {
-						(state as any).view = 'trainer';
-						setState(user.id, state);
-						refreshGamePage(user);
-						return;
-					}
-				}
-			}
-
-			setState(user.id, state);
-			return this.parse('/pokerogue battle');
 		},
 
 		battle(target, room, user) {
