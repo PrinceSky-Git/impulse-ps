@@ -5,14 +5,14 @@ const ROGUELIKE_DATA_PATH = 'impulse/chat-plugins/pokerogue';
 export type ItemType =
 	| 'pokeball' |
 	'healHP' |
-	'TM' |
 	'key' |
 	'revive' |
 	'cureStatus' |
 	'itemPack' |
 	'item' |
 	'evolveItem' |
-	'vitamin';
+	'vitamin' |
+	'tm';
 
 export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
