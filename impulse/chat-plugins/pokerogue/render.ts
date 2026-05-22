@@ -599,7 +599,6 @@ function renderConsumable(state: PokeRogueState): string {
 			disabled = !mon.status || hp <= 0;
 			reason = hp <= 0 ? 'fainted' : !mon.status ? 'no status' : '';
 			break;
-
 		case 'vitamin':
 			const evStat = (consumableItem)?.evStat as string | undefined;
 			if (!evStat) { disabled = true; reason = 'invalid'; break; }
@@ -609,6 +608,35 @@ function renderConsumable(state: PokeRogueState): string {
 			disabled = hp <= 0 || totalEvs >= 508 || statEv >= 252;
 			reason = hp <= 0 ? 'fainted' : totalEvs >= 508 ? 'EVs full' : statEv >= 252 ? `${evStat} maxed` : '';
 			break;
+		case 'tm': {
+			const moveId = state.purchasedItem!.includes('_') ? 
+				state.purchasedItem!.substring(state.purchasedItem!.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') : 
+				toID(consumableItem!.name.replace(/^TM\d+\s*/i, ''));
+			
+			const moveData = Dex.moves.get(moveId);
+			if (!moveData.exists) { disabled = true; reason = 'invalid TM'; break; }
+			if (hp <= 0) { disabled = true; reason = 'fainted'; break; }
+			if (mon.moves.includes(moveData.id)) { disabled = true; reason = 'already knows'; break; }
+
+			let canLearn = false;
+			let spData = Dex.species.get(mon.species);
+			
+			while (spData && !canLearn) {
+				const learnsetData = Dex.species.getLearnsetData(spData.id)?.learnset;
+				if (learnsetData && learnsetData[moveData.id]) canLearn = true;
+				
+				if (spData.prevo) {
+					spData = Dex.species.get(spData.prevo);
+				} else if (spData.baseSpecies && toID(spData.baseSpecies) !== spData.id) {
+					spData = Dex.species.get(spData.baseSpecies);
+				} else {
+					break;
+				}
+			}
+
+			if (!canLearn) { disabled = true; reason = 'incompatible'; }
+			break;
+		}
 		}
 
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${Dex.species.get(toID(mon.species)).name}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` (${reason})` : ''}</span>`;
@@ -620,6 +648,10 @@ function renderConsumable(state: PokeRogueState): string {
 			const statLabel: Record<string, string> = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
 			const totalEvs = Object.values(mon.evs as Record<string, number>).reduce((a, b) => a + b, 0);
 			flexHtml += `<div style="font-size:9px;">${statLabel[evStat] ?? evStat} EVs: ${(mon.evs as any)[evStat] ?? 0}/252 &nbsp;·&nbsp; Total: ${totalEvs}/508</div>`;
+		}
+
+		if (consumableType === 'tm' && !disabled) {
+			flexHtml += `<div style="font-size:9px;color:#8ab4f8">Compatible!</div>`;
 		}
 
 		const btnHtml = disabled ? '' : renderBtn(`/pokerogue resolve useshopitem ${i + 1}`, 'Use', 'pr-pick-btn');
