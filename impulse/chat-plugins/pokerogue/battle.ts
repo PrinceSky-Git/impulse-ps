@@ -792,7 +792,7 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	return {
 		packedTeam: packAITeam(result.team),
 		isTrainer: result.isTrainer,
-		trainerName: Antiquities,
+		trainerName: result.trainerName,
 		team: result.team,
 	};
 }
