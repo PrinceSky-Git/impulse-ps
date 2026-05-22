@@ -659,7 +659,8 @@ export function genPokemon(
 	forcedSpeciesPool?: (string | TrainerMon)[],
 	currentBiome?: string,
 	config?: ModeConfig,
-	data?: ModeData
+	data?: ModeData,
+	state?: PokeRogueState
 ): AIPokemonSet[] {
 	let minLevel: number;
 	let maxLevel: number;
@@ -832,11 +833,34 @@ export function genPokemon(
 		const evs = forcedEvs ? { ...forcedEvs } : calcEVSpread(finalSpecie, floor);
 		const nature = pickNatureForSpecies(finalSpecie, floor);
 
-		const ability = config?.randomizeAbilities ?
-			pickBestAbility(finalSpecie, floor, config) :
-			(forcedAbility ?? pickBestAbility(finalSpecie, floor, config));
+		// 25. Ability Charm Dynamic Odds Execution (Wild only)
+		let ability = '';
+		if (config?.randomizeAbilities) {
+			ability = pickBestAbility(finalSpecie, floor, config);
+		} else if (forcedAbility) {
+			ability = forcedAbility;
+		} else {
+			let haDenominator = 256;
+			const abilityCharms = state?.keyItems?.['Ability Charm'] || 0;
+			if (abilityCharms > 0) {
+				haDenominator = 64 / Math.pow(2, Math.min(4, abilityCharms) - 1);
+			}
+			const rollHA = !isForced && !starter && (Math.floor(Math.random() * haDenominator) === 0);
+			if (rollHA && finalSpecie.abilities.H) {
+				ability = toID(finalSpecie.abilities.H);
+			} else {
+				ability = pickBestAbility(finalSpecie, floor, config);
+			}
+		}
 
-		const shiny = Math.floor(Math.random() * 1024) === 69;
+		// 29. Shiny Charm Dynamic Odds Execution (Wild only)
+		let shinyDenominator = 1024;
+		const shinyCharms = state?.keyItems?.['Shiny Charm'] || 0;
+		if (shinyCharms > 0) {
+			shinyDenominator = 256 / Math.pow(2, Math.min(4, shinyCharms) - 1);
+		}
+		const shiny = !isForced && (Math.floor(Math.random() * shinyDenominator) === 0);
+
 		const item = forcedItem ?? pickRandomHeldItem(finalSpecie.name);
 		const teraType = forcedTeraType ?? (Math.floor(Math.random() * 20) === 0 ?
 			allTypes[Math.floor(Math.random() * allTypes.length)] :
@@ -880,7 +904,8 @@ export function genAIPokemon(
 	trainerKey?: string,
 	currentBiome?: string,
 	config?: ModeConfig,
-	data?: ModeData
+	data?: ModeData,
+	state?: PokeRogueState
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
 	const scale = getLevelScaling(floor, config);
 	const bossInterval = config?.bossInterval || 10;
@@ -921,7 +946,7 @@ export function genAIPokemon(
 		}
 	}
 
-	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data);
+	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data, state);
 
 	mons.sort((a, b) => a.level - b.level);
 	return { team: mons, isTrainer: isTrainerBattle, trainerName };
@@ -1119,21 +1144,187 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		return true;
 	};
 
+	const getDynamicWeight = (key: string, item: any): number => {
+		const currentStackCount = (state.keyItems?.[item.name] || 0) + (state.inventory?.[key] || 0);
+		if (item.maxStack && currentStackCount >= item.maxStack) return 0;
+
+		// 15. Map Condition
+		if (key === 'map') {
+			if (state.gameMode !== 'classic' || state.floor > 180) return 0;
+			return 2;
+		}
+
+		// 27. Mega Stones Condition
+		if (item.category === 'Mega Stones') {
+			const dexItem = Dex.items.get(key);
+			let canUse = false;
+			for (const mon of state.team) {
+				const spName = Dex.species.get(toID(mon.species)).name;
+				if (dexItem.itemUser?.includes(spName)) {
+					canUse = true;
+					break;
+				}
+				const cleanedStone = key.replace('ite', '').replace('x', '').replace('y', '').trim();
+				if (cleanedStone && (toID(mon.species).includes(cleanedStone) || cleanedStone.includes(toID(mon.species)))) {
+					canUse = true;
+					break;
+				}
+			}
+			if (!canUse) return 0;
+			if (state.floor <= 50) return 6;
+			if (state.floor <= 100) return 12;
+			if (state.floor <= 150) return 18;
+			return 24;
+		}
+
+		// 9. Sacred Ash Condition
+		if (key === 'sacredash') {
+			const total = state.team.length;
+			let fainted = 0;
+			for (const mon of state.team) {
+				if ((mon.currentHp ?? 100) <= 0) fainted++;
+			}
+			if (total > 0 && fainted >= total / 2) return 1;
+			return 0;
+		}
+
+		// Healing & Status Consumable Adjustments
+		if (['potion', 'superpotion', 'hyperpotion', 'maxpotion', 'fullrestore', 'fullheal', 'revive', 'maxrevive'].includes(key)) {
+			let computedWeight = 0;
+
+			if (key === 'potion') {
+				for (const mon of state.team) {
+					const hpPercent = mon.currentHp ?? 100;
+					if (hpPercent > 0) {
+						const spData = Dex.species.get(toID(mon.species));
+						const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+						const ivHp = mon.ivs?.hp ?? 31;
+						const evHp = mon.evs?.hp ?? 0;
+						const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
+						const currentHpAbs = Math.round(maxHp * hpPercent / 100);
+						const damageTaken = maxHp - currentHpAbs;
+						if (hpPercent <= 87.5 && damageTaken >= 10) computedWeight += 3;
+					}
+				}
+				return Math.min(9, computedWeight);
+			}
+
+			if (key === 'superpotion') {
+				for (const mon of state.team) {
+					const hpPercent = mon.currentHp ?? 100;
+					if (hpPercent > 0) {
+						const spData = Dex.species.get(toID(mon.species));
+						const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+						const ivHp = mon.ivs?.hp ?? 31;
+						const evHp = mon.evs?.hp ?? 0;
+						const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
+						const currentHpAbs = Math.round(maxHp * hpPercent / 100);
+						const damageTaken = maxHp - currentHpAbs;
+						if (hpPercent <= 75 && damageTaken >= 25) computedWeight += 1;
+					}
+				}
+				return Math.min(3, computedWeight);
+			}
+
+			if (key === 'hyperpotion') {
+				for (const mon of state.team) {
+					const hpPercent = mon.currentHp ?? 100;
+					if (hpPercent > 0 && hpPercent <= 62.5) computedWeight += 3;
+				}
+				return Math.min(9, computedWeight);
+			}
+
+			if (key === 'maxpotion') {
+				for (const mon of state.team) {
+					const hpPercent = mon.currentHp ?? 100;
+					if (hpPercent > 0) {
+						const spData = Dex.species.get(toID(mon.species));
+						const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+						const ivHp = mon.ivs?.hp ?? 31;
+						const evHp = mon.evs?.hp ?? 0;
+						const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
+						const currentHpAbs = Math.round(maxHp * hpPercent / 100);
+						const damageTaken = maxHp - currentHpAbs;
+						if (hpPercent <= 50 && damageTaken >= 100) computedWeight += 1;
+					}
+				}
+				return Math.min(3, computedWeight);
+			}
+
+			if (key === 'fullrestore') {
+				let condA = 0;
+				let condB = 0;
+				for (const mon of state.team) {
+					const hpPercent = mon.currentHp ?? 100;
+					if (hpPercent > 0) {
+						if (hpPercent <= 50 && condA < 3) condA++;
+						if (mon.status && mon.heldItem !== 'flameorb' && mon.heldItem !== 'toxicorb' && condB < 3) condB++;
+					}
+				}
+				return Math.min(3, Math.floor((condA + condB) / 2));
+			}
+
+			if (key === 'fullheal') {
+				for (const mon of state.team) {
+					if ((mon.currentHp ?? 100) > 0 && mon.status && mon.heldItem !== 'flameorb' && mon.heldItem !== 'toxicorb') computedWeight += 6;
+				}
+				return Math.min(18, computedWeight);
+			}
+
+			if (key === 'revive') {
+				for (const mon of state.team) {
+					if ((mon.currentHp ?? 100) <= 0) computedWeight += 9;
+				}
+				return Math.min(27, computedWeight);
+			}
+
+			if (key === 'maxrevive') {
+				for (const mon of state.team) {
+					if ((mon.currentHp ?? 100) <= 0) computedWeight += 3;
+				}
+				return Math.min(9, computedWeight);
+			}
+		}
+
+		// 14. Evolution Items Formula
+		if (item.type === 'evolveItem') {
+			return Math.min(8, Math.floor(state.floor / 15) + 1);
+		}
+
+		return item.weight ?? 0;
+	};
+
+	const weightedPickItem = (itemsList: [string, number][]): string => {
+		const total = itemsList.reduce((sum, [, w]) => sum + w, 0);
+		if (total <= 0) return itemsList[Math.floor(Math.random() * itemsList.length)][0];
+		let roll = Math.random() * total;
+		for (const [key, w] of itemsList) {
+			roll -= w;
+			if (roll < 0) return key;
+		}
+		return itemsList[itemsList.length - 1][0];
+	};
+
 	for (let i = 0; i < draftCount; i++) {
 		const targetTier = rollRarity(luck);
-		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
-			if (item.tier !== targetTier) return false;
-			return isValidItem(key, item);
-		});
-		if (validItems.length === 0) {
-			const fallbackItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => isValidItem(key, item));
-			const randomFallback = fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
-			if (randomFallback) {
-				draft.push(randomFallback[0]);
+		const validItemsWithWeights: [string, number][] = Object.entries(SHOP_ITEMS)
+			.filter(([key, item]) => item.tier === targetTier && isValidItem(key, item))
+			.map(([key, item]) => [key, getDynamicWeight(key, item)] as [string, number])
+			.filter(([, w]) => w > 0);
+
+		if (validItemsWithWeights.length === 0) {
+			const fallbackItems = Object.entries(SHOP_ITEMS)
+				.filter(([key, item]) => isValidItem(key, item))
+				.map(([key, item]) => [key, getDynamicWeight(key, item)] as [string, number])
+				.filter(([, w]) => w > 0);
+			if (fallbackItems.length > 0) {
+				draft.push(weightedPickItem(fallbackItems));
+			} else {
+				const keys = Object.keys(SHOP_ITEMS);
+				draft.push(keys[Math.floor(Math.random() * keys.length)]);
 			}
 		} else {
-			const randomValid = validItems[Math.floor(Math.random() * validItems.length)];
-			draft.push(randomValid[0]);
+			draft.push(weightedPickItem(validItemsWithWeights));
 		}
 	}
 	return draft;
