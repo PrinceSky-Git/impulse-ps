@@ -748,9 +748,10 @@ function renderVictoryView(state: PokeRogueState): string {
 	});
 }
 
-function renderStatsView(state: StatsViewState, user: User): string {
+function renderStatsView(state: any, user: User): string {
 	const slot = state.pendingStatsSlot;
-	const activeTab = state.statsTab;
+	
+	const activeTab = state.statsTab ?? 0;
 	
 	if (slot === undefined || slot < 0 || slot >= state.team.length) {
 		return `<div class="pr-warning-box">Error loading stats.</div>`;
@@ -815,7 +816,7 @@ function renderStatsView(state: StatsViewState, user: User): string {
 	}
 	if (spData.id === 'shedinja') stats.hp = 1;
 
-	const maxStatLevel = MODE_CONFIGS[state.gameMode]?.maxLevel ?? 200;
+	const maxStatLevel = MODE_CONFIGS[state.gameMode as GameMode]?.maxLevel ?? 200;
 	const maxStats: Record<string, number> = {};
 	for (const stat of statKeys) {
 		if (stat === 'hp') {
