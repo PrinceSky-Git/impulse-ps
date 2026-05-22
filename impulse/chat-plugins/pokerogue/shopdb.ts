@@ -1,4 +1,3 @@
-// shopdb.ts
 import { type ShopItem } from './items';
 import { TMS_DB } from './tms-db';
 
