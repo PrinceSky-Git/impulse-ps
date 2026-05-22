@@ -704,13 +704,15 @@ export const commands: Chat.ChatCommands = {
 
 			if (item.type === 'pokeball') {
 				const currentInventory = clearedDraftState.inventory || {};
+				const amountToGive = item.draftAmount ?? 1;
+
 				const nextState = {
 					...clearedDraftState,
 					inventory: {
 						...currentInventory,
-						[itemKey]: (currentInventory[itemKey] || 0) + 1,
+						[itemKey]: (currentInventory[itemKey] || 0) + amountToGive,
 					},
-					notification: `You took 1x <b>${item.name}</b>!`,
+					notification: `You took ${amountToGive}x <b>${item.name}</b>!`,
 					floor: clearedDraftState.floor + 1,
 					view: 'main' as const,
 				};
