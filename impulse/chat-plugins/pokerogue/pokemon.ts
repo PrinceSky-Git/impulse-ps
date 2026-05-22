@@ -1081,6 +1081,43 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				}
 				if (!hasCompatibleTarget) return false;
 			}
+			
+			if (item.type === 'tm') {
+				let anyoneCanLearn = false;
+				const moveId = key.includes('_') ? 
+					key.substring(key.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') : 
+					toID(item.name.replace(/^TM\d+\s*/i, ''));
+				const moveData = Dex.moves.get(moveId);
+				
+				if (moveData.exists) {
+					for (const mon of state.team) {
+						if (mon.moves.includes(moveData.id)) continue;
+						
+						let canLearn = false;
+						let spData = Dex.species.get(mon.species);
+						
+						while (spData && !canLearn) {
+							const learnsetData = Dex.species.getLearnsetData(spData.id)?.learnset;
+							if (learnsetData && learnsetData[moveData.id]) canLearn = true;
+							
+							if (spData.prevo) {
+								spData = Dex.species.get(spData.prevo);
+							} else if (spData.baseSpecies && toID(spData.baseSpecies) !== spData.id) {
+								spData = Dex.species.get(spData.baseSpecies);
+							} else {
+								break;
+							}
+						}
+						
+						if (canLearn) {
+							anyoneCanLearn = true;
+							break;
+						}
+					}
+				}
+				if (!anyoneCanLearn) return false;
+			}
+			
 			return true;
 		});
 		
