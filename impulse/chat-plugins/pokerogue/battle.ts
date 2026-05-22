@@ -806,26 +806,15 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 
 	let playerTeam = packTeam(livingTeam);
 
+	// FIX: Pass the raw percentage to Showdown since your custom sim-pokemon.ts natively converts it
 	playerTeam = playerTeam.split(']').map((monStr, index) => {
 		if (!monStr) return monStr;
 		const parts = monStr.split('|');
 		const mon = livingTeam[index];
 		if (!mon) return monStr;
-
-		const spData = Dex.species.get(toID(mon.species));
-		const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-		const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-		const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
-		
-		let maxHpActual = 1;
-		if (spData.id !== 'shedinja') {
-			maxHpActual = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
-		}
-		
-		const absoluteHp = Math.max(1, Math.floor(((mon.currentHp ?? 100) / 100) * maxHpActual));
 		
 		while (parts.length < 15) parts.push('');
-		parts[14] = absoluteHp.toString(); // Index 14 is Showdown's CustomHP field
+		parts[14] = (mon.currentHp ?? 100).toString();
 		
 		if (mon.status) {
 			while (parts.length < 16) parts.push('');
@@ -842,26 +831,15 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	const isTrainer = botTeamData.isTrainer;
 	const trainerName = botTeamData.trainerName;
 
+	// FIX: Apply the same percentage pass-through to the Bot Team
 	botTeam = botTeam.split(']').map((monStr, index) => {
 		if (!monStr) return monStr;
 		const parts = monStr.split('|');
 		const mon = botTeamData.team[index];
 		if (!mon) return monStr;
-
-		const spData = Dex.species.get(toID(mon.species));
-		const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-		const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-		const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
-		
-		let maxHpActual = 1;
-		if (spData.id !== 'shedinja') {
-			maxHpActual = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
-		}
-		
-		const absoluteHp = Math.max(1, Math.floor(((mon.currentHp ?? 100) / 100) * maxHpActual));
 		
 		while (parts.length < 15) parts.push('');
-		parts[14] = absoluteHp.toString();
+		parts[14] = (mon.currentHp ?? 100).toString();
 		
 		if (mon.status) {
 			while (parts.length < 16) parts.push('');
