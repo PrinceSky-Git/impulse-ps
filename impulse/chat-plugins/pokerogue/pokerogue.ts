@@ -718,20 +718,24 @@ export const commands: Chat.ChatCommands = {
 			}
 			refreshGamePage(user);
 		},
-
+		
 		view(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
 
 			const args = target.trim().split(' ');
-			const v = args[0] as any;
+			const v = args[0] as PokeRogueView;
 
 			if (['main', 'top', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
 				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
 					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 					if (modeData.useNewStarterSelectionUI !== false) {
-						(state as any).view = 'starterselect';
-						setState(user.id, state);
+						const nextState: StarterSelectViewState = {
+							...state,
+							view: 'starterselect',
+							starterSearch: '',
+						};
+						setState(user.id, nextState);
 						refreshGamePage(user);
 						return;
 					}
@@ -744,16 +748,17 @@ export const commands: Chat.ChatCommands = {
 					const starterPool = modeData.useNewStarterSelectionUI !== false
 						? [...new Set([...modeData.starters, ...unlockedStarterIds])]
 						: modeData.starters;
-
-					state.team = [];
-					state.pendingChoice = starterPool;
-					state.pendingChoiceType = 'starter';
-					delete state.isConfiguringStarter;
-					delete (state as any).pendingStatsSlot;
-					delete (state as any).statsTab;
-					delete (state as any).starterSearch;
-					(state as any).view = 'starterselect';
-					setState(user.id, state);
+					
+					const nextState: StarterSelectViewState = {
+						...state,
+						view: 'starterselect',
+						team: [],
+						pendingChoice: starterPool,
+						pendingChoiceType: 'starter',
+						starterSearch: '',
+						isConfiguringStarter: undefined,
+					};
+					setState(user.id, nextState);
 					refreshGamePage(user);
 					return;
 				}
@@ -761,18 +766,22 @@ export const commands: Chat.ChatCommands = {
 				if (v === 'stats') {
 					const slot = parseInt(args[1]);
 					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
-						(state as any).pendingStatsSlot = slot;
-						(state as any).statsTab = (state as any).statsTab ?? 0;
+						const nextState: StatsViewState = {
+							...state,
+							view: 'stats',
+							pendingStatsSlot: slot,
+							statsTab: 0,
+						};
+						setState(user.id, nextState);
 					} else {
 						return;
 					}
 				} else {
-					delete (state as any).pendingStatsSlot;
-					delete (state as any).statsTab;
+					// Safe shallow copy cast while updating structural literal types
+					const nextState = { ...state, view: v } as PokeRogueState;
+					setState(user.id, nextState);
 				}
 
-				(state as any).view = v;
-				setState(user.id, state);
 				refreshGamePage(user);
 			}
 		},
