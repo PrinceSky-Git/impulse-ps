@@ -1,5 +1,5 @@
 import { Utils } from '../../../lib';
-import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
+import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig, type MainViewState, type DraftViewState, type TrainerViewState, type StatsViewState, type StarterSelectViewState } from './types';
 import { type AIPokemonSet } from './pokemon';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
@@ -85,8 +85,11 @@ function clearStaleBattleRoom(state: PokeRogueState, userId: string): void {
 	if (!state.battleRoomId) return;
 	const bRoom = Rooms.get(state.battleRoomId as RoomID);
 	if (!bRoom?.battle || bRoom.battle.ended) {
-		delete state.battleRoomId;
-		setState(userId, state);
+		const nextState = {
+			...state,
+			battleRoomId: undefined,
+		};
+		setState(userId, nextState as PokeRogueState);
 	}
 }
 
@@ -285,7 +288,7 @@ function syncBattleOutcome(
 				teamHp[matched] = hp;
 
 				const statusInSwitch = /\|\d+\/\d+ (brn|psn|tox|par|slp|frz)/.exec(line);
-				teamStatus[matched] = statusInSwitch ? statusInSwitch[1] as StatusCondition : (teamStatus[matched] ?? '');
+				teamStatus[matched] = statusInSwitch ? statusInSwitch[1] as StatusCondition : '';
 			}
 			continue;
 		}
@@ -356,7 +359,7 @@ function syncBattleOutcome(
 		if (status) {
 			state.team[idx].status = status;
 		} else {
-			delete state.team[idx].status;
+			state.team[idx].status = undefined;
 		}
 	}
 
@@ -388,7 +391,7 @@ function syncBattleOutcome(
 			const itemId = toID(endItemMatch[2].trim());
 			const teamIdx = itemSlotMap[slot];
 			if (teamIdx !== undefined && state.team[teamIdx].heldItem === itemId) {
-				delete state.team[teamIdx].heldItem;
+				state.team[teamIdx].heldItem = undefined;
 				const dexItem = Dex.items.get(itemId);
 				consumedItems.push(dexItem.name || itemId);
 			}
@@ -461,7 +464,7 @@ function processFloorRewards(
 	if (isBossFloorBoundary(clearedFloor, config.bossInterval)) {
 		for (const mon of state.team) {
 			mon.currentHp = 100;
-			delete mon.status;
+			mon.status = undefined;
 		}
 		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
 	}
@@ -469,17 +472,17 @@ function processFloorRewards(
 }
 
 function handleBattleLoss(state: PokeRogueState, floor: number, userId: string): void {
-	delete state.pendingMoves;
-	delete state.pendingSwap;
-	delete state.moveToLearn;
-	delete state.pendingItemName;
-	delete state.itemOptions;
-	delete state.purchasedItem;
-	delete state.caughtPokemon;
-	delete state.pendingTrainer;
-	delete state.pendingTrainerKey;
-	delete state.pendingRewardDraft;
-	delete state.rerollCount;
+	state.pendingMoves = undefined;
+	state.pendingSwap = undefined;
+	state.moveToLearn = undefined;
+	state.pendingItemName = undefined;
+	state.itemOptions = undefined;
+	state.purchasedItem = undefined;
+	state.caughtPokemon = undefined;
+	state.pendingTrainer = undefined;
+	state.pendingTrainerKey = undefined;
+	state.pendingRewardDraft = undefined;
+	state.rerollCount = undefined;
 
 	if (state.keyItems?.['Revive'] > 0) {
 		state.keyItems['Revive']--;
@@ -506,69 +509,6 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
-		newgame(target, room, user) {
-			const targetParts = target.trim().toLowerCase().split(' ');
-			const isConfirm = targetParts.includes('confirm');
-			let modeStr = targetParts[0];
-			if (isConfirm && targetParts.length > 1) {
-				modeStr = targetParts.find(p => p !== 'confirm') || 'classic';
-			}
-
-			const requestedMode = (modeStr || 'classic') as GameMode;
-			const finalMode = MODE_CONFIGS[requestedMode] ? requestedMode : 'classic';
-
-			const userData = getUserData(user.id);
-			const existingInMode = userData.runs[finalMode];
-
-			if (existingInMode?.gameOver || existingInMode?.gameWon) {
-				delete existingInMode.gameOver;
-				delete existingInMode.gameWon;
-				delete existingInMode.lastRunFloor;
-				existingInMode.floor = 1;
-				setState(user.id, existingInMode);
-			}
-
-			const hasProgress = existingInMode && (existingInMode.team?.length > 0 || (existingInMode.floor ?? 1) > 1);
-
-			if (hasProgress && !isConfirm) {
-				return this.sendReplyBox(`<b>Warning: Run in progress for ${finalMode}!</b><br><button name="send" value="/pokerogue newgame ${finalMode} confirm" class="button">Yes, start fresh</button>`);
-			}
-
-			const config = MODE_CONFIGS[finalMode];
-			const modeData = MODE_REGISTRY[finalMode] || MODE_REGISTRY['classic'];
-			const modeStarters = modeData.starters;
-			const useNewStarterSelectionUI = modeData.useNewStarterSelectionUI !== false;
-			const unlockedStarterIds = Object.keys(userData.starters || {});
-			const starterPool = useNewStarterSelectionUI ?
-				[...new Set([...modeStarters, ...unlockedStarterIds])] :
-				modeStarters;
-
-			const highestFloor = existingInMode?.highestFloor || 0;
-			const displayName = existingInMode?.displayName || user.name;
-			const recordTeam = existingInMode?.recordTeam || [];
-
-			const newState: PokeRogueState = {
-				floor: 1,
-				gameMode: finalMode,
-				currentBiome: config.startingBiome,
-				team: [],
-				money: config.economy.startingMoney || 0,
-				timesRerolled: 0,
-				rotationalShop: [],
-				keyItems: { ...(config.economy.startingKeyItems || {}) },
-				inventory: { ...(config.economy.startingInventory || {}) },
-				pendingChoice: useNewStarterSelectionUI ? starterPool : pickStarterOptions(starterPool),
-				pendingChoiceType: 'starter',
-				highestFloor,
-				displayName,
-				recordTeam,
-			};
-
-			(newState as any).view = useNewStarterSelectionUI ? 'starterselect' : 'main';
-			setState(user.id, newState);
-			return this.parse('/pokerogue start');
-		},
-
 		start(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			let state = getState(user.id);
@@ -624,65 +564,463 @@ export const commands: Chat.ChatCommands = {
 			return this.parse('/join view-pokerogue');
 		},
 
-		prebattle(target, room, user) {
-			if (!user.named) return this.errorReply("Login required.");
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+		newgame(target, room, user) {
+			const targetParts = target.trim().toLowerCase().split(' ');
+			const isConfirm = targetParts.includes('confirm');
+			let modeStr = targetParts[0];
+			if (isConfirm && targetParts.length > 1) {
+				modeStr = targetParts.find(p => p !== 'confirm') || 'classic';
+			}
 
-			clearStaleBattleRoom(state, user.id);
+			const requestedMode = (modeStr || 'classic') as GameMode;
+			const finalMode = MODE_CONFIGS[requestedMode] ? requestedMode : 'classic';
+
+			const userData = getUserData(user.id);
+			const existingInMode = userData.runs[finalMode];
+
+			if (existingInMode?.gameOver || existingInMode?.gameWon) {
+				existingInMode.gameOver = undefined;
+				existingInMode.gameWon = undefined;
+				existingInMode.lastRunFloor = undefined;
+				existingInMode.floor = 1;
+				setState(user.id, existingInMode);
+			}
+
+			const hasProgress = existingInMode && (existingInMode.team?.length > 0 || (existingInMode.floor ?? 1) > 1);
+
+			if (hasProgress && !isConfirm) {
+				return this.sendReplyBox(`<b>Warning: Run in progress for ${finalMode}!</b><br><button name="send" value="/pokerogue newgame ${finalMode} confirm" class="button">Yes, start fresh</button>`);
+			}
+
+			const config = MODE_CONFIGS[finalMode];
+			const modeData = MODE_REGISTRY[finalMode] || MODE_REGISTRY['classic'];
+			const modeStarters = modeData.starters;
+			const useNewStarterSelectionUI = modeData.useNewStarterSelectionUI !== false;
+			const unlockedStarterIds = Object.keys(userData.starters || {});
+			const starterPool = useNewStarterSelectionUI ?
+				[...new Set([...modeStarters, ...unlockedStarterIds])] :
+				modeStarters;
+
+			const highestFloor = existingInMode?.highestFloor || 0;
+			const displayName = existingInMode?.displayName || user.name;
+			const recordTeam = existingInMode?.recordTeam || [];
+
+			const newState = {
+				floor: 1,
+				gameMode: finalMode,
+				currentBiome: config.startingBiome,
+				team: [],
+				money: config.economy.startingMoney || 0,
+				timesRerolled: 0,
+				rotationalShop: [],
+				keyItems: { ...(config.economy.startingKeyItems || {}) },
+				inventory: { ...(config.economy.startingInventory || {}) },
+				pendingChoice: useNewStarterSelectionUI ? starterPool : pickStarterOptions(starterPool),
+				pendingChoiceType: 'starter' as const,
+				highestFloor,
+				displayName,
+				recordTeam,
+				view: useNewStarterSelectionUI ? 'starterselect' as const : 'main' as const,
+				starterSearch: '',
+			};
+
+			setState(user.id, newState as any);
+			return this.parse('/pokerogue start');
+		},
+
+		saveslo(target, room, user) {
+			this.parse(`/pokerogue saveslot ${target}`);
+		},
+
+		saveslot(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot save right now.");
 
 			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve all pending choices before starting a battle.");
+				return this.errorReply("You must resolve your pending choices before saving.");
 			}
 
-			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
-				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
+			const slot = parseInt(target.trim());
+			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
+
+			const userData = getUserData(user.id);
+			if (!userData.saveSlots) userData.saveSlots = {};
+
+			userData.saveSlots[slot] = JSON.parse(JSON.stringify(state));
+			saveUserData(user.id);
+
+			const nextState = {
+				...state,
+				notification: `Progress successfully saved to <b>Slot ${slot}</b>!`,
+				view: 'main' as const,
+			};
+			setState(user.id, nextState);
+			refreshGamePage(user);
+		},
+
+		loadslot(target, room, user) {
+			const slot = parseInt(target.trim());
+			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
+
+			const userData = getUserData(user.id);
+			const slotData = userData.saveSlots?.[slot];
+
+			if (!slotData) return this.errorReply("That save slot is empty.");
+
+			const currentState = getState(user.id);
+			if (currentState?.battleRoomId) {
+				const bRoom = Rooms.get(currentState.battleRoomId as RoomID);
+				if (bRoom?.battle && !bRoom.battle.ended) {
+					return this.errorReply("You cannot load a game while currently in a battle!");
+				}
 			}
 
-			if (state.battleRoomId) {
-				return this.errorReply("You are already in a battle.");
-			}
+			const restoredState = JSON.parse(JSON.stringify(slotData));
+			userData.runs[restoredState.gameMode] = restoredState;
+			userData.activeMode = restoredState.gameMode;
+			delete userData.saveSlots[slot];
 
-			if (state.pendingTrainer && state.pendingTrainerKey) {
+			saveUserData(user.id);
+
+			const newState = getState(user.id);
+			if (newState) {
 				const nextState = {
-					...state,
-					view: 'trainer' as const,
+					...newState,
+					notification: `Game loaded successfully from <b>Slot ${slot}</b>!`,
+					view: 'main' as const,
 				};
 				setState(user.id, nextState);
-				refreshGamePage(user);
-				return;
 			}
 
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+			refreshGamePage(user);
+		},
 
-			const floor = state.floor;
+		status(target, room, user) {
+			if (!this.runBroadcast()) return;
+			const tId = toID(target) || user.id;
+			const s = getState(tId);
+			if (!s) return this.errorReply(`No run found for ${tId}.`);
+			const buf = `<b>PokéRogue Status: ${tId}</b><br>Mode: ${s.gameMode || 'classic'} | Floor ${s.floor} | Money: $${s.money ?? 0}<br>${s.team.map(m => `Lv.${m.level} ${m.species}`).join(', ')}`;
+			this.sendReplyBox(buf);
+		},
 
-			if (config.hasTrainers && data.resolveTrainer) {
-				const resolvedTrainer = data.resolveTrainer(floor, state, config);
+		quit(target, room, user) {
+			const s = getState(user.id);
+			if (s?.battleRoomId) {
+				const match = activeMatches.get(s.battleRoomId as RoomID);
+				if (match) {
+					const bot = Users.get(match.botUserId);
+					if (bot) destroyBotUser(bot);
+					activeMatches.delete(s.battleRoomId as RoomID);
+				}
+				Rooms.get(s.battleRoomId)?.battle?.forfeit(user);
+			}
+			if (s) {
+				const nextState = {
+					...s,
+					gameOver: true,
+					lastRunFloor: s.floor,
+					floor: 1,
+					team: [],
+					pendingMoves: undefined,
+					pendingSwap: undefined,
+					pendingChoice: undefined,
+					moveToLearn: undefined,
+					pendingItemName: undefined,
+					itemOptions: undefined,
+					purchasedItem: undefined,
+					pendingConsumableType: undefined,
+					pendingTrainer: undefined,
+					pendingTrainerKey: undefined,
+					pendingRewardDraft: undefined,
+					rerollCount: undefined,
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
+			}
+			refreshGamePage(user);
+		},
 
-				if (resolvedTrainer) {
-					state.pendingTrainer = resolvedTrainer.name;
-					state.pendingTrainerKey = resolvedTrainer.key;
+		view(target, room, user) {
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
 
-					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
+			const args = target.trim().split(' ');
+			const v = args[0];
 
-					if (trainerData?.spriteUrl || trainerData?.dialog) {
+			if (['main', 'top', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
+				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
+					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+					if (modeData.useNewStarterSelectionUI !== false) {
 						const nextState = {
 							...state,
-							view: 'trainer' as const,
+							view: 'starterselect' as const,
+							starterSearch: '',
 						};
 						setState(user.id, nextState);
 						refreshGamePage(user);
 						return;
 					}
 				}
+
+				if (v === 'main' && state.isConfiguringStarter) {
+					const userData = getUserData(user.id);
+					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+					const unlockedStarterIds = Object.keys(userData.starters || {});
+					const starterPool = modeData.useNewStarterSelectionUI !== false
+						? [...new Set([...modeData.starters, ...unlockedStarterIds])]
+						: modeData.starters;
+
+					const nextState = {
+						...state,
+						team: [],
+						pendingChoice: starterPool,
+						pendingChoiceType: 'starter' as const,
+						isConfiguringStarter: undefined,
+						pendingStatsSlot: undefined,
+						statsTab: undefined,
+						starterSearch: '',
+						view: 'starterselect' as const,
+					};
+					setState(user.id, nextState);
+					refreshGamePage(user);
+					return;
+				}
+
+				if (v === 'stats') {
+					const slot = parseInt(args[1]);
+					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
+						const nextState = {
+							...state,
+							pendingStatsSlot: slot,
+							statsTab: state.statsTab ?? 0,
+							view: 'stats' as const,
+						};
+						setState(user.id, nextState);
+					} else {
+						return;
+					}
+				} else {
+					const nextState = {
+						...state,
+						pendingStatsSlot: undefined,
+						statsTab: undefined,
+						view: v as any,
+					};
+					setState(user.id, nextState);
+				}
+
+				refreshGamePage(user);
+			}
+		},
+
+		statstab(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.view !== 'stats') return this.parse('/pokerogue start');
+			const args = target.trim().split(' ');
+			const dir = args[0];
+			const TAB_COUNT = 3;
+			let current = state.statsTab ?? 0;
+			if (dir === 'next') {
+				current = (current + 1) % TAB_COUNT;
+			} else if (dir === 'prev') {
+				current = (current - 1 + TAB_COUNT) % TAB_COUNT;
+			} else {
+				const n = parseInt(dir);
+				if (!isNaN(n) && n >= 0 && n < TAB_COUNT) current = n;
 			}
 
+			const nextState = {
+				...state,
+				statsTab: current,
+			};
+			setState(user.id, nextState);
+			refreshGamePage(user);
+		},
+
+		startersearch(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.view !== 'starterselect') return;
+			const nextState = {
+				...state,
+				starterSearch: target.trim().toLowerCase(),
+			};
+			setState(user.id, nextState);
+			refreshGamePage(user);
+		},
+
+		dismissnotif(target, room, user) {
+			const s = getState(user.id);
+			if (s?.notification) {
+				const nextState = {
+					...s,
+					notification: undefined,
+				};
+				setState(user.id, nextState);
+			}
+			refreshGamePage(user);
+		},
+
+		confirmstarter(target, room, user) {
+			const state = getState(user.id);
+			if (!state || !state.isConfiguringStarter) return;
+
+			const nextState = {
+				...state,
+				isConfiguringStarter: undefined,
+				view: 'main' as const,
+			};
+			setState(user.id, nextState);
+			refreshGamePage(user);
+		},
+
+		movemon(target, room, user) {
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("No active run.");
+			if (state.battleRoomId) return this.errorReply("Can't organize your team during a battle.");
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve pending choices first.");
+			}
+
+			const args = target.split(' ').map(s => s.trim());
+
+			if (args[0] === 'cancel') {
+				const nextState = {
+					...state,
+					pendingMoveSlot: undefined,
+				};
+				setState(user.id, nextState);
+				refreshGamePage(user);
+				return;
+			}
+
+			if (args[0] === 'confirm') {
+				if (state.pendingMoveSlot === undefined) return;
+				const toSlot = parseInt(args[1]) - 1;
+				const fromSlot = state.pendingMoveSlot;
+
+				if (isNaN(toSlot) || toSlot < 0 || toSlot >= state.team.length) return this.errorReply("Invalid slot.");
+
+				const newTeam = [...state.team];
+				const temp = newTeam[fromSlot];
+				newTeam[fromSlot] = newTeam[toSlot];
+				newTeam[toSlot] = temp;
+
+				const nextState = {
+					...state,
+					team: newTeam,
+					pendingMoveSlot: undefined,
+				};
+				setState(user.id, nextState);
+				refreshGamePage(user);
+				return;
+			}
+
+			const fromSlot = parseInt(args[0]) - 1;
+			if (isNaN(fromSlot) || fromSlot < 0 || fromSlot >= state.team.length) return this.errorReply("Invalid slot.");
+
+			const nextState = {
+				...state,
+				pendingMoveSlot: fromSlot,
+			};
+			setState(user.id, nextState);
+			refreshGamePage(user);
+		},
+
+		releasemon(target, room, user) {
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("No active run.");
+			if (state.battleRoomId) return this.errorReply("Can't release Pokémon during a battle.");
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve pending choices first.");
+			}
+
+			const args = target.split(' ').map(s => s.trim());
+
+			if (args[0] === 'cancel') {
+				const nextState = {
+					...state,
+					pendingReleaseSlot: undefined,
+				};
+				setState(user.id, nextState);
+				refreshGamePage(user);
+				return;
+			}
+
+			if (args[0] === 'confirm') {
+				if (state.pendingReleaseSlot === undefined) return;
+				const slot = state.pendingReleaseSlot;
+
+				if (slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
+				if (state.team.length <= 1) return this.errorReply("You cannot release your last Pokémon!");
+
+				const newTeam = [...state.team];
+				const mon = newTeam[slot];
+				const spName = Dex.species.get(toID(mon.species)).name;
+
+				newTeam.splice(slot, 1);
+
+				const nextState = {
+					...state,
+					team: newTeam,
+					notification: `You released <b>${spName}</b>.`,
+					pendingReleaseSlot: undefined,
+					pendingMoveSlot: undefined,
+					pendingStatsSlot: undefined,
+				};
+
+				setState(user.id, nextState);
+				refreshGamePage(user);
+				return;
+			}
+
+			const slot = parseInt(args[0]) - 1;
+			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
+			if (state.team.length <= 1) return this.errorReply("You cannot release your last Pokémon!");
+
+			const nextState = {
+				...state,
+				pendingReleaseSlot: slot,
+			};
+			setState(user.id, nextState);
+			refreshGamePage(user);
+		},
+
+		transferitem(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.battleRoomId) return;
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve pending choices first.");
+			}
+
+			const parts = target.trim().split(' ');
+			const fromSlot = parseInt(parts[0]) - 1;
+			const toSlot = parseInt(parts[1]) - 1;
+
+			if (isNaN(fromSlot) || isNaN(toSlot) || fromSlot < 0 || toSlot >= state.team.length) return this.errorReply("Invalid team slot.");
+
+			const fromMon = state.team[fromSlot];
+			const toMon = state.team[toSlot];
+
+			if (!fromMon.heldItem) return this.errorReply("That Pokémon isn't holding anything.");
+
+			const temp = toMon.heldItem;
+			toMon.heldItem = fromMon.heldItem;
+			fromMon.heldItem = temp;
+
+			const fromName = Dex.species.get(toID(fromMon.species)).name;
+			const toName = Dex.species.get(toID(toMon.species)).name;
+			state.notification = `Swapped held items between ${fromName} and ${toName}!`;
+
 			setState(user.id, state);
-			return this.parse('/pokerogue battle');
+			refreshGamePage(user);
 		},
 
 		draft(target, room, user) {
@@ -772,6 +1110,24 @@ export const commands: Chat.ChatCommands = {
 
 			refreshGamePage(user);
 		},
+		
+		reroll(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.view !== 'draft') return;
+
+			const cost = getRerollCost(state, false, state.pendingRewardDraft || []);
+			
+			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
+
+			state.money -= cost;
+			state.rerollCount = (state.rerollCount || 0) + 1;
+			
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			state.pendingRewardDraft = generateDraftOptions(state, config);
+
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
 
 		buyshop(target, room, user) {
 			const state = getState(user.id);
@@ -812,371 +1168,6 @@ export const commands: Chat.ChatCommands = {
 				view: 'main' as const,
 			};
 			setState(user.id, nextState);
-			refreshGamePage(user);
-		},
-
-		saveslot(target, room, user) {
-			const state = getState(user.id);
-			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot save right now.");
-
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("You must resolve your pending choices before saving.");
-			}
-
-			const slot = parseInt(target.trim());
-			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
-
-			const userData = getUserData(user.id);
-			if (!userData.saveSlots) userData.saveSlots = {};
-
-			userData.saveSlots[slot] = JSON.parse(JSON.stringify(state));
-			saveUserData(user.id);
-
-			state.notification = `Progress successfully saved to <b>Slot ${slot}</b>!`;
-			(state as any).view = 'main';
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-
-		loadslot(target, room, user) {
-			const slot = parseInt(target.trim());
-			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
-
-			const userData = getUserData(user.id);
-			const slotData = userData.saveSlots?.[slot];
-
-			if (!slotData) return this.errorReply("That save slot is empty.");
-
-			const currentState = getState(user.id);
-			if (currentState?.battleRoomId) {
-				const bRoom = Rooms.get(currentState.battleRoomId as RoomID);
-				if (bRoom?.battle && !bRoom.battle.ended) {
-					return this.errorReply("You cannot load a game while currently in a battle!");
-				}
-			}
-
-			const restoredState = JSON.parse(JSON.stringify(slotData));
-			userData.runs[restoredState.gameMode] = restoredState;
-			userData.activeMode = restoredState.gameMode;
-			delete userData.saveSlots[slot];
-
-			saveUserData(user.id);
-
-			const newState = getState(user.id);
-			if (newState) {
-				newState.notification = `Game loaded successfully from <b>Slot ${slot}</b>!`;
-				(newState as any).view = 'main';
-				setState(user.id, newState);
-			}
-
-			refreshGamePage(user);
-		},
-
-		status(target, room, user) {
-			if (!this.runBroadcast()) return;
-			const tId = toID(target) || user.id;
-			const s = getState(tId);
-			if (!s) return this.errorReply(`No run found for ${tId}.`);
-			const buf = `<b>PokéRogue Status: ${tId}</b><br>Mode: ${s.gameMode || 'classic'} | Floor ${s.floor} | Money: $${s.money ?? 0}<br>${s.team.map(m => `Lv.${m.level} ${m.species}`).join(', ')}`;
-			this.sendReplyBox(buf);
-		},
-
-		quit(target, room, user) {
-			const s = getState(user.id);
-			if (s?.battleRoomId) {
-				const match = activeMatches.get(s.battleRoomId as RoomID);
-				if (match) {
-					const bot = Users.get(match.botUserId);
-					if (bot) destroyBotUser(bot);
-					activeMatches.delete(s.battleRoomId as RoomID);
-				}
-				Rooms.get(s.battleRoomId)?.battle?.forfeit(user);
-			}
-			if (s) {
-				s.gameOver = true;
-				s.lastRunFloor = s.floor;
-				s.floor = 1;
-				s.team = [];
-				delete s.pendingMoves;
-				delete s.pendingSwap;
-				delete s.pendingChoice;
-				delete s.moveToLearn;
-				delete s.pendingItemName;
-				delete s.itemOptions;
-				delete s.purchasedItem;
-				delete s.pendingConsumableType;
-				delete s.pendingTrainer;
-				delete s.pendingTrainerKey;
-				delete s.pendingRewardDraft;
-				delete s.rerollCount;
-				setState(user.id, s);
-			}
-			refreshGamePage(user);
-		},
-		
-		view(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-
-			const args = target.trim().split(' ');
-			const v = args[0] as PokeRogueView;
-
-			if (['main', 'top', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
-				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
-					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
-					if (modeData.useNewStarterSelectionUI !== false) {
-						const nextState: StarterSelectViewState = {
-							...state,
-							view: 'starterselect',
-							starterSearch: '',
-						};
-						setState(user.id, nextState);
-						refreshGamePage(user);
-						return;
-					}
-				}
-
-				if (v === 'main' && state.isConfiguringStarter) {
-					const userData = getUserData(user.id);
-					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
-					const unlockedStarterIds = Object.keys(userData.starters || {});
-					const starterPool = modeData.useNewStarterSelectionUI !== false
-						? [...new Set([...modeData.starters, ...unlockedStarterIds])]
-						: modeData.starters;
-					
-					const nextState: StarterSelectViewState = {
-						...state,
-						view: 'starterselect',
-						team: [],
-						pendingChoice: starterPool,
-						pendingChoiceType: 'starter',
-						starterSearch: '',
-						isConfiguringStarter: undefined,
-					};
-					setState(user.id, nextState);
-					refreshGamePage(user);
-					return;
-				}
-
-				if (v === 'stats') {
-					const slot = parseInt(args[1]);
-					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
-						const nextState: StatsViewState = {
-							...state,
-							view: 'stats',
-							pendingStatsSlot: slot,
-							statsTab: 0,
-						};
-						setState(user.id, nextState);
-					} else {
-						return;
-					}
-				} else {
-					// Safe shallow copy cast while updating structural literal types
-					const nextState = { ...state, view: v } as PokeRogueState;
-					setState(user.id, nextState);
-				}
-
-				refreshGamePage(user);
-			}
-		},
-
-		statstab(target, room, user) {
-			const state = getState(user.id);
-			if (!state || state.view !== 'stats') return this.parse('/pokerogue start');
-			
-			const args = target.trim().split(' ');
-			const dir = args[0];
-			const TAB_COUNT = 3;
-			let current = state.statsTab ?? 0;
-			
-			if (dir === 'next') {
-				current = (current + 1) % TAB_COUNT;
-			} else if (dir === 'prev') {
-				current = (current - 1 + TAB_COUNT) % TAB_COUNT;
-			} else {
-				const n = parseInt(dir);
-				if (!isNaN(n) && n >= 0 && n < TAB_COUNT) current = n;
-			}
-
-			const nextState: StatsViewState = {
-				...state,
-				statsTab: current,
-			};
-			setState(user.id, nextState);
-			refreshGamePage(user);
-		},
-
-		startersearch(target, room, user) {
-			const state = getState(user.id);
-			if (!state || state.view !== 'starterselect') return;
-			
-			const nextState: StarterSelectViewState = {
-				...state,
-				starterSearch: target.trim().toLowerCase(),
-			};
-			setState(user.id, nextState);
-			refreshGamePage(user);
-		},
-
-		dismissnotif(target, room, user) {
-			const s = getState(user.id);
-			if (s?.notification) { delete s.notification; setState(user.id, s); }
-			refreshGamePage(user);
-		},
-
-		confirmstarter(target, room, user) {
-			const state = getState(user.id);
-			if (!state || !state.isConfiguringStarter) return;
-
-			delete state.isConfiguringStarter;
-			(state as any).view = 'main';
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-
-		movemon(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("No active run.");
-			if (state.battleRoomId) return this.errorReply("Can't organize your team during a battle.");
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve pending choices first.");
-			}
-
-			const args = target.split(' ').map(s => s.trim());
-
-			if (args[0] === 'cancel') {
-				delete state.pendingMoveSlot;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			if (args[0] === 'confirm') {
-				if (state.pendingMoveSlot === undefined) return;
-				const toSlot = parseInt(args[1]) - 1;
-				const fromSlot = state.pendingMoveSlot;
-
-				if (isNaN(toSlot) || toSlot < 0 || toSlot >= state.team.length) return this.errorReply("Invalid slot.");
-
-				const temp = state.team[fromSlot];
-				state.team[fromSlot] = state.team[toSlot];
-				state.team[toSlot] = temp;
-
-				delete state.pendingMoveSlot;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			const fromSlot = parseInt(args[0]) - 1;
-			if (isNaN(fromSlot) || fromSlot < 0 || fromSlot >= state.team.length) return this.errorReply("Invalid slot.");
-
-			state.pendingMoveSlot = fromSlot;
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-
-		releasemon(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			if (state.gameOver) return this.errorReply("No active run.");
-			if (state.battleRoomId) return this.errorReply("Can't release Pokémon during a battle.");
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve pending choices first.");
-			}
-
-			const args = target.split(' ').map(s => s.trim());
-
-			if (args[0] === 'cancel') {
-				delete state.pendingReleaseSlot;
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			if (args[0] === 'confirm') {
-				if (state.pendingReleaseSlot === undefined) return;
-				const slot = state.pendingReleaseSlot;
-
-				if (slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
-				if (state.team.length <= 1) return this.errorReply("You cannot release your last Pokémon!");
-
-				const mon = state.team[slot];
-				const spName = Dex.species.get(toID(mon.species)).name;
-
-				state.team.splice(slot, 1);
-
-				state.notification = `You released <b>${spName}</b>.`;
-				delete state.pendingReleaseSlot;
-				delete state.pendingMoveSlot;
-				delete (state as any).pendingStatsSlot;
-
-				setState(user.id, state);
-				refreshGamePage(user);
-				return;
-			}
-
-			const slot = parseInt(args[0]) - 1;
-			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
-			if (state.team.length <= 1) return this.errorReply("You cannot release your last Pokémon!");
-
-			state.pendingReleaseSlot = slot;
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-
-		transferitem(target, room, user) {
-			const state = getState(user.id);
-			if (!state || state.battleRoomId) return;
-
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
-				return this.errorReply("Resolve pending choices first.");
-			}
-
-			const parts = target.trim().split(' ');
-			const fromSlot = parseInt(parts[0]) - 1;
-			const toSlot = parseInt(parts[1]) - 1;
-
-			if (isNaN(fromSlot) || isNaN(toSlot) || fromSlot < 0 || toSlot >= state.team.length) return this.errorReply("Invalid team slot.");
-
-			const fromMon = state.team[fromSlot];
-			const toMon = state.team[toSlot];
-
-			if (!fromMon.heldItem) return this.errorReply("That Pokémon isn't holding anything.");
-
-			const temp = toMon.heldItem;
-			toMon.heldItem = fromMon.heldItem;
-			fromMon.heldItem = temp;
-
-			const fromName = Dex.species.get(toID(fromMon.species)).name;
-			const toName = Dex.species.get(toID(toMon.species)).name;
-			state.notification = `Swapped held items between ${fromName} and ${toName}!`;
-
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-		
-		reroll(target, room, user) {
-			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft') return;
-
-			const cost = getRerollCost(state, false, state.pendingRewardDraft || []);
-			
-			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
-
-			state.money -= cost;
-			state.rerollCount = (state.rerollCount || 0) + 1;
-			
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			state.pendingRewardDraft = generateDraftOptions(state, config);
-
-			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
@@ -1277,7 +1268,6 @@ export const commands: Chat.ChatCommands = {
 				} as PokemonEntry;
 			}
 
-			// Base fields we must clear from selection arrays safely without using delete
 			const clearedDraftState = {
 				...state,
 				pendingChoice: undefined,
@@ -1328,6 +1318,67 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
+		prebattle(target, room, user) {
+			if (!user.named) return this.errorReply("Login required.");
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			if (state.gameOver) return this.errorReply("The run is over. Start a new run first.");
+
+			clearStaleBattleRoom(state, user.id);
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+				return this.errorReply("Resolve all pending choices before starting a battle.");
+			}
+
+			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) {
+				return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
+			}
+
+			if (state.battleRoomId) {
+				return this.errorReply("You are already in a battle.");
+			}
+
+			if (state.pendingTrainer && state.pendingTrainerKey) {
+				const nextState = {
+					...state,
+					view: 'trainer' as const,
+				};
+				setState(user.id, nextState);
+				refreshGamePage(user);
+				return;
+			}
+
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
+			const floor = state.floor;
+
+			if (config.hasTrainers && data.resolveTrainer) {
+				const resolvedTrainer = data.resolveTrainer(floor, state, config);
+
+				if (resolvedTrainer) {
+					state.pendingTrainer = resolvedTrainer.name;
+					state.pendingTrainerKey = resolvedTrainer.key;
+
+					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
+
+					if (trainerData?.spriteUrl || trainerData?.dialog) {
+						const nextState = {
+							...state,
+							view: 'trainer' as const,
+						};
+						setState(user.id, nextState);
+						refreshGamePage(user);
+						return;
+					}
+				}
+			}
+
+			setState(user.id, state);
+			return this.parse('/pokerogue battle');
+		},
+
 		battle(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
@@ -1345,8 +1396,11 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			if (startBattle(user, state)) {
-				(state as any).view = 'main';
-				setState(user.id, state);
+				const nextState = {
+					...state,
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
 				refreshGamePage(user);
 			}
 		},
@@ -1884,11 +1938,11 @@ export const commands: Chat.ChatCommands = {
 			if ((state.inventory[ballType] || 0) <= 0) return this.errorReply(`You don't have any ${ballType}s left!`);
 
 			const now = Date.now();
-			const lastThrow = (state as any).lastThrowTime || 0;
+			const lastThrow = state.lastThrowTime || 0;
 			if (now - lastThrow < 1500) {
 				return this.errorReply("Please wait a moment before throwing another Poké Ball.");
 			}
-			(state as any).lastThrowTime = now;
+			state.lastThrowTime = now;
 
 			const log = room.log?.log || [];
 
@@ -2146,7 +2200,7 @@ export const commands: Chat.ChatCommands = {
 				};
 
 				if (caughtItem) caught.heldItem = caughtItem;
-				if (p2Status && p2Status !== 'none') caught.status = p2Status;
+				if (p2Status && p2Status !== 'none') caught.status = p2Status as StatusCondition;
 
 				state.caughtPokemon = caught;
 				setState(user.id, state);
@@ -2206,7 +2260,7 @@ export const pages: Chat.PageTable = {
 		if (!user.named) return this.errorReply('Login required.');
 		const state = getState(user.id);
 		if (!state) return `<div class="pr-popup"><div class="pr-popup-header"><h2>PokéRogue</h2></div><div style="text-align:center;padding:16px"><button name="send" value="/pokerogue start" class="button">Start New Run</button></div></div>`;
-		const v = (state as any).view || 'main';
+		const v = state.view || 'main';
 		this.title = `PokéRogue - ${v.toUpperCase()}`;
 		return renderGamePage(state, user);
 	},

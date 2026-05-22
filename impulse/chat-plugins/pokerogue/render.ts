@@ -1,6 +1,20 @@
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
-import { type PokemonEntry, type PokeRogueState } from './types';
+import {
+	type PokemonEntry,
+	type PokeRogueState,
+	type StatsViewState,
+	type StarterSelectViewState,
+	type MainViewState,
+	type DraftViewState,
+	type ResetConfirmViewState,
+	type TopViewState,
+	type WelcomeViewState,
+	type SaveViewState,
+	type LoadViewState,
+	type TrainerViewState,
+	type GameMode
+} from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS } from './items';
 import { globalStats, getUserData } from './state';
@@ -306,12 +320,17 @@ function renderDraftView(state: PokeRogueState): string {
 	for (let i = 0; i < (state.pendingRewardDraft?.length || 0); i++) {
 		const itemKey = state.pendingRewardDraft![i];
 		const item = SHOP_ITEMS[itemKey];
+		if (!item) {
+			buf += `<div class="pr-card" style="width: 150px; padding: 12px; border: 1px solid #444; border-radius: 8px; background: rgba(0,0,0,0.3);">`;
+			buf += `<div style="font-weight:bold; font-size:13px; color:#f44336;">Unknown Item</div>`;
+			buf += `<div style="font-size:10px; color:#aaa; height: 40px; overflow: hidden; margin-bottom: 8px;">Obsolete config</div>`;
+			buf += `</div>`;
+			continue;
+		}
 		buf += `<div class="pr-card" style="width: 150px; padding: 12px; text-align:center; border: 1px solid #444; border-radius: 8px; background: rgba(0,0,0,0.3);">`;
 		buf += `<div style="margin-bottom: 8px;">${getShopItemIcon(item.icon, 32)}</div>`;
-		
 		const qtySuffix = (item.draftAmount && item.draftAmount > 1) ? ` x${item.draftAmount}` : '';
 		buf += `<div style="font-weight:bold; font-size:13px; margin-bottom: 4px;">${Utils.escapeHTML(item.name)}${qtySuffix}</div>`;
-		
 		buf += `<div style="font-size:10px; color:#aaa; height: 40px; overflow: hidden; margin-bottom: 8px;">${Utils.escapeHTML(item.desc)}</div>`;
 		buf += renderBtn(`/pokerogue draft ${i + 1}`, 'Take', 'pr-pick-btn', 'width:100%');
 		buf += `</div>`;
@@ -346,7 +365,7 @@ function renderPendingChoice(state: PokeRogueState): string {
 	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2><div class="pr-choice-grid">`;
 	const natures = Dex.natures.all().map(n => n.name);
 
-	for (let i = 0; i < state.pendingChoice!.length; i++) {
+	for (let i = 0; i < (state.pendingChoice?.length || 0); i++) {
 		const sp = Dex.species.get(toID(state.pendingChoice![i]));
 		const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 		const abilities = sp.abilities ?? {};
@@ -372,8 +391,6 @@ function renderStarterSelectionView(state: StarterSelectViewState, user: User): 
 	const pending = state.pendingChoice || [];
 	const userData = getUserData(user.id);
 	const unlockedCount = Object.keys(userData.starters || {}).length;
-	
-	// FIX: Fallback to an empty string if the property is undefined in existing save files
 	const search = (state.starterSearch || '').trim().toLowerCase();
 
 	const filtered = search.length > 0
@@ -382,7 +399,6 @@ function renderStarterSelectionView(state: StarterSelectViewState, user: User): 
 			const sidClean = toID(sid);
 			const sp = Dex.species.get(sidClean);
 			if (!sp.exists) return false;
-			
 			const saved = userData.starters[sidClean];
 
 			if (search === 'shiny') return !!saved?.shiny;
@@ -513,7 +529,7 @@ function renderPendingMoves(state: PokeRogueState): string {
 
 function renderItemOptions(state: PokeRogueState): string {
 	let buf = `<h2 class="pr-choice-heading">Choose an item!</h2><div class="pr-choice-grid">`;
-	for (const itemName of state.itemOptions!) {
+	for (const itemName of state.itemOptions || []) {
 		const dexItem = Dex.items.get(itemName);
 		const flexHtml = `<div style="display:flex;align-items:center;gap:8px">${getShopItemIcon(itemURLFormat(itemName), 24)}<span style="font-size:13px;font-weight:500">${Utils.escapeHTML(dexItem.name || itemName)}</span></div>`;
 		buf += renderChoiceRow('', flexHtml, renderBtn(`/pokerogue resolve pickitem ${toID(itemName)}`, 'Pick', 'pr-pick-btn'), 'justify-content:space-between');
@@ -751,11 +767,9 @@ function renderVictoryView(state: PokeRogueState): string {
 	});
 }
 
-function renderStatsView(state: any, user: User): string {
+function renderStatsView(state: StatsViewState, user: User): string {
 	const slot = state.pendingStatsSlot;
-	
 	const activeTab = state.statsTab ?? 0;
-	
 	if (slot === undefined || slot < 0 || slot >= state.team.length) {
 		return `<div class="pr-warning-box">Error loading stats.</div>`;
 	}
@@ -819,7 +833,7 @@ function renderStatsView(state: any, user: User): string {
 	}
 	if (spData.id === 'shedinja') stats.hp = 1;
 
-	const maxStatLevel = MODE_CONFIGS[state.gameMode as GameMode]?.maxLevel ?? 200;
+	const maxStatLevel = MODE_CONFIGS[state.gameMode]?.maxLevel ?? 200;
 	const maxStats: Record<string, number> = {};
 	for (const stat of statKeys) {
 		if (stat === 'hp') {
