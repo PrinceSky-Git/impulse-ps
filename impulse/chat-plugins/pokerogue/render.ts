@@ -365,11 +365,11 @@ function renderPendingChoice(state: PokeRogueState): string {
 	return buf + `</div>`;
 }
 
-function renderStarterSelectionView(state: PokeRogueState, user: User): string {
+function renderStarterSelectionView(state: StarterSelectViewState, user: User): string {
 	const pending = state.pendingChoice || [];
 	const userData = getUserData(user.id);
 	const unlockedCount = Object.keys(userData.starters || {}).length;
-	const search = ((state as any).starterSearch || '').toLowerCase().trim();
+	const search = state.starterSearch;
 
 	const filtered = search.length > 0
 		? pending.filter(sid => {
@@ -742,9 +742,10 @@ function renderVictoryView(state: PokeRogueState): string {
 	});
 }
 
-function renderStatsView(state: PokeRogueState, user: User): string {
-	const slot = (state as any).pendingStatsSlot;
-	const activeTab: number = (state as any).statsTab ?? 0;
+function renderStatsView(state: StatsViewState, user: User): string {
+	const slot = state.pendingStatsSlot;
+	const activeTab = state.statsTab;
+	
 	if (slot === undefined || slot < 0 || slot >= state.team.length) {
 		return `<div class="pr-warning-box">Error loading stats.</div>`;
 	}
@@ -1193,34 +1194,51 @@ function renderSlotsView(user: User, action: 'save' | 'load'): string {
 }
 
 export function renderGamePage(state: PokeRogueState, user: User): string {
-	const view = (state as any).view || 'main';
-
 	let buf = (state.battleRoomId || state.notification) ? `<meta http-equiv="refresh" content="${PAGE_REFRESH_SECONDS}">` : '';
 
 	buf += `<div class="pr" style="min-height:100vh;padding-bottom:20px">`;
 
-	if (state.gameOver && view !== 'welcome') return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGameOverView(state)}</div></div>`;
-	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderResetConfirmView(state)}</div></div>`;
-	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderTopView()}</div></div>`;
-	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderWelcomeView()}</div></div>`;
-	if (view === 'starterselect') return buf + renderHeader('main', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStarterSelectionView(state, user)}</div></div>`;
-	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStatsView(state, user)}</div></div>`;
-	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'save')}</div></div>`;
-	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'load')}</div></div>`;
-	if (view === 'draft') return buf + renderHeader('draft', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderDraftView(state)}</div></div>`;
+	if (state.gameOver && state.view !== 'welcome') {
+		return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGameOverView(state)}</div></div>`;
+	}
 
-	buf += renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
-
-	if (state.pendingChoice?.length) return buf + renderPendingChoice(state) + `</div></div>`;
-	if (state.pendingSwap) return buf + renderPendingSwap(state) + `</div></div>`;
-	if (state.pendingMoves?.length) return buf + renderPendingMoves(state) + `</div></div>`;
-	if (state.itemOptions?.length) return buf + renderItemOptions(state) + `</div></div>`;
-	if (state.pendingItemName) return buf + renderGiveItem(state) + `</div></div>`;
-	if (state.pendingConsumableType && state.purchasedItem) return buf + renderConsumable(state) + `</div></div>`;
-	if (view === 'trainer' && state.pendingTrainer) return buf + renderTrainerIntroView(state) + `</div></div>`;
-	if (state.pendingMoveSlot !== undefined) return buf + renderMoveMon(state) + `</div></div>`;
-	if (state.pendingReleaseSlot !== undefined) return buf + renderReleaseMon(state) + `</div></div>`;
-	if (state.gameWon) return buf + renderHeader('victory', false) + `<div style="padding:0 14px 14px">${renderVictoryView(state)}</div></div>`;
-
-	return buf + renderMainView(state, user) + `</div></div>`;
+	switch (state.view) {
+		case 'welcome':
+			return buf + renderHeader(state.view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderWelcomeView()}</div></div>`;
+		case 'resetconfirm':
+			return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderResetConfirmView(state)}</div></div>`;
+		case 'top':
+			return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderTopView()}</div></div>`;
+		case 'starterselect':
+			return buf + renderHeader('main', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStarterSelectionView(state, user)}</div></div>`;
+		case 'stats':
+			return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStatsView(state, user)}</div></div>`;
+		case 'save':
+			return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'save')}</div></div>`;
+		case 'load':
+			return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'load')}</div></div>`;
+		case 'draft':
+			return buf + renderHeader('draft', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderDraftView(state)}</div></div>`;
+		case 'trainer':
+			buf += renderHeader(state.view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
+			if (state.pendingTrainer) return buf + renderTrainerIntroView(state) + `</div></div>`;
+			break;
+		case 'main':
+			buf += renderHeader(state.view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
+			if (state.pendingChoice?.length) return buf + renderPendingChoice(state) + `</div></div>`;
+			if (state.pendingSwap) return buf + renderPendingSwap(state) + `</div></div>`;
+			if (state.pendingMoves?.length) return buf + renderPendingMoves(state) + `</div></div>`;
+			if (state.itemOptions?.length) return buf + renderItemOptions(state) + `</div></div>`;
+			if (state.pendingItemName) return buf + renderGiveItem(state) + `</div></div>`;
+			if (state.pendingConsumableType && state.purchasedItem) return buf + renderConsumable(state) + `</div></div>`;
+			if (state.pendingMoveSlot !== undefined) return buf + renderMoveMon(state) + `</div></div>`;
+			if (state.pendingReleaseSlot !== undefined) return buf + renderReleaseMon(state) + `</div></div>`;
+			if (state.gameWon) return buf + renderHeader('victory', false) + `<div style="padding:0 14px 14px">${renderVictoryView(state)}</div></div>`;
+			return buf + renderMainView(state, user) + `</div></div>`;
+		default: {
+			const _exhaustiveCheck: never = state;
+			return _exhaustiveCheck;
+		}
+	}
+	return buf + `</div></div>`;
 }
