@@ -263,7 +263,8 @@ function processBattleExperience(
 	}
 
 	return detailMsgs;
-}.
+}
+
 function syncBattleOutcome(
 	logLines: string[],
 	state: PokeRogueState,
