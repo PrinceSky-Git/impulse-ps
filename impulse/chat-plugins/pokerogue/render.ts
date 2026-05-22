@@ -297,7 +297,7 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 
 function renderDraftView(state: PokeRogueState): string {
 	const currentMoney = state.money || 0;
-	const rerollCost = getRerollCost(state.floor, state.rerollCount || 0);
+	const rerollCost = getRerollCost(state, false, state.pendingRewardDraft);
 	const canReroll = currentMoney >= rerollCost;
 	let buf = `<div style="text-align:center; padding: 10px;">`;
 	buf += `<h2 style="color:#fac000; margin-bottom: 4px;">Wave Cleared!</h2>`;
