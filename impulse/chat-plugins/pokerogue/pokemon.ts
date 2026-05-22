@@ -1002,30 +1002,28 @@ export function getItemPrice(wave: number, multiplier: number): number {
 	return Math.floor(getBaseMoneyReward(wave) / 10) * 10 * multiplier;
 }
 
-export function getRerollCost(state: PokeRogueState, isLocked: boolean = false, currentDraft: string[] = []): number {
-	const waveFactor = Math.ceil(Math.max(1, state.floor) / 10);
+export function getRerollCost(wave: number, rerollCount: number, isLocked: boolean = false, currentDraft: string[] = []): number {
+	const waveFactor = Math.ceil(Math.max(1, wave) / 10);
 	let baseCost = 250;
 
 	if (isLocked && currentDraft.length > 0) {
 		let sumI = 0;
-		const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 		for (const itemKey of currentDraft) {
-			const item = activeShop[itemKey];
+			const item = SHOP_ITEMS[itemKey];
 			if (!item) continue;
 			
 			switch (item.tier) {
-				case 'Common': sumI += 50; break;
-				case 'Great': sumI += 100; break;
-				case 'Rare': sumI += 150; break;
-				case 'Ultra': sumI += 400; break;
-				case 'Master': sumI += 1000; break;
-				default: sumI += 50; break;
+			case 'Common': sumI += 50; break;
+			case 'Rare': sumI += 125; break;
+			case 'Epic': sumI += 300; break;
+			case 'Master': sumI += 2000; break;
+			default: sumI += 50; break;
 			}
 		}
 		baseCost = sumI;
 	}
 
-	return baseCost * waveFactor * Math.pow(2, state.rerollCount || 0);
+	return baseCost * waveFactor * Math.pow(2, rerollCount);
 }
 
 export function calculatePartyLuck(team: PokemonEntry[]): number {
@@ -1037,27 +1035,17 @@ export function calculatePartyLuck(team: PokemonEntry[]): number {
 }
 
 export function rollRarity(luck: number): ItemRarityTier {
-	let wCommon = 75.00;
-	let wGreat = 19.04;
-	let wRare = 4.69;
-	let wUltra = 1.17;
-	let wMaster = 0.10;
-	
-	if (luck > 0) {
-		wGreat *= (1 + 0.15 * luck);
-		wRare *= (1 + 0.30 * luck);
-		wUltra *= (1 + 0.45 * luck);
-		wMaster *= (1 + 0.60 * luck);
+	const tiers: ItemRarityTier[] = ['Common', 'Great', 'Rare', 'Ultra', 'Master'];
+	let tierIndex = 0;
+	const upgradeOdds = Math.floor(32 / ((luck + 2) / 2));
+	while (tierIndex < tiers.length - 1) {
+		if (upgradeOdds > 0 && Math.floor(Math.random() * upgradeOdds) === 0) {
+			tierIndex++;
+		} else {
+			break;
+		}
 	}
-
-	const totalWeight = wCommon + wGreat + wRare + wUltra + wMaster;
-	const rand = Math.random() * totalWeight;
-
-	if (rand < wCommon) return 'Common';
-	if (rand < wCommon + wGreat) return 'Great';
-	if (rand < wCommon + wGreat + wRare) return 'Rare';
-	if (rand < wCommon + wGreat + wRare + wUltra) return 'Ultra';
-	return 'Master';
+	return tiers[tierIndex];
 }
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
@@ -1101,7 +1089,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		if (item.type === 'mint') {
 			if (!state.team.some(m => m.nature !== item.nature)) return false;
 		}
-		const currentStackCount = (state.keyItems?.[item.name] || 0) + (state.inventory?.[key] || 0);
+		const currentStackCount = (state.keyItems?.filter(k => k === item.name).length || 0) + (state.inventory?.[key] || 0);
 		if (item.maxStack && currentStackCount >= item.maxStack) return false;
 		if (item.type === 'tm' || item.type === 'TM') {
 			const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));

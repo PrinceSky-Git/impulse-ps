@@ -770,7 +770,7 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 
 	let size = 1;
 	if (!isBossFloor) {
-		const hasLure = (state.keyItems?.['Lure'] || 0) > 0;
+		const hasLure = (state.keyItems ?? []).includes('Lure');
 		if (hasLure && Math.random() < 0.5) size = 2;
 	}
 
@@ -804,57 +804,17 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 		return false;
 	}
 
-	let playerTeam = packTeam(livingTeam);
-
-	// FIX: Pass the raw percentage to Showdown since your custom sim-pokemon.ts natively converts it
-	playerTeam = playerTeam.split(']').map((monStr, index) => {
-		if (!monStr) return monStr;
-		const parts = monStr.split('|');
-		const mon = livingTeam[index];
-		if (!mon) return monStr;
-		
-		while (parts.length < 15) parts.push('');
-		parts[14] = (mon.currentHp ?? 100).toString();
-		
-		if (mon.status) {
-			while (parts.length < 16) parts.push('');
-			parts[15] = mon.status;
-		} else if (parts.length > 15) {
-			parts[15] = '';
-		}
-		
-		return parts.join('|');
-	}).join(']');
+	const playerTeam = packTeam(livingTeam);
 
 	const botTeamData = buildBotTeam(state);
-	let botTeam = botTeamData.packedTeam;
+	const botTeam = botTeamData.packedTeam;
 	const isTrainer = botTeamData.isTrainer;
 	const trainerName = botTeamData.trainerName;
-
-	// FIX: Apply the same percentage pass-through to the Bot Team
-	botTeam = botTeam.split(']').map((monStr, index) => {
-		if (!monStr) return monStr;
-		const parts = monStr.split('|');
-		const mon = botTeamData.team[index];
-		if (!mon) return monStr;
-		
-		while (parts.length < 15) parts.push('');
-		parts[14] = (mon.currentHp ?? 100).toString();
-		
-		if (mon.status) {
-			while (parts.length < 16) parts.push('');
-			parts[15] = mon.status;
-		} else if (parts.length > 15) {
-			parts[15] = '';
-		}
-		
-		return parts.join('|');
-	}).join(']');
 
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 	const isBoss = state.floor % config.bossInterval === 0;
 
-	const hasLure = (state.keyItems?.['Lure'] || 0) > 0;
+	const hasLure = (state.keyItems ?? []).includes('Lure');
 	const isDoubles = !isTrainer && !isBoss && hasLure && botTeamData.team.length > 1 && livingTeam.length > 1;
 	
 	if (state.pendingTrainer) {

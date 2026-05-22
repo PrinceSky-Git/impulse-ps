@@ -29,7 +29,6 @@ export interface ShopItem {
 	evStat?: string;
 	nature?: string;
 	teraType?: string;
-	draftAmount?: number;
 }
 
 export const SHOP_ITEMS: Record<string, ShopItem> = SHOP_DB;

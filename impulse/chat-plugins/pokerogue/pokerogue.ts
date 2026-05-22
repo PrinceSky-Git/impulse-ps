@@ -1,5 +1,5 @@
 import { Utils } from '../../../lib';
-import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig, type MainViewState, type DraftViewState, type TrainerViewState, type StatsViewState, type StarterSelectViewState } from './types';
+import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
 import { type AIPokemonSet } from './pokemon';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
@@ -85,24 +85,9 @@ function clearStaleBattleRoom(state: PokeRogueState, userId: string): void {
 	if (!state.battleRoomId) return;
 	const bRoom = Rooms.get(state.battleRoomId as RoomID);
 	if (!bRoom?.battle || bRoom.battle.ended) {
-		const nextState = {
-			...state,
-			battleRoomId: undefined,
-		};
-		setState(userId, nextState as PokeRogueState);
+		delete state.battleRoomId;
+		setState(userId, state);
 	}
-}
-
-function hasAnyActiveBattle(userId: string): boolean {
-	const userData = getUserData(userId);
-	for (const mode of Object.keys(userData.runs)) {
-		const run = userData.runs[mode as GameMode];
-		if (run?.battleRoomId) {
-			const bRoom = Rooms.get(run.battleRoomId as RoomID);
-			if (bRoom?.battle && !bRoom.battle.ended) return true;
-		}
-	}
-	return false;
 }
 
 function processLevelUp(
@@ -211,8 +196,8 @@ function applyExpShare(
 ): Map<number, number> {
 	const expAllItem = Object.values(SHOP_ITEMS).find(i => i.name === EXP_SHARE_NAME);
 	const expAllMax = expAllItem?.maxStack ?? 5;
-	const expAllStacks = Math.min(expAllMax, state.keyItems?.[EXP_SHARE_NAME] || 0);
-	const expCharmStacks = state.keyItems?.['Exp. Charm'] || 0;
+	const expAllStacks = Math.min(expAllMax, (state.keyItems ?? []).filter(k => k === EXP_SHARE_NAME).length);
+	const expCharmStacks = (state.keyItems ?? []).filter(k => k === 'Exp. Charm').length;
 	const charmMult = expCharmStacks > 0 ? (1 + 0.25 * expCharmStacks) : 1;
 	const result = new Map<number, number>();
 	for (const [teamIdx, baseExp] of expMap) {
@@ -271,25 +256,24 @@ function syncBattleOutcome(
 ): { consumedItems: string[] } {
 	const slotToTeamIdx: Record<string, number> = {};
 	const activelyAssigned = new Set<number>();
-	const teamHp: Record<number, { hp: number, max: number }> = {};
+	const teamHp: Record<number, number> = {};
 	const teamStatus: Record<number, StatusCondition | ''> = {};
 	const faintedIndices = new Set<number>();
 	const idxOf = (slot: string): number | undefined => slotToTeamIdx[slot];
 
 	for (const line of logLines) {
-		const switchMatch = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+		const switchMatch = /^\|(?:switch|drag)\|p1([a-z]): [^|]+\|([^|,]+)[^|]*\|(\d+)(?:\/\d+)?/.exec(line);
 		if (switchMatch) {
 			const slot = 'p1' + switchMatch[1];
 			const sid = toID(switchMatch[2].trim());
-			const logBase = toID(Dex.species.get(sid).baseSpecies || sid);
+			const hp = parseInt(switchMatch[3]);
 
 			const prev = slotToTeamIdx[slot];
 			if (prev !== undefined) activelyAssigned.delete(prev);
 
 			let matched = -1;
 			for (let i = 0; i < state.team.length; i++) {
-				const teamBase = toID(Dex.species.get(state.team[i].species).baseSpecies || state.team[i].species);
-				if (!activelyAssigned.has(i) && teamBase === logBase && !faintedIndices.has(i) && (state.team[i].currentHp ?? 100) > 0) {
+				if (!activelyAssigned.has(i) && toID(state.team[i].species) === sid && !faintedIndices.has(i) && (state.team[i].currentHp ?? 100) > 0) {
 					matched = i;
 					break;
 				}
@@ -298,19 +282,20 @@ function syncBattleOutcome(
 			if (matched !== -1) {
 				slotToTeamIdx[slot] = matched;
 				activelyAssigned.add(matched);
-				teamHp[matched] = { hp: parseInt(switchMatch[3]), max: switchMatch[4] ? parseInt(switchMatch[4]) : 100 };
-				teamStatus[matched] = switchMatch[5] ? switchMatch[5] as StatusCondition : '';
+				teamHp[matched] = hp;
+
+				const statusInSwitch = /\|\d+\/\d+ (brn|psn|tox|par|slp|frz)/.exec(line);
+				teamStatus[matched] = statusInSwitch ? statusInSwitch[1] as StatusCondition : (teamStatus[matched] ?? '');
 			}
 			continue;
 		}
 
-		// Cleaned up regex for damage/heal tracking
-		const hpMatch = /^\|(?:-damage|-heal)\|p1([a-z]): [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+		const hpMatch = /^\|(?:-damage|-heal)\|p1([a-z]): [^|]+\|(\d+)(?:\/\d+)?( (brn|psn|tox|par|slp|frz))?/.exec(line);
 		if (hpMatch) {
 			const idx = idxOf('p1' + hpMatch[1]);
 			if (idx !== undefined) {
-				teamHp[idx] = { hp: parseInt(hpMatch[2]), max: hpMatch[3] ? parseInt(hpMatch[3]) : (teamHp[idx]?.max || 100) };
-				if (hpMatch[4]) teamStatus[idx] = hpMatch[4] as StatusCondition;
+				teamHp[idx] = parseInt(hpMatch[2]);
+				if (hpMatch[4]) teamStatus[idx] = hpMatch[4].trim() as StatusCondition;
 			}
 			continue;
 		}
@@ -334,7 +319,7 @@ function syncBattleOutcome(
 			const slot = 'p1' + faintP1[1];
 			const idx = idxOf(slot);
 			if (idx !== undefined) {
-				teamHp[idx] = { hp: 0, max: 100 };
+				teamHp[idx] = 0;
 				teamStatus[idx] = '';
 				faintedIndices.add(idx);
 				activelyAssigned.delete(idx);
@@ -344,7 +329,7 @@ function syncBattleOutcome(
 		}
 	}
 
-	for (const [idxStr, hpData] of Object.entries(teamHp)) {
+	for (const [idxStr, hp] of Object.entries(teamHp)) {
 		const idx = Number(idxStr);
 		const mon = state.team[idx];
 		if (!mon) continue;
@@ -352,9 +337,13 @@ function syncBattleOutcome(
 		if (faintedIndices.has(idx)) {
 			mon.currentHp = 0;
 		} else {
-			// Apply HP strictly based on the extracted log denominator
-			const finalMaxHp = hpData.max || 100;
-			mon.currentHp = Math.max(1, Math.round((hpData.hp / finalMaxHp) * 100));
+			const spData = Dex.species.get(toID(mon.species));
+			const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+			const ivHp = mon.ivs?.hp ?? 31;
+			const evHp = mon.evs?.hp ?? 0;
+			const maxHp = spData.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
+			
+			mon.currentHp = Math.max(1, Math.round((hp / maxHp) * 100));
 			if (mon.currentHp > 100) mon.currentHp = 100;
 		}
 	}
@@ -367,7 +356,7 @@ function syncBattleOutcome(
 		if (status) {
 			state.team[idx].status = status;
 		} else {
-			state.team[idx].status = undefined;
+			delete state.team[idx].status;
 		}
 	}
 
@@ -375,7 +364,7 @@ function syncBattleOutcome(
 	const itemSlotMap: Record<string, number> = {};
 	const itemAssigned = new Set<number>();
 	for (const line of logLines) {
-		const sw = /^\|(?:switch|drag|replace)\|p1([a-z]): [^|]+\|([^|,]+)/.exec(line);
+		const sw = /^\|(?:switch|drag)\|p1([a-z]): [^|]+\|([^|,]+)/.exec(line);
 		if (sw) {
 			const slot = 'p1' + sw[1];
 			const sid = toID(sw[2].trim());
@@ -393,32 +382,15 @@ function syncBattleOutcome(
 			continue;
 		}
 		const endItemMatch = /^\|-enditem\|p1([a-z]): [^|]+\|([^|]+)/.exec(line);
-		if (endItemMatch) {
-			if (line.includes('[from] move: Knock Off') || line.includes('[from] move: Thief') || line.includes('[from] move: Incinerate')) continue;
-			const slot = 'p1' + endItemMatch[1];
-			const itemId = toID(endItemMatch[2].trim());
-			const teamIdx = itemSlotMap[slot];
-			if (teamIdx !== undefined && state.team[teamIdx].heldItem === itemId) {
-				state.team[teamIdx].heldItem = undefined;
-				const dexItem = Dex.items.get(itemId);
-				consumedItems.push(dexItem.name || itemId);
-			}
-			continue;
-		}
-		const itemMatch = /^\|-item\|p1([a-z]): [^|]+\|([^|]+)/.exec(line);
-		if (itemMatch) {
-			const slot = 'p1' + itemMatch[1];
-			const itemId = toID(itemMatch[2].trim());
-			const teamIdx = itemSlotMap[slot];
-			if (teamIdx !== undefined) {
-				state.team[teamIdx].heldItem = itemId;
-				const dexItem = Dex.items.get(itemId);
-				const consumedIdx = consumedItems.indexOf(dexItem.name || itemId);
-				if (consumedIdx > -1) {
-					consumedItems.splice(consumedIdx, 1);
-				}
-			}
-			continue;
+		if (!endItemMatch) continue;
+		if (line.includes('[from] move: Knock Off') || line.includes('[from] move: Thief') || line.includes('[from] move: Incinerate')) continue;
+		const slot = 'p1' + endItemMatch[1];
+		const itemId = toID(endItemMatch[2].trim());
+		const teamIdx = itemSlotMap[slot];
+		if (teamIdx !== undefined && state.team[teamIdx].heldItem === itemId) {
+			delete state.team[teamIdx].heldItem;
+			const dexItem = Dex.items.get(itemId);
+			consumedItems.push(dexItem.name || itemId);
 		}
 	}
 
@@ -434,7 +406,7 @@ function processFloorRewards(
 	const extraNotifs: string[] = [];
 	if (clearedFloor > (state.highestFloor ?? 0)) {
 		state.highestFloor = clearedFloor;
-		state.recordTeam = JSON.parse(JSON.stringify(state.team));
+		state.recordTeam = state.team.map(m => ({ ...m }));
 		globalStats[userId] = {
 			highestFloor: clearedFloor,
 			displayName: state.displayName || userId,
@@ -447,14 +419,14 @@ function processFloorRewards(
 			const trigger = reward.interval ? clearedFloor % reward.floor === 0 : clearedFloor === reward.floor;
 			if (trigger) {
 				if (reward.itemType === 'keyItem') {
-					state.keyItems = state.keyItems ?? {};
+					state.keyItems = state.keyItems ?? [];
 					const shopItemEntry = Object.values(SHOP_ITEMS).find(item => item.name === reward.itemName);
 					const maxStack = shopItemEntry?.maxStack ?? 1;
 					let added = 0;
 					for (let i = 0; i < reward.amount; i++) {
-						const currentCount = state.keyItems[reward.itemName] || 0;
+						const currentCount = state.keyItems.filter(k => k === reward.itemName).length;
 						if (currentCount >= maxStack) continue;
-						state.keyItems[reward.itemName] = currentCount + 1;
+						state.keyItems.push(reward.itemName);
 						added++;
 					}
 					if (added > 0) {
@@ -472,7 +444,7 @@ function processFloorRewards(
 	if (isBossFloorBoundary(clearedFloor, config.bossInterval)) {
 		for (const mon of state.team) {
 			mon.currentHp = 100;
-			mon.status = undefined;
+			delete mon.status;
 		}
 		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
 	}
@@ -480,26 +452,26 @@ function processFloorRewards(
 }
 
 function handleBattleLoss(state: PokeRogueState, floor: number, userId: string): void {
-	state.pendingMoves = undefined;
-	state.pendingSwap = undefined;
-	state.moveToLearn = undefined;
-	state.pendingItemName = undefined;
-	state.itemOptions = undefined;
-	state.purchasedItem = undefined;
-	state.caughtPokemon = undefined;
-	state.pendingTrainer = undefined;
-	state.pendingTrainerKey = undefined;
-	state.pendingRewardDraft = undefined;
-	state.rerollCount = undefined;
+	delete state.pendingMoves;
+	delete state.pendingSwap;
+	delete state.moveToLearn;
+	delete state.pendingItemName;
+	delete state.itemOptions;
+	delete state.purchasedItem;
+	delete state.caughtPokemon;
+	delete state.pendingTrainer;
+	delete state.pendingTrainerKey;
+	delete state.pendingRewardDraft;
+	delete state.rerollCount;
 
-	if (state.keyItems?.['Revive'] > 0) {
-		state.keyItems['Revive']--;
+	if ((state.keyItems ?? []).includes('Revive')) {
+		state.keyItems = state.keyItems.filter(k => k !== 'Revive');
 		state.notification = (state.notification ?? '') +
 			`<br><b>Revive used!</b> Retrying Floor ${floor}`;
 	} else {
 		if (floor > (state.highestFloor ?? 0)) {
 			state.highestFloor = floor;
-			state.recordTeam = JSON.parse(JSON.stringify(state.team));
+			state.recordTeam = state.team.map(m => ({ ...m }));
 
 			globalStats[userId] = {
 				highestFloor: floor,
@@ -523,12 +495,7 @@ export const commands: Chat.ChatCommands = {
 
 			if (state?.battleRoomId) {
 				const bRoom = Rooms.get(state.battleRoomId as RoomID);
-				if (!bRoom?.battle || bRoom.battle.ended) {
-					state = {
-						...state,
-						battleRoomId: undefined,
-					} as PokeRogueState;
-				}
+				if (!bRoom?.battle || bRoom.battle.ended) delete state.battleRoomId;
 			}
 
 			const hasActiveRun = state && (
@@ -554,18 +521,18 @@ export const commands: Chat.ChatCommands = {
 					money: defaultConfig.economy.startingMoney || 0,
 					timesRerolled: 0,
 					rotationalShop: [],
-					keyItems: { ...(defaultConfig.economy.startingKeyItems || {}) },
+					keyItems: [...(defaultConfig.economy.startingKeyItems || [])],
 					inventory: { ...(defaultConfig.economy.startingInventory || {}) },
 					highestFloor,
 					displayName,
 					recordTeam,
-					view: isFirstEverVisit ? 'welcome' : 'main',
 				} as PokeRogueState;
 
+				(state as any).view = isFirstEverVisit ? 'welcome' : 'main';
 				setState(user.id, state);
 			}
 
-			if (state.view !== 'welcome') {
+			if ((state as any).view !== 'welcome') {
 				repairEmptyPendingChoice(state, user.id);
 			}
 
@@ -573,8 +540,6 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		newgame(target, room, user) {
-			if (hasAnyActiveBattle(user.id)) return this.errorReply("You cannot start a new game while a battle is in progress in any mode!");
-
 			const targetParts = target.trim().toLowerCase().split(' ');
 			const isConfirm = targetParts.includes('confirm');
 			let modeStr = targetParts[0];
@@ -589,9 +554,9 @@ export const commands: Chat.ChatCommands = {
 			const existingInMode = userData.runs[finalMode];
 
 			if (existingInMode?.gameOver || existingInMode?.gameWon) {
-				existingInMode.gameOver = undefined;
-				existingInMode.gameWon = undefined;
-				existingInMode.lastRunFloor = undefined;
+				delete existingInMode.gameOver;
+				delete existingInMode.gameWon;
+				delete existingInMode.lastRunFloor;
 				existingInMode.floor = 1;
 				setState(user.id, existingInMode);
 			}
@@ -615,7 +580,7 @@ export const commands: Chat.ChatCommands = {
 			const displayName = existingInMode?.displayName || user.name;
 			const recordTeam = existingInMode?.recordTeam || [];
 
-			const newState = {
+			const newState: PokeRogueState = {
 				floor: 1,
 				gameMode: finalMode,
 				currentBiome: config.startingBiome,
@@ -623,23 +588,18 @@ export const commands: Chat.ChatCommands = {
 				money: config.economy.startingMoney || 0,
 				timesRerolled: 0,
 				rotationalShop: [],
-				keyItems: { ...(config.economy.startingKeyItems || {}) },
+				keyItems: [...(config.economy.startingKeyItems || [])],
 				inventory: { ...(config.economy.startingInventory || {}) },
 				pendingChoice: useNewStarterSelectionUI ? starterPool : pickStarterOptions(starterPool),
-				pendingChoiceType: 'starter' as const,
+				pendingChoiceType: 'starter',
 				highestFloor,
 				displayName,
 				recordTeam,
-				view: useNewStarterSelectionUI ? 'starterselect' as const : 'main' as const,
-				starterSearch: '',
 			};
 
-			setState(user.id, newState as any);
+			(newState as any).view = useNewStarterSelectionUI ? 'starterselect' : 'main';
+			setState(user.id, newState);
 			return this.parse('/pokerogue start');
-		},
-
-		saveslo(target, room, user) {
-			this.parse(`/pokerogue saveslot ${target}`);
 		},
 
 		saveslot(target, room, user) {
@@ -660,18 +620,13 @@ export const commands: Chat.ChatCommands = {
 			userData.saveSlots[slot] = JSON.parse(JSON.stringify(state));
 			saveUserData(user.id);
 
-			const nextState = {
-				...state,
-				notification: `Progress successfully saved to <b>Slot ${slot}</b>!`,
-				view: 'main' as const,
-			};
-			setState(user.id, nextState);
+			state.notification = `Progress successfully saved to <b>Slot ${slot}</b>!`;
+			(state as any).view = 'main';
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
 		loadslot(target, room, user) {
-			if (hasAnyActiveBattle(user.id)) return this.errorReply("You cannot load a game while a battle is in progress in any mode!");
-
 			const slot = parseInt(target.trim());
 			if (isNaN(slot) || slot < 1 || slot > 3) return this.errorReply("Invalid save slot. Must be 1, 2, or 3.");
 
@@ -679,6 +634,14 @@ export const commands: Chat.ChatCommands = {
 			const slotData = userData.saveSlots?.[slot];
 
 			if (!slotData) return this.errorReply("That save slot is empty.");
+
+			const currentState = getState(user.id);
+			if (currentState?.battleRoomId) {
+				const bRoom = Rooms.get(currentState.battleRoomId as RoomID);
+				if (bRoom?.battle && !bRoom.battle.ended) {
+					return this.errorReply("You cannot load a game while currently in a battle!");
+				}
+			}
 
 			const restoredState = JSON.parse(JSON.stringify(slotData));
 			userData.runs[restoredState.gameMode] = restoredState;
@@ -689,12 +652,9 @@ export const commands: Chat.ChatCommands = {
 
 			const newState = getState(user.id);
 			if (newState) {
-				const nextState = {
-					...newState,
-					notification: `Game loaded successfully from <b>Slot ${slot}</b>!`,
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				newState.notification = `Game loaded successfully from <b>Slot ${slot}</b>!`;
+				(newState as any).view = 'main';
+				setState(user.id, newState);
 			}
 
 			refreshGamePage(user);
@@ -721,27 +681,23 @@ export const commands: Chat.ChatCommands = {
 				Rooms.get(s.battleRoomId)?.battle?.forfeit(user);
 			}
 			if (s) {
-				const nextState = {
-					...s,
-					gameOver: true,
-					lastRunFloor: s.floor,
-					floor: 1,
-					team: [],
-					pendingMoves: undefined,
-					pendingSwap: undefined,
-					pendingChoice: undefined,
-					moveToLearn: undefined,
-					pendingItemName: undefined,
-					itemOptions: undefined,
-					purchasedItem: undefined,
-					pendingConsumableType: undefined,
-					pendingTrainer: undefined,
-					pendingTrainerKey: undefined,
-					pendingRewardDraft: undefined,
-					rerollCount: undefined,
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				s.gameOver = true;
+				s.lastRunFloor = s.floor;
+				s.floor = 1;
+				s.team = [];
+				delete s.pendingMoves;
+				delete s.pendingSwap;
+				delete s.pendingChoice;
+				delete s.moveToLearn;
+				delete s.pendingItemName;
+				delete s.itemOptions;
+				delete s.purchasedItem;
+				delete s.pendingConsumableType;
+				delete s.pendingTrainer;
+				delete s.pendingTrainerKey;
+				delete s.pendingRewardDraft;
+				delete s.rerollCount;
+				setState(user.id, s);
 			}
 			refreshGamePage(user);
 		},
@@ -751,18 +707,14 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return this.parse('/pokerogue start');
 
 			const args = target.trim().split(' ');
-			const v = args[0];
+			const v = args[0] as any;
 
-			if (['main', 'top', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
+			if (['main', 'top', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
 				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
 					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 					if (modeData.useNewStarterSelectionUI !== false) {
-						const nextState = {
-							...state,
-							view: 'starterselect' as const,
-							starterSearch: '',
-						};
-						setState(user.id, nextState);
+						(state as any).view = 'starterselect';
+						setState(user.id, state);
 						refreshGamePage(user);
 						return;
 					}
@@ -776,18 +728,15 @@ export const commands: Chat.ChatCommands = {
 						? [...new Set([...modeData.starters, ...unlockedStarterIds])]
 						: modeData.starters;
 
-					const nextState = {
-						...state,
-						team: [],
-						pendingChoice: starterPool,
-						pendingChoiceType: 'starter' as const,
-						isConfiguringStarter: undefined,
-						pendingStatsSlot: undefined,
-						statsTab: undefined,
-						starterSearch: '',
-						view: 'starterselect' as const,
-					};
-					setState(user.id, nextState);
+					state.team = [];
+					state.pendingChoice = starterPool;
+					state.pendingChoiceType = 'starter';
+					delete state.isConfiguringStarter;
+					delete (state as any).pendingStatsSlot;
+					delete (state as any).statsTab;
+					delete (state as any).starterSearch;
+					(state as any).view = 'starterselect';
+					setState(user.id, state);
 					refreshGamePage(user);
 					return;
 				}
@@ -795,37 +744,29 @@ export const commands: Chat.ChatCommands = {
 				if (v === 'stats') {
 					const slot = parseInt(args[1]);
 					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
-						const nextState = {
-							...state,
-							pendingStatsSlot: slot,
-							statsTab: state.statsTab ?? 0,
-							view: 'stats' as const,
-						};
-						setState(user.id, nextState);
+						(state as any).pendingStatsSlot = slot;
+						(state as any).statsTab = (state as any).statsTab ?? 0;
 					} else {
 						return;
 					}
 				} else {
-					const nextState = {
-						...state,
-						pendingStatsSlot: undefined,
-						statsTab: undefined,
-						view: v as any,
-					};
-					setState(user.id, nextState);
+					delete (state as any).pendingStatsSlot;
+					delete (state as any).statsTab;
 				}
 
+				(state as any).view = v;
+				setState(user.id, state);
 				refreshGamePage(user);
 			}
 		},
 
 		statstab(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.view !== 'stats') return this.parse('/pokerogue start');
+			if (!state) return this.parse('/pokerogue start');
 			const args = target.trim().split(' ');
 			const dir = args[0];
 			const TAB_COUNT = 3;
-			let current = state.statsTab ?? 0;
+			let current = (state as any).statsTab ?? 0;
 			if (dir === 'next') {
 				current = (current + 1) % TAB_COUNT;
 			} else if (dir === 'prev') {
@@ -835,34 +776,22 @@ export const commands: Chat.ChatCommands = {
 				if (!isNaN(n) && n >= 0 && n < TAB_COUNT) current = n;
 			}
 
-			const nextState = {
-				...state,
-				statsTab: current,
-			};
-			setState(user.id, nextState);
+			(state as any).statsTab = current;
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
 		startersearch(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.view !== 'starterselect') return;
-			const nextState = {
-				...state,
-				starterSearch: target.trim().toLowerCase(),
-			};
-			setState(user.id, nextState);
+			if (!state || (state as any).view !== 'starterselect') return;
+			(state as any).starterSearch = target.trim().toLowerCase();
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
 		dismissnotif(target, room, user) {
 			const s = getState(user.id);
-			if (s?.notification) {
-				const nextState = {
-					...s,
-					notification: undefined,
-				};
-				setState(user.id, nextState);
-			}
+			if (s?.notification) { delete s.notification; setState(user.id, s); }
 			refreshGamePage(user);
 		},
 
@@ -870,12 +799,9 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || !state.isConfiguringStarter) return;
 
-			const nextState = {
-				...state,
-				isConfiguringStarter: undefined,
-				view: 'main' as const,
-			};
-			setState(user.id, nextState);
+			delete state.isConfiguringStarter;
+			(state as any).view = 'main';
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
@@ -892,11 +818,8 @@ export const commands: Chat.ChatCommands = {
 			const args = target.split(' ').map(s => s.trim());
 
 			if (args[0] === 'cancel') {
-				const nextState = {
-					...state,
-					pendingMoveSlot: undefined,
-				};
-				setState(user.id, nextState);
+				delete state.pendingMoveSlot;
+				setState(user.id, state);
 				refreshGamePage(user);
 				return;
 			}
@@ -908,17 +831,12 @@ export const commands: Chat.ChatCommands = {
 
 				if (isNaN(toSlot) || toSlot < 0 || toSlot >= state.team.length) return this.errorReply("Invalid slot.");
 
-				const newTeam = [...state.team];
-				const temp = newTeam[fromSlot];
-				newTeam[fromSlot] = newTeam[toSlot];
-				newTeam[toSlot] = temp;
+				const temp = state.team[fromSlot];
+				state.team[fromSlot] = state.team[toSlot];
+				state.team[toSlot] = temp;
 
-				const nextState = {
-					...state,
-					team: newTeam,
-					pendingMoveSlot: undefined,
-				};
-				setState(user.id, nextState);
+				delete state.pendingMoveSlot;
+				setState(user.id, state);
 				refreshGamePage(user);
 				return;
 			}
@@ -926,11 +844,8 @@ export const commands: Chat.ChatCommands = {
 			const fromSlot = parseInt(args[0]) - 1;
 			if (isNaN(fromSlot) || fromSlot < 0 || fromSlot >= state.team.length) return this.errorReply("Invalid slot.");
 
-			const nextState = {
-				...state,
-				pendingMoveSlot: fromSlot,
-			};
-			setState(user.id, nextState);
+			state.pendingMoveSlot = fromSlot;
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
@@ -947,11 +862,8 @@ export const commands: Chat.ChatCommands = {
 			const args = target.split(' ').map(s => s.trim());
 
 			if (args[0] === 'cancel') {
-				const nextState = {
-					...state,
-					pendingReleaseSlot: undefined,
-				};
-				setState(user.id, nextState);
+				delete state.pendingReleaseSlot;
+				setState(user.id, state);
 				refreshGamePage(user);
 				return;
 			}
@@ -963,22 +875,17 @@ export const commands: Chat.ChatCommands = {
 				if (slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
 				if (state.team.length <= 1) return this.errorReply("You cannot release your last Pokémon!");
 
-				const newTeam = [...state.team];
-				const mon = newTeam[slot];
+				const mon = state.team[slot];
 				const spName = Dex.species.get(toID(mon.species)).name;
 
-				newTeam.splice(slot, 1);
+				state.team.splice(slot, 1);
 
-				const nextState = {
-					...state,
-					team: newTeam,
-					notification: `You released <b>${spName}</b>.`,
-					pendingReleaseSlot: undefined,
-					pendingMoveSlot: undefined,
-					pendingStatsSlot: undefined,
-				};
+				state.notification = `You released <b>${spName}</b>.`;
+				delete state.pendingReleaseSlot;
+				delete state.pendingMoveSlot;
+				delete (state as any).pendingStatsSlot;
 
-				setState(user.id, nextState);
+				setState(user.id, state);
 				refreshGamePage(user);
 				return;
 			}
@@ -987,11 +894,8 @@ export const commands: Chat.ChatCommands = {
 			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
 			if (state.team.length <= 1) return this.errorReply("You cannot release your last Pokémon!");
 
-			const nextState = {
-				...state,
-				pendingReleaseSlot: slot,
-			};
-			setState(user.id, nextState);
+			state.pendingReleaseSlot = slot;
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
@@ -1029,7 +933,7 @@ export const commands: Chat.ChatCommands = {
 
 		draft(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.view !== 'draft' || !state.pendingRewardDraft) return;
+			if (!state || (state as any).view !== 'draft' || !state.pendingRewardDraft) return;
 
 			const idx = parseInt(target.trim()) - 1;
 			if (isNaN(idx) || idx < 0 || idx >= state.pendingRewardDraft.length) return;
@@ -1038,88 +942,58 @@ export const commands: Chat.ChatCommands = {
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 			const item = activeShop[itemKey];
 
-			const clearedDraftState = {
-				...state,
-				pendingRewardDraft: undefined,
-				rerollCount: undefined,
-			};
+			delete state.pendingRewardDraft;
+			delete state.rerollCount;
 
 			if (item.type === 'pokeball') {
-				const currentInventory = clearedDraftState.inventory || {};
-				const amountToGive = item.draftAmount ?? 1;
-
-				const nextState = {
-					...clearedDraftState,
-					inventory: {
-						...currentInventory,
-						[itemKey]: (currentInventory[itemKey] || 0) + amountToGive,
-					},
-					notification: `You took ${amountToGive}x <b>${item.name}</b>!`,
-					floor: clearedDraftState.floor + 1,
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				state.inventory = state.inventory || {};
+				state.inventory[itemKey] = (state.inventory[itemKey] || 0) + 1;
+				state.notification = `You took 1x <b>${item.name}</b>!`;
+				state.floor++;
+				(state as any).view = 'main';
 			} else if (item.type === 'key') {
-				const currentKeyItems = clearedDraftState.keyItems || {};
-				const nextState = {
-					...clearedDraftState,
-					keyItems: {
-						...currentKeyItems,
-						[item.name]: (currentKeyItems[item.name] || 0) + 1,
-					},
-					notification: `Obtained Key Item: <b>${item.name}</b>!`,
-					floor: clearedDraftState.floor + 1,
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				state.keyItems = state.keyItems || [];
+				state.keyItems.push(item.name);
+				state.notification = `Obtained Key Item: <b>${item.name}</b>!`;
+				state.floor++;
+				(state as any).view = 'main';
 			} else if (item.type === 'itemPack') {
-				let updatedNotification = '';
-				let updatedMoney = clearedDraftState.money || 0;
 				if (itemKey === 'nugget') {
-					updatedMoney += 5000;
-					updatedNotification = `You sold the Nugget for $5000!`;
+					state.money = (state.money || 0) + 5000;
+					state.notification = `You sold the Nugget for $5000!`;
+					state.floor++;
+					(state as any).view = 'main';
 				} else if (itemKey === 'big_nugget') {
-					updatedMoney += 20000;
-					updatedNotification = `You sold the Big Nugget for $20,000!`;
+					state.money = (state.money || 0) + 20000;
+					state.notification = `You sold the Big Nugget for $20,000!`;
+					state.floor++;
+					(state as any).view = 'main';
 				} else if (itemKey === 'starter_token') {
-					updatedNotification = `You unlocked a new Starter!`;
+					state.notification = `You unlocked a new Starter!`;
+					state.floor++;
+					(state as any).view = 'main';
 				}
-				
-				const nextState = {
-					...clearedDraftState,
-					money: updatedMoney,
-					notification: updatedNotification,
-					floor: clearedDraftState.floor + 1,
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
 			} else if (item.type === 'item' || item.type === 'evolveItem') {
-				const nextState = {
-					...clearedDraftState,
-					purchasedItem: itemKey,
-					pendingItemName: item.name,
-					pendingItemIsEvo: item.type === 'evolveItem',
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				state.purchasedItem = itemKey;
+				state.pendingItemName = item.name;
+				state.pendingItemIsEvo = item.type === 'evolveItem';
+				(state as any).view = 'main';
 			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'candy', 'mint', 'teraShard'].includes(item.type)) {
-				const nextState = {
-					...clearedDraftState,
-					purchasedItem: itemKey,
-					pendingConsumableType: item.type as any,
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				state.purchasedItem = itemKey;
+				state.pendingConsumableType = item.type as any;
+				(state as any).view = 'main';
 			}
 
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 		
 		reroll(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.view !== 'draft') return;
+			if (!state || (state as any).view !== 'draft') return;
 
-			const cost = getRerollCost(state, false, state.pendingRewardDraft || []);
+			const isLocked = !!(state as any).isRarityLocked;
+			const cost = getRerollCost(state.floor, state.rerollCount || 0, isLocked, state.pendingRewardDraft || []);
 			
 			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
 
@@ -1135,43 +1009,34 @@ export const commands: Chat.ChatCommands = {
 
 		buyshop(target, room, user) {
 			const state = getState(user.id);
-			if (!state || state.view !== 'draft') return;
+			if (!state || (state as any).view !== 'draft') return;
 			const itemKey = toID(target);
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 			const item = activeShop[itemKey];
 			if (!item || !item.isShopItem) return this.errorReply("Unknown shop item.");
 			const price = getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
 			if ((state.money || 0) < price) return this.errorReply(`Not enough money! Need $${price}.`);
-			
-			const updatedMoney = (state.money || 0) - price;
-
+			state.money -= price;
 			if (itemKey === 'sacredash') {
 				for (const mon of state.team) {
 					if ((mon.currentHp ?? 100) <= 0) {
 						mon.currentHp = 100;
-						mon.status = undefined;
+						delete mon.status;
 					}
 				}
-				const nextState = {
-					...state,
-					money: updatedMoney,
-					notification: `Sacred Ash revived all fainted Pokémon!`,
-					view: 'draft' as const,
-				};
-				setState(user.id, nextState);
+				state.notification = `Sacred Ash revived all fainted Pokémon!`;
+				setState(user.id, state);
 				refreshGamePage(user);
 				return;
 			}
-
-			const nextState = {
-				...state,
-				money: updatedMoney,
-				purchasedItem: itemKey,
-				pendingItemName: item.type === 'item' ? item.name : undefined,
-				pendingConsumableType: item.type !== 'item' ? item.type as any : undefined,
-				view: 'main' as const,
-			};
-			setState(user.id, nextState);
+			state.purchasedItem = itemKey;
+			if (item.type === 'item') {
+				state.pendingItemName = item.name;
+			} else {
+				state.pendingConsumableType = item.type as any;
+			}
+			(state as any).view = 'main';
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
@@ -1272,13 +1137,6 @@ export const commands: Chat.ChatCommands = {
 				} as PokemonEntry;
 			}
 
-			const clearedDraftState = {
-				...state,
-				pendingChoice: undefined,
-				pendingChoiceType: undefined,
-				pendingChoiceFloor: undefined,
-			};
-
 			if (isStarterChoice) {
 				const sid = toID(finalSpecies);
 				if (!userData.starters[sid]) {
@@ -1293,32 +1151,20 @@ export const commands: Chat.ChatCommands = {
 					saveUserData(user.id);
 				}
 
-				const nextState = {
-					...clearedDraftState,
-					team: [newMon],
-					view: 'stats' as const,
-					pendingStatsSlot: 0,
-					statsTab: 0,
-					starterSearch: '',
-					isConfiguringStarter: true,
-				};
-				setState(user.id, nextState);
+				state.team = [newMon];
+				(state as any).view = 'stats';
+				(state as any).pendingStatsSlot = 0;
+				state.isConfiguringStarter = true;
 			} else if (state.team.length < 6) {
-				const nextState = {
-					...clearedDraftState,
-					team: [...state.team, newMon],
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				state.team.push(newMon);
 			} else {
-				const nextState = {
-					...clearedDraftState,
-					pendingSwap: newMon,
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				state.pendingSwap = newMon;
 			}
 
+			delete state.pendingChoice;
+			delete state.pendingChoiceType;
+			delete state.pendingChoiceFloor;
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
@@ -1344,11 +1190,8 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			if (state.pendingTrainer && state.pendingTrainerKey) {
-				const nextState = {
-					...state,
-					view: 'trainer' as const,
-				};
-				setState(user.id, nextState);
+				(state as any).view = 'trainer';
+				setState(user.id, state);
 				refreshGamePage(user);
 				return;
 			}
@@ -1368,11 +1211,8 @@ export const commands: Chat.ChatCommands = {
 					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
 
 					if (trainerData?.spriteUrl || trainerData?.dialog) {
-						const nextState = {
-							...state,
-							view: 'trainer' as const,
-						};
-						setState(user.id, nextState);
+						(state as any).view = 'trainer';
+						setState(user.id, state);
 						refreshGamePage(user);
 						return;
 					}
@@ -1400,11 +1240,8 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			if (startBattle(user, state)) {
-				const nextState = {
-					...state,
-					view: 'main' as const,
-				};
-				setState(user.id, nextState);
+				(state as any).view = 'main';
+				setState(user.id, state);
 				refreshGamePage(user);
 			}
 		},
@@ -1514,7 +1351,6 @@ export const commands: Chat.ChatCommands = {
 					state.notification = `Forgot ${oldMoveName} and learned <b>${Dex.moves.get(pending.move).name}</b>!`;
 				}
 				state.pendingMoves.shift();
-				setState(user.id, state);
 				break;
 			}
 
@@ -1523,46 +1359,31 @@ export const commands: Chat.ChatCommands = {
 				const newMon = state.pendingSwap;
 				const newMonName = Dex.species.get(toID(newMon.species)).name;
 				
-				let updatedNotification = '';
 				if (rest === 'skip') {
-					updatedNotification = `You released <b>${newMonName}</b> into the wild.`;
+					state.notification = `You released <b>${newMonName}</b> into the wild.`;
 				} else {
 					const slot = parseInt(rest) - 1;
 					if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
 					const oldMonName = Dex.species.get(toID(state.team[slot].species)).name;
 					state.team[slot] = newMon;
 					if (state.pendingMoves) state.pendingMoves = state.pendingMoves.filter(p => p.pokemonIndex !== slot);
-					updatedNotification = `You replaced ${oldMonName} with <b>${newMonName}</b>!`;
+					state.notification = `You replaced ${oldMonName} with <b>${newMonName}</b>!`;
 				}
-
-				const nextState = {
-					...state,
-					notification: updatedNotification,
-					pendingSwap: undefined,
-				};
-				setState(user.id, nextState);
+				delete state.pendingSwap;
 				break;
 			}
 
 			case 'pickitem': {
 				if (!state.itemOptions?.length) return;
 				if (rest === 'skip') {
-					const nextState = {
-						...state,
-						itemOptions: undefined,
-						purchasedItem: undefined,
-					};
-					setState(user.id, nextState);
+					delete state.itemOptions;
+					delete state.purchasedItem;
 				} else {
 					const dexItem = Dex.items.get(rest);
 					if (!dexItem.exists) return this.errorReply("Unknown item.");
-					const nextState = {
-						...state,
-						pendingItemName: dexItem.name,
-						itemOptions: undefined,
-						purchasedItem: undefined,
-					};
-					setState(user.id, nextState);
+					state.pendingItemName = dexItem.name;
+					delete state.itemOptions;
+					delete state.purchasedItem;
 				}
 				break;
 			}
@@ -1572,37 +1393,12 @@ export const commands: Chat.ChatCommands = {
 				const itemKey = state.purchasedItem;
 
 				if (rest === 'skip') {
-					let currentMoney = state.money || 0;
-					if (itemKey) {
-						const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-						const item = activeShop[itemKey];
-						if (item && item.isShopItem) {
-							currentMoney += getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
-						}
-					}
+					delete state.pendingItemName;
+					delete state.purchasedItem;
+					delete state.pendingItemIsEvo;
 					
-					if (state.pendingRewardDraft) {
-						const nextState = {
-							...state,
-							money: currentMoney,
-							pendingItemName: undefined,
-							purchasedItem: undefined,
-							pendingItemIsEvo: undefined,
-							view: 'draft' as const,
-						};
-						setState(user.id, nextState);
-					} else {
-						const nextState = {
-							...state,
-							money: currentMoney,
-							floor: state.floor + 1,
-							pendingItemName: undefined,
-							purchasedItem: undefined,
-							pendingItemIsEvo: undefined,
-							view: 'main' as const,
-						};
-						setState(user.id, nextState);
-					}
+					if (state.pendingRewardDraft) (state as any).view = 'draft';
+					else { state.floor++; (state as any).view = 'main'; }
 					break;
 				}
 
@@ -1618,32 +1414,17 @@ export const commands: Chat.ChatCommands = {
 					
 					if (allMoves.length === 0) return this.errorReply("This Pokémon has no moves to remember.");
 
-					const nextPendingMoves = [{
+					state.pendingMoves = [{
 						pokemonIndex: slot,
 						move: allMoves[Math.floor(Math.random() * allMoves.length)], 
 						speciesName: mon.species
 					}];
 					
-					if (state.pendingRewardDraft) {
-						const nextState = {
-							...state,
-							pendingMoves: nextPendingMoves,
-							purchasedItem: undefined,
-							pendingItemName: undefined,
-							view: 'draft' as const,
-						};
-						setState(user.id, nextState);
-					} else {
-						const nextState = {
-							...state,
-							pendingMoves: nextPendingMoves,
-							floor: state.floor + 1,
-							purchasedItem: undefined,
-							pendingItemName: undefined,
-							view: 'main' as const,
-						};
-						setState(user.id, nextState);
-					}
+					delete state.purchasedItem;
+					delete state.pendingItemName;
+					
+					if (state.pendingRewardDraft) (state as any).view = 'draft';
+					else { state.floor++; (state as any).view = 'main'; }
 					break;
 				}
 
@@ -1657,7 +1438,8 @@ export const commands: Chat.ChatCommands = {
 							const evoItemId = toID(evoData.evoItem);
 							const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
 							const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
-							const isPlainTradeEvolution = evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
+							const isPlainTradeEvolution =
+								evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
 							if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
 								evoTarget = evoData.id;
 								break;
@@ -1667,12 +1449,11 @@ export const commands: Chat.ChatCommands = {
 					if (!evoTarget) return this.errorReply("That Pokémon can't evolve with this item.");
 				}
 
-				let updatedNotification = '';
 				if (state.pendingItemIsEvo) {
 					mon.species = evoTarget;
 					mon.expType = getExpType(evoTarget);
 					const evoName = Dex.species.get(evoTarget).name;
-					updatedNotification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
+					state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
 				} else {
 					if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
 						mon.species = toID(dexNewItem.forcedForme);
@@ -1683,31 +1464,15 @@ export const commands: Chat.ChatCommands = {
 						}
 					}
 					mon.heldItem = toID(state.pendingItemName);
-					updatedNotification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
+					state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
 				}
 
-				if (state.pendingRewardDraft) {
-					const nextState = {
-						...state,
-						notification: updatedNotification,
-						pendingItemName: undefined,
-						purchasedItem: undefined,
-						pendingItemIsEvo: undefined,
-						view: 'draft' as const,
-					};
-					setState(user.id, nextState);
-				} else {
-					const nextState = {
-						...state,
-						notification: updatedNotification,
-						floor: state.floor + 1,
-						pendingItemName: undefined,
-						purchasedItem: undefined,
-						pendingItemIsEvo: undefined,
-						view: 'main' as const,
-					};
-					setState(user.id, nextState);
-				}
+				delete state.pendingItemName;
+				delete state.purchasedItem;
+				delete state.pendingItemIsEvo;
+				
+				if (state.pendingRewardDraft) (state as any).view = 'draft';
+				else { state.floor++; (state as any).view = 'main'; }
 				break;
 			}
 
@@ -1716,35 +1481,11 @@ export const commands: Chat.ChatCommands = {
 				const itemKey = state.purchasedItem;
 
 				if (rest === 'skip') {
-					let currentMoney = state.money || 0;
-					if (itemKey) {
-						const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-						const item = activeShop[itemKey];
-						if (item && item.isShopItem) {
-							currentMoney += getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
-						}
-					}
+					delete state.purchasedItem;
+					delete state.pendingConsumableType;
 					
-					if (state.pendingRewardDraft) {
-						const nextState = {
-							...state,
-							money: currentMoney,
-							purchasedItem: undefined,
-							pendingConsumableType: undefined,
-							view: 'draft' as const,
-						};
-						setState(user.id, nextState);
-					} else {
-						const nextState = {
-							...state,
-							money: currentMoney,
-							floor: state.floor + 1,
-							purchasedItem: undefined,
-							pendingConsumableType: undefined,
-							view: 'main' as const,
-						};
-						setState(user.id, nextState);
-					}
+					if (state.pendingRewardDraft) (state as any).view = 'draft';
+					else { state.floor++; (state as any).view = 'main'; }
 					break;
 				}
 
@@ -1757,8 +1498,6 @@ export const commands: Chat.ChatCommands = {
 				const mon = state.team[slot];
 				const hp = mon.currentHp ?? 100;
 
-				let updatedNotification = '';
-
 				if (item.type === 'healHP') {
 					if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
 					if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
@@ -1766,32 +1505,27 @@ export const commands: Chat.ChatCommands = {
 					const spData = Dex.species.get(toID(mon.species));
 					const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 					const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-					const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 }; // Extract actual IVs
-					
-					let maxHpActual = 1;
-					if (spData.id !== 'shedinja') {
-						maxHpActual = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
-					}
+					const maxHpActual = Math.floor((2 * bs.hp + 31 + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
 					
 					const healPctCalculated = item.healAmount ? Math.max(item.healPercent || 0, (item.healAmount / maxHpActual) * 100) : (item.healPercent || 0);
 					
 					mon.currentHp = item.isMax ? 100 : Math.min(100, hp + Math.round(healPctCalculated));
-					if (item.curesStatus) mon.status = undefined;
+					if (item.curesStatus) delete mon.status;
 					
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
-					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
 				} else if (item.type === 'cureStatus') {
 					if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
 					if (!mon.status) return this.errorReply("That Pokémon has no status condition.");
 					const oldStatus = mon.status;
-					mon.status = undefined;
-					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
+					delete mon.status;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${oldStatus.toUpperCase()} was cured!`;
 				} else if (item.type === 'revive') {
 					if (hp > 0) return this.errorReply("That Pokémon hasn't fainted.");
 					const revAmt = item.reviveAmount || 50;
 					mon.currentHp = (item.isMax || mon.species === 'shedinja') ? 100 : revAmt;
-					mon.status = undefined;
-					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
+					delete mon.status;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> was revived${item.isMax ? ' to full health' : ''}!`;
 				} else if (item.type === 'vitamin') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					const evStat = (item).evStat as keyof NonNullable<PokemonEntry['evs']>;
@@ -1803,20 +1537,28 @@ export const commands: Chat.ChatCommands = {
 					const gain = Math.min(EV_VITAMIN_GAIN, MAX_EV_STAT - mon.evs[evStat], MAX_EV_TOTAL - totalEvs);
 					mon.evs[evStat] += gain;
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
-					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
 				} else if (item.type === 'candy') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					let levelsToGain = itemKey === 'rarercandy' ? 3 : 1;
-					const candyJars = state.keyItems?.['Candy Jar'] || 0;
+					const candyJars = (state.keyItems ?? []).filter(k => k === 'Candy Jar').length;
 					levelsToGain += candyJars;
 
-					const targetLevel = mon.level + levelsToGain;
-					const expNeeded = expForLevel(targetLevel, mon.expType ?? getExpType(mon.species)) - mon.exp;
+					const { cap: levelCap } = getLevelScaling(state.floor, config);
+					mon.level = Math.min(levelCap, mon.level + levelsToGain);
+					mon.exp = expForLevel(mon.level, mon.expType ?? getExpType(mon.species));
 
-					applyExpAndLevelUp(mon, Math.max(0, expNeeded), state.floor, config);
+					let evolved = false;
+					while (true) {
+						const evo = getLevelUpEvo(mon.species, mon.happiness);
+						if (!evo || mon.level < evo.evoLevel) break;
+						mon.expType = getExpType(evo.evoTo);
+						mon.species = evo.evoTo;
+						evolved = true;
+					}
 
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 10);
-					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> grew to Lv. ${mon.level}!`;
 				} else if (item.type === 'mint') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					mon.nature = item.nature;
@@ -1840,7 +1582,7 @@ export const commands: Chat.ChatCommands = {
 						saveUserData(user.id);
 					}
 
-					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Nature changed to <b>${item.nature}</b>!`;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Nature changed to <b>${item.nature}</b>!`;
 				} else if (item.type === 'teraShard') {
 					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
 					mon.teraType = item.teraType;
@@ -1862,7 +1604,7 @@ export const commands: Chat.ChatCommands = {
 						saveUserData(user.id);
 					}
 
-					updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Tera Type changed to <b>${item.teraType}</b>!`;
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s Tera Type changed to <b>${item.teraType}</b>!`;
 				} else if (item.type === 'tm') {
 					const moveId = toID(item.name.replace(/^TM\d+\s*/i, ''));
 					if (mon.moves.includes(moveId)) return this.errorReply("This Pokémon already knows that move.");
@@ -1873,7 +1615,7 @@ export const commands: Chat.ChatCommands = {
 
 					if (mon.moves.length < 4) {
 						mon.moves.push(moveId);
-						updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> learned <b>${Dex.moves.get(moveId).name}</b>!`;
+						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> learned <b>${Dex.moves.get(moveId).name}</b>!`;
 					} else {
 						state.pendingMoves = state.pendingMoves || [];
 						state.pendingMoves.push({
@@ -1881,29 +1623,18 @@ export const commands: Chat.ChatCommands = {
 							move: moveId,
 							speciesName: mon.species
 						});
-						updatedNotification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${Dex.moves.get(moveId).name}</b>.`;
+						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${Dex.moves.get(moveId).name}</b>.`;
 					}
 				}
 
+				delete state.purchasedItem;
+				delete state.pendingConsumableType;
+				
 				if (state.pendingRewardDraft) {
-					const nextState = {
-						...state,
-						notification: updatedNotification,
-						purchasedItem: undefined,
-						pendingConsumableType: undefined,
-						view: 'draft' as const,
-					};
-					setState(user.id, nextState);
+					(state as any).view = 'draft';
 				} else {
-					const nextState = {
-						...state,
-						notification: updatedNotification,
-						floor: state.floor + 1,
-						purchasedItem: undefined,
-						pendingConsumableType: undefined,
-						view: 'main' as const,
-					};
-					setState(user.id, nextState);
+					state.floor++;
+					(state as any).view = 'main';
 				}
 				break;
 			}
@@ -1912,6 +1643,7 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("Unknown resolve action.");
 			}
 
+			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
@@ -1925,7 +1657,7 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("You can only catch Pokémon in your own battle.");
 			}
 
-			if (!room.battle.turn) return this.errorReply("The battle hasn't started yet!");
+			if (!room.battle.turn) return this.errorReply("The battle hasnt started yet!");
 			if (state.caughtPokemon) return this.errorReply("You already caught this Pokémon!");
 
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
@@ -1946,57 +1678,31 @@ export const commands: Chat.ChatCommands = {
 			if ((state.inventory[ballType] || 0) <= 0) return this.errorReply(`You don't have any ${ballType}s left!`);
 
 			const now = Date.now();
-			const lastThrow = state.lastThrowTime || 0;
+			const lastThrow = (state as any).lastThrowTime || 0;
 			if (now - lastThrow < 1500) {
 				return this.errorReply("Please wait a moment before throwing another Poké Ball.");
 			}
-			state.lastThrowTime = now;
+			(state as any).lastThrowTime = now;
 
 			const log = room.log?.log || [];
 
-			const p2State = new Map<string, { species: string, level: number, hp: number, maxHp: number, status: string, fainted: boolean, botTeamIndex?: number }>();
+			const p2State = new Map<string, { species: string, level: number, hp: number, maxHp: number, status: string, fainted: boolean }>();
 			let p1Fainted = false;
-			const p2Assigned = new Set<number>();
 
 			for (const line of log) {
 				if (/^\|faint\|p1[a-z]:/.test(line)) p1Fainted = true;
-				else if (/^\|(switch|drag)\|p1[a-z]:/.test(line)) p1Fainted = false;
+				else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) p1Fainted = false;
 
-				const swMatch = /^\|(?:switch|drag|replace)\|(p2[a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+				const swMatch = /^\|(?:switch|drag)\|(p2[a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 				if (swMatch) {
-					const parsedSpecies = toID(swMatch[2]);
-					const parsedLevel = swMatch[3] ? parseInt(swMatch[3]) : botLevel(floor, config);
-					
-					let assignedIdx = -1;
-					if (catchMatch.botTeam) {
-						for (let i = 0; i < catchMatch.botTeam.length; i++) {
-							const m = catchMatch.botTeam[i];
-							if (!p2Assigned.has(i) && (toID(m.species) === parsedSpecies || toID(m.name) === parsedSpecies) && m.level === parsedLevel) {
-								assignedIdx = i;
-								p2Assigned.add(i);
-								break;
-							}
-						}
-					}
-					
 					p2State.set(swMatch[1], {
-						species: parsedSpecies,
-						level: parsedLevel,
+						species: toID(swMatch[2]),
+						level: swMatch[3] ? parseInt(swMatch[3]) : botLevel(floor, config),
 						hp: parseInt(swMatch[4]),
 						maxHp: swMatch[5] ? parseInt(swMatch[5]) : 100,
 						status: swMatch[6] || '',
-						fainted: false,
-						botTeamIndex: assignedIdx !== -1 ? assignedIdx : undefined
+						fainted: false
 					});
-					continue;
-				}
-
-				const transformMatch = /^\|-transform\|(p2[a-z]): [^|]+\|([^|]+)/.exec(line);
-				if (transformMatch) {
-					const s = p2State.get(transformMatch[1]);
-					if (s) {
-						s.species = toID(transformMatch[2]);
-					}
 					continue;
 				}
 
@@ -2124,14 +1830,14 @@ export const commands: Chat.ChatCommands = {
 				let p2SwitchIdx = 0;
 
 				for (let i = log.length - 1; i >= 0; i--) {
-					if (/^\|(switch|drag)\|p2[a-z]:/.test(log[i])) {
+					if (/^\|(?:switch|drag)\|p2[a-z]:/.test(log[i])) {
 						p2SwitchIdx = i;
 						break;
 					}
 				}
 
 				for (let i = p2SwitchIdx; i >= 0; i--) {
-					const match = /^\|(switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
+					const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
 					if (match) {
 						p1Participants.add(toID(match[1]));
 						break;
@@ -2139,7 +1845,7 @@ export const commands: Chat.ChatCommands = {
 				}
 
 				for (let i = p2SwitchIdx; i < log.length; i++) {
-					const match = /^\|(switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
+					const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
 					if (match) {
 						p1Participants.add(toID(match[1]));
 					}
@@ -2166,13 +1872,7 @@ export const commands: Chat.ChatCommands = {
 				let caughtTera = Dex.species.get(p2Species).types[0];
 
 				if (catchMatch.botTeam) {
-					let botMon;
-					if (targetMon.botTeamIndex !== undefined) {
-						botMon = catchMatch.botTeam[targetMon.botTeamIndex];
-					} else {
-						botMon = catchMatch.botTeam.find(m => (toID(m.species) === p2Species || toID(m.name) === p2Species) && m.level === p2Level);
-					}
-
+					const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
 					if (botMon) {
 						if (botMon.moves && botMon.moves.length > 0) caughtMoves = botMon.moves;
 						if (botMon.ability) caughtAbility = botMon.ability;
@@ -2208,7 +1908,7 @@ export const commands: Chat.ChatCommands = {
 				};
 
 				if (caughtItem) caught.heldItem = caughtItem;
-				if (p2Status && p2Status !== 'none') caught.status = p2Status as StatusCondition;
+				if (p2Status && p2Status !== 'none') caught.status = p2Status;
 
 				state.caughtPokemon = caught;
 				setState(user.id, state);
@@ -2268,7 +1968,7 @@ export const pages: Chat.PageTable = {
 		if (!user.named) return this.errorReply('Login required.');
 		const state = getState(user.id);
 		if (!state) return `<div class="pr-popup"><div class="pr-popup-header"><h2>PokéRogue</h2></div><div style="text-align:center;padding:16px"><button name="send" value="/pokerogue start" class="button">Start New Run</button></div></div>`;
-		const v = state.view || 'main';
+		const v = (state as any).view || 'main';
 		this.title = `PokéRogue - ${v.toUpperCase()}`;
 		return renderGamePage(state, user);
 	},
@@ -2281,21 +1981,8 @@ export const handlers: Chat.Handlers = {
 		activeMatches.delete(battle.roomid);
 		const botUser = Users.get(match.botUserId);
 		if (botUser) destroyBotUser(botUser);
-
-		const userData = getUserData(match.userId);
-		let state: PokeRogueState | null = null;
-
-		for (const mode of Object.keys(userData.runs)) {
-			const run = userData.runs[mode as GameMode];
-			if (run && run.battleRoomId === battle.roomid) {
-				state = run;
-				break;
-			}
-		}
-
-		if (!state) state = getState(match.userId);
+		const state = getState(match.userId);
 		if (!state) return;
-
 		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 		const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 		const isBossFloor = match.floor % config.bossInterval === 0;
@@ -2306,28 +1993,25 @@ export const handlers: Chat.Handlers = {
 		if (consumedItems.length) {
 			battleLogMsgs.push(`<b>Consumed items:</b> ${consumedItems.join(', ')}`);
 		}
+		delete state.battleRoomId;
 		if (toID(winner) === match.userId) {
 			const isTrainerBattle = match.isTrainerBattle ?? false;
 			const detailMsgs = processBattleExperience(logLines, state, match.floor, isBossFloor, isTrainerBattle, config);
 			const prevFloor = state.floor;
 			if (config.maxFloor && prevFloor >= config.maxFloor) {
-				const nextState = {
-					...state,
-					battleRoomId: undefined,
-					gameWon: true,
-					lastRunFloor: prevFloor,
-				};
+				state.gameWon = true;
+				state.lastRunFloor = prevFloor;
 				if (prevFloor > (state.highestFloor ?? 0)) {
-					nextState.highestFloor = prevFloor;
-					nextState.recordTeam = JSON.parse(JSON.stringify(state.team));
+					state.highestFloor = prevFloor;
+					state.recordTeam = state.team.map(m => ({ ...m }));
 					globalStats[match.userId] = {
 						highestFloor: prevFloor,
 						displayName: state.displayName || match.userId,
-						recordTeam: nextState.recordTeam,
+						recordTeam: state.recordTeam,
 					};
 					saveGlobalStats();
 				}
-				setState(match.userId, nextState);
+				setState(match.userId, state);
 				const hUser = Users.get(match.userId);
 				if (hUser) refreshGamePage(hUser);
 				return;
@@ -2364,7 +2048,7 @@ export const handlers: Chat.Handlers = {
 					state.pendingSwap = caughtMon;
 					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught! (Team full, swap pending)</b>`);
 				}
-				const userDataObj = getUserData(match.userId);
+				const userData = getUserData(match.userId);
 				if (state.gameMode === 'classic') {
 					let baseSpecies = caughtMon.species;
 					while (true) {
@@ -2373,7 +2057,7 @@ export const handlers: Chat.Handlers = {
 						if (!prevo) break;
 						baseSpecies = toID(prevo);
 					}
-					const existingStarter = userDataObj.starters[baseSpecies];
+					const existingStarter = userData.starters[baseSpecies];
 					const baseDex = Dex.species.get(baseSpecies);
 					const bestIvs = existingStarter?.ivs ? {
 						hp: Math.max(existingStarter.ivs.hp, caughtMon.ivs.hp),
@@ -2425,9 +2109,9 @@ export const handlers: Chat.Handlers = {
 						selectedNature: selectedNature,
 						selectedAbility: selectedAbility,
 					};
-					baseCaught.status = undefined;
-					baseCaught.heldItem = undefined;
-					userDataObj.starters[baseSpecies] = baseCaught;
+					delete baseCaught.status;
+					delete baseCaught.heldItem;
+					userData.starters[baseSpecies] = baseCaught;
 					saveUserData(match.userId);
 					if (!existingStarter) {
 						battleLogMsgs.push(`&nbsp;&nbsp;↳ <b style="color:#fac000">${baseDex.name} has been permanently unlocked as a Starter!</b>`);
@@ -2456,13 +2140,13 @@ export const handlers: Chat.Handlers = {
 						}
 					}
 				}
-				state.caughtPokemon = undefined;
+				delete state.caughtPokemon;
 			}
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
 			let itemMultiplier = 1.0;
-			const amuletCoins = state.keyItems?.['Amulet Coin'] || 0;
-			const goldenPunches = state.keyItems?.['Golden Punch'] || 0;
+			const amuletCoins = (state.keyItems ?? []).filter(k => k === 'Amulet Coin').length;
+			const goldenPunches = (state.keyItems ?? []).filter(k => k === 'Golden Punch').length;
 			const amuletCoinItem = Object.values(SHOP_ITEMS).find(i => i.name === 'Amulet Coin');
 			const goldenPunchItem = Object.values(SHOP_ITEMS).find(i => i.name === 'Golden Punch');
 			itemMultiplier += (0.2 * Math.min(amuletCoinItem?.maxStack ?? 5, amuletCoins));
@@ -2471,24 +2155,13 @@ export const handlers: Chat.Handlers = {
 			const moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
 			state.money = (state.money ?? 0) + moneyGained;
 			battleLogMsgs.push(`<div style="color:#fac000; font-weight:bold;">Earned $${moneyGained}!</div>`);
-			
-			const nextState = {
-				...state,
-				battleRoomId: undefined,
-				displayName: Users.get(match.userId)?.name || match.userId,
-				timesRerolled: 0,
-				pendingRewardDraft: generateDraftOptions(state, config),
-				rerollCount: 0,
-				view: 'draft' as const,
-			};
-			setState(match.userId, nextState);
+			state.displayName = Users.get(match.userId)?.name || match.userId;
+			state.timesRerolled = 0;
+			state.pendingRewardDraft = generateDraftOptions(state, config);
+			state.rerollCount = 0;
+			(state as any).view = 'draft';
 		} else {
-			const lossState = {
-				...state,
-				battleRoomId: undefined,
-			};
-			handleBattleLoss(lossState as PokeRogueState, match.floor, match.userId);
-			setState(match.userId, lossState as PokeRogueState);
+			handleBattleLoss(state, match.floor, match.userId);
 		}
 		if (battleLogMsgs.length > 0 && room) {
 			const infoboxHtml = `<div class="pr" style="background:transparent; border:none; min-height:0; max-width:100%; margin:4px 0;">` +
@@ -2498,6 +2171,7 @@ export const handlers: Chat.Handlers = {
 				`</div></div>`;
 			room.add(`|html|${infoboxHtml}`).update();
 		}
+		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
 	}

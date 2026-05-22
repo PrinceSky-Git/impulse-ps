@@ -21,41 +21,41 @@ function fullHealPP(mon: PokemonEntry): void {
 }
 
 export const devCommands: Chat.ChatCommands = {
-	givemoney(target, room, user) {
+	givebp(target, room, user) {
 		this.checkCan("bypassall");
 		let [name, amt] = target.split(',').map(s => s?.trim());
 		if (!amt && !isNaN(parseInt(name))) { amt = name; name = user.id; }
 		const tId = toID(name) || user.id;
 		const s = getState(tId);
 		if (s) {
-			const amount = parseInt(amt || '500');
-			if (isNaN(amount) || amount <= 0) {
+			const bpAmount = parseInt(amt || '5');
+			if (isNaN(bpAmount) || bpAmount <= 0) {
 				return this.errorReply(`Amount must be a positive number.`);
 			}
-			s.money = (s.money ?? 0) + amount;
+			s.battlePoints = (s.battlePoints ?? 0) + bpAmount;
 			setState(tId, s);
-			this.sendReply(`Gave $${amount} to ${tId}.`);
+			this.sendReply(`Gave ${bpAmount} BP to ${tId}.`);
 			const staffName = nameColor(user.name, false, true);
-			notifyUser(tId, `You have been given $${amount} by ${staffName}.`);
+			notifyUser(tId, `You have been given ${bpAmount} BP by ${staffName}.`);
 		}
 	},
 
-	removemoney(target, room, user) {
+	removebp(target, room, user) {
 		this.checkCan("bypassall");
 		let [name, amt] = target.split(',').map(s => s?.trim());
 		if (!amt && !isNaN(parseInt(name))) { amt = name; name = user.id; }
 		const tId = toID(name) || user.id;
 		const s = getState(tId);
 		if (s) {
-			const amount = parseInt(amt || '500');
-			if (isNaN(amount) || amount <= 0) {
+			const bpAmount = parseInt(amt || '5');
+			if (isNaN(bpAmount) || bpAmount <= 0) {
 				return this.errorReply(`Amount must be a positive number.`);
 			}
-			s.money = Math.max(0, (s.money ?? 0) - amount);
+			s.battlePoints = Math.max(0, (s.battlePoints ?? 0) - bpAmount);
 			setState(tId, s);
-			this.sendReply(`Removed $${amount} from ${tId}.`);
+			this.sendReply(`Removed ${bpAmount} BP from ${tId}.`);
 			const staffName = nameColor(user.name, false, true);
-			notifyUser(tId, `${staffName} has removed $${amount} from you.`);
+			notifyUser(tId, `${staffName} has removed ${bpAmount} BP from you.`);
 		}
 	},
 
@@ -72,10 +72,10 @@ export const devCommands: Chat.ChatCommands = {
 				floor: 1,
 				gameMode: 'classic',
 				team: [],
-				money: 1000,
+				battlePoints: 20,
 				timesRerolled: 0,
 				rotationalShop: [],
-				keyItems: {},
+				keyItems: [],
 				inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 				pendingChoice: [],
 				highestFloor,
