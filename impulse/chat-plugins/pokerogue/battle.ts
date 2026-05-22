@@ -785,13 +785,14 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 		trainerKey,
 		state.currentBiome || config.startingBiome,
 		config,
-		data
+		data,
+		state
 	);
 
 	return {
 		packedTeam: packAITeam(result.team),
 		isTrainer: result.isTrainer,
-		trainerName: result.trainerName,
+		trainerName: Antiquities,
 		team: result.team,
 	};
 }
