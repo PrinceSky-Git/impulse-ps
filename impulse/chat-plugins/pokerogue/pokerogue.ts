@@ -1162,6 +1162,14 @@ export const commands: Chat.ChatCommands = {
 				} as PokemonEntry;
 			}
 
+			// Base fields we must clear from selection arrays safely without using delete
+			const clearedDraftState = {
+				...state,
+				pendingChoice: undefined,
+				pendingChoiceType: undefined,
+				pendingChoiceFloor: undefined,
+			};
+
 			if (isStarterChoice) {
 				const sid = toID(finalSpecies);
 				if (!userData.starters[sid]) {
@@ -1176,20 +1184,32 @@ export const commands: Chat.ChatCommands = {
 					saveUserData(user.id);
 				}
 
-				state.team = [newMon];
-				(state as any).view = 'stats';
-				(state as any).pendingStatsSlot = 0;
-				state.isConfiguringStarter = true;
+				const nextState = {
+					...clearedDraftState,
+					team: [newMon],
+					view: 'stats' as const,
+					pendingStatsSlot: 0,
+					statsTab: 0,
+					starterSearch: '',
+					isConfiguringStarter: true,
+				};
+				setState(user.id, nextState);
 			} else if (state.team.length < 6) {
-				state.team.push(newMon);
+				const nextState = {
+					...clearedDraftState,
+					team: [...state.team, newMon],
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
 			} else {
-				state.pendingSwap = newMon;
+				const nextState = {
+					...clearedDraftState,
+					pendingSwap: newMon,
+					view: 'main' as const,
+				};
+				setState(user.id, nextState);
 			}
 
-			delete state.pendingChoice;
-			delete state.pendingChoiceType;
-			delete state.pendingChoiceFloor;
-			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
