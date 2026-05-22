@@ -726,7 +726,7 @@ export const commands: Chat.ChatCommands = {
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
 
-			if (['main', 'top', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
+			if (['main', 'top', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
 				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
 					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 					if (modeData.useNewStarterSelectionUI !== false) {
@@ -1009,8 +1009,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
 
-			const isLocked = !!(state as any).isRarityLocked;
-			const cost = getRerollCost(state, isLocked, state.pendingRewardDraft || []);
+			const cost = getRerollCost(state, false, state.pendingRewardDraft || []);
 			
 			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
 
@@ -1410,6 +1409,13 @@ export const commands: Chat.ChatCommands = {
 				const itemKey = state.purchasedItem;
 
 				if (rest === 'skip') {
+					if (itemKey) {
+						const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+						const item = activeShop[itemKey];
+						if (item && item.isShopItem) {
+							state.money = (state.money || 0) + getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
+						}
+					}
 					delete state.pendingItemName;
 					delete state.purchasedItem;
 					delete state.pendingItemIsEvo;
@@ -1498,6 +1504,13 @@ export const commands: Chat.ChatCommands = {
 				const itemKey = state.purchasedItem;
 
 				if (rest === 'skip') {
+					if (itemKey) {
+						const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+						const item = activeShop[itemKey];
+						if (item && item.isShopItem) {
+							state.money = (state.money || 0) + getItemPrice(state.floor, item.moneyMultiplier ?? 1.0);
+						}
+					}
 					delete state.purchasedItem;
 					delete state.pendingConsumableType;
 					
