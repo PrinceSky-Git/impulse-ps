@@ -1055,7 +1055,11 @@ function renderMainView(state: PokeRogueState, user: User): string {
 	let buf = renderStatBar(state);
 
 	buf += `<div style="text-align:center;margin-bottom:8px">`;
-	buf += renderBtn('/pokerogue prebattle', 'Start battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	if (state.pendingRewardDraft?.length) {
+		buf += renderBtn('/pokerogue view draft', 'Return to Draft', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	} else {
+		buf += renderBtn('/pokerogue prebattle', 'Start battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
+	}
 	buf += `</div>`;
 
 	buf += `<div class="pr-section-title">Your team</div>`;
