@@ -61,7 +61,6 @@ export interface ModeConfig {
 		startingInventory?: Record<string, number>,
 		draftChoicesCount?: number,
 		maxDraftChoicesCount?: number,
-		
 	};
 
 	storyRouting?: {
@@ -146,19 +145,28 @@ export interface PokemonEntry {
 	selectedAbility?: string;
 }
 
-export interface PokeRogueState {
-	starterSearch?: string;
+export type PokeRogueView = 
+	| 'main' 
+	| 'top' 
+	| 'resetconfirm' 
+	| 'welcome' 
+	| 'stats' 
+	| 'save' 
+	| 'load' 
+	| 'starterselect' 
+	| 'draft' 
+	| 'trainer';
+
+export interface BasePokeRogueState {
 	gameWon?: boolean;
 	floor: number;
 	gameMode: GameMode;
 	currentBiome?: string;
 	team: PokemonEntry[];
-	
 	money: number;
 	pendingRewardDraft?: string[];
 	rerollCount?: number;
 	luck?: number; 
-	
 	timesRerolled: number;
 	rotationalShop: string[];
 	keyItems: Record<string, number>;
@@ -191,12 +199,64 @@ export interface PokeRogueState {
 	pendingTrainer?: string;
 	firstGymLeaderWave?: number;
 	pendingTrainerKey?: string;
-
-	pendingStatsSlot?: number;
-	statsTab?: number;
 	lastThrowTime?: number;
 	isConfiguringStarter?: boolean;
 }
+
+export interface MainViewState extends BasePokeRogueState {
+	view: 'main';
+}
+
+export interface TopViewState extends BasePokeRogueState {
+	view: 'top';
+}
+
+export interface ResetConfirmViewState extends BasePokeRogueState {
+	view: 'resetconfirm';
+}
+
+export interface WelcomeViewState extends BasePokeRogueState {
+	view: 'welcome';
+}
+
+export interface StatsViewState extends BasePokeRogueState {
+	view: 'stats';
+	pendingStatsSlot: number;
+	statsTab: number;
+}
+
+export interface SaveViewState extends BasePokeRogueState {
+	view: 'save';
+}
+
+export interface LoadViewState extends BasePokeRogueState {
+	view: 'load';
+}
+
+export interface StarterSelectViewState extends BasePokeRogueState {
+	view: 'starterselect';
+	starterSearch: string;
+}
+
+export interface DraftViewState extends BasePokeRogueState {
+	view: 'draft';
+}
+
+export interface TrainerViewState extends BasePokeRogueState {
+	view: 'trainer';
+}
+
+export type PokeRogueState =
+	| MainViewState
+	| TopViewState
+	| ResetConfirmViewState
+	| WelcomeViewState
+	| StatsViewState
+	| SaveViewState
+	| LoadViewState
+	| StarterSelectViewState
+	| DraftViewState
+	| TrainerViewState;
 
 export interface GlobalStatEntry {
 	highestFloor: number;
