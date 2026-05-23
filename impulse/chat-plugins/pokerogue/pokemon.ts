@@ -524,7 +524,8 @@ function pickBestAbility(species: Species, floor: number, config?: ModeConfig): 
 			const chance = floor >= 150 ? 0.12 : floor >= 100 ? 0.06 : 0.02;
 			priority = Math.random() < chance ? 100 : 0;
 		} else if (slot === 'H') {
-			const chance = floor >= 99 ? 0.20 : floor >= 60 ? 0.10 : 0.04;
+			// Changed base chance to 1/128 (previously 0.04)
+			const chance = floor >= 99 ? 0.20 : floor >= 60 ? 0.10 : (1 / 128);
 			priority = Math.random() < chance ? 80 : 0;
 		} else if (slot === '1') {
 			priority = Math.random() < 0.5 ? 50 : 0;
@@ -832,7 +833,8 @@ export function genPokemon(
 			pickBestAbility(finalSpecie, floor, config) :
 			(forcedAbility ?? pickBestAbility(finalSpecie, floor, config));
 
-		const shiny = Math.floor(Math.random() * 1024) === 69;
+		// Set explicit 1/1024 shiny chance for wild encounters
+		const shiny = Math.floor(Math.random() * 1024) === 0;
 		const item = forcedItem ?? pickRandomHeldItem(finalSpecie.name);
 		const teraType = forcedTeraType ?? (Math.floor(Math.random() * 20) === 0 ?
 			allTypes[Math.floor(Math.random() * allTypes.length)] :
