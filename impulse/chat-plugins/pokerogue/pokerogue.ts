@@ -1383,6 +1383,22 @@ export const commands: Chat.ChatCommands = {
 					mon.expType = getExpType(evoTarget);
 					const evoName = Dex.species.get(evoTarget).name;
 					state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
+					
+					const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
+					const evoMoves = getMovesLearnedBetween(evoTarget, mon.level, mon.level, true, genNumber);
+					
+					state.pendingMoves = state.pendingMoves ?? [];
+					for (const move of evoMoves) {
+						if (mon.moves.includes(move)) continue;
+						if (state.pendingMoves.some(p => p.pokemonIndex === slot && p.move === move)) continue;
+
+						if (mon.moves.length < 4) {
+							mon.moves.push(move);
+							state.notification += `<br>&nbsp;&nbsp;↳ <b>${evoName}</b> learned <b>${Dex.moves.get(move).name}</b>!`;
+						} else {
+							state.pendingMoves.push({ pokemonIndex: slot, move, speciesName: mon.species });
+						}
+					}
 				} else {
 					if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
 						mon.species = toID(dexNewItem.forcedForme);
