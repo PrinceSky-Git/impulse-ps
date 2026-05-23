@@ -106,7 +106,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	fullheal: {
 		name: "Full Heal", icon: "Full Heal", type: "cureStatus", category: "Medicine",
 		desc: "Heals any status ailment for one Pokémon.",
-		moneyMultiplier: 1.0, tier: "Great", isShopItem: true, minFloor: 21,
+		moneyMultiplier: 1.0, tier: "Great", isShopItem: true,
 		weight: 8, minWeight: 0, maxWeight: 16,
 		weightFunc: (state: PokeRogueState) => {
 			const statusCount = state.team.filter(m => m.status).length;
