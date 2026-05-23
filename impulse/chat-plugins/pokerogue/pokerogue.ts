@@ -1507,7 +1507,6 @@ export const commands: Chat.ChatCommands = {
 					const natureName = item.name.replace(' Mint', '');
 					const nature = Dex.natures.get(natureName);
 					if (!nature.exists) return this.errorReply("Invalid mint.");
-					if (mon.nature === nature.name) return this.errorReply("This Pokémon already has this nature.");
 
 					mon.nature = nature.name;
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
