@@ -14,7 +14,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			// Weight drops slowly as your run gets deeper
 			return Math.max(5, 40 - Math.floor(state.floor / 10));
-		}
+		},
 	},
 	greatball: {
 		name: "Great Ball", icon: "Great Ball", type: "pokeball", category: "Pokéballs",
@@ -23,7 +23,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weight: 30, minWeight: 5, maxWeight: 30,
 		weightFunc: (state: PokeRogueState) => {
 			return Math.max(5, 30 - Math.floor(state.floor / 15));
-		}
+		},
 	},
 	ultraball: {
 		name: "Ultra Ball", icon: "Ultra Ball", type: "pokeball", category: "Pokéballs",
@@ -46,7 +46,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			const damagedCount = state.team.filter(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100).length;
 			return Math.min(24, 12 + (damagedCount * 4));
-		}
+		},
 	},
 	superpotion: {
 		name: "Super Potion", icon: "Super Potion", type: "healHP", category: "Medicine",
@@ -57,7 +57,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			const damagedCount = state.team.filter(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100).length;
 			return Math.min(24, 12 + (damagedCount * 4));
-		}
+		},
 	},
 	hyperpotion: {
 		name: "Hyper Potion", icon: "Hyper Potion", type: "healHP", category: "Medicine",
@@ -68,7 +68,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			const damagedCount = state.team.filter(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100).length;
 			return Math.min(24, 12 + (damagedCount * 4));
-		}
+		},
 	},
 	maxpotion: {
 		name: "Max Potion", icon: "Max Potion", type: "healHP", category: "Medicine",
@@ -79,7 +79,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			const damagedCount = state.team.filter(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100).length;
 			return Math.min(24, 12 + (damagedCount * 4));
-		}
+		},
 	},
 	revive: {
 		name: "Revive", icon: "Revive", type: "revive", category: "Medicine",
@@ -90,7 +90,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			const faintedCount = state.team.filter(m => (m.currentHp ?? 100) <= 0).length;
 			return Math.min(16, 4 + (faintedCount * 4));
-		}
+		},
 	},
 	maxrevive: {
 		name: "Max Revive", icon: "Max Revive", type: "revive", category: "Medicine",
@@ -101,7 +101,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			const faintedCount = state.team.filter(m => (m.currentHp ?? 100) <= 0).length;
 			return Math.min(16, 4 + (faintedCount * 4));
-		}
+		},
 	},
 	fullheal: {
 		name: "Full Heal", icon: "Full Heal", type: "cureStatus", category: "Medicine",
@@ -111,7 +111,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			const statusCount = state.team.filter(m => m.status).length;
 			return Math.min(16, 8 + (statusCount * 4));
-		}
+		},
 	},
 	fullrestore: {
 		name: "Full Restore", icon: "Full Restore", type: "healHP", category: "Medicine",
@@ -122,7 +122,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			const needsHelpCount = state.team.filter(m => m.status || ((m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100)).length;
 			return Math.min(16, 8 + (needsHelpCount * 4));
-		}
+		},
 	},
 	sacredash: {
 		name: "Sacred Ash", icon: "Sacred Ash", type: "itemPack", category: "Medicine",
@@ -135,7 +135,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Recall one Pokémon's forgotten move.",
 		moneyMultiplier: 4.0, tier: "Ultra", isShopItem: true, minFloor: 1,
 		weight: 4, minWeight: 0, maxWeight: 8,
-	},	
+	},
 	expall: {
 		name: "Exp. All", icon: "Exp Share", type: "key", category: "Key Items",
 		desc: "Gives 20% Exp. to all non-fainted Pokemon not in the battle. Stacks up to 5 times.",
@@ -143,7 +143,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weight: 4, minWeight: 0, maxWeight: 4,
 		weightFunc: (state: PokeRogueState) => {
 			return (state.keyItems?.['Exp. All'] || 0) >= 5 ? 0 : 4;
-		}
+		},
 	},
 	expcharm: {
 		name: "Exp. Charm", icon: "Exp. Share", type: "key", category: "Key Items",
@@ -152,7 +152,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weight: 8, minWeight: 0, maxWeight: 8,
 		weightFunc: (state: PokeRogueState) => {
 			return (state.keyItems?.['Exp. Charm'] || 0) >= 99 ? 0 : 8;
-		}
+		},
 	},
 	hpup: {
 		name: "HP Up", icon: "HP Up", type: "vitamin", category: "Vitamins",

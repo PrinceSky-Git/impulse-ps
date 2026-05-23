@@ -57,7 +57,7 @@ export interface ModeConfig {
 		startingInventory?: Record<string, number>,
 		draftChoicesCount?: number,
 		maxDraftChoicesCount?: number,
-		
+
 	};
 
 	storyRouting?: {
@@ -148,12 +148,12 @@ export interface PokeRogueState {
 	gameMode: GameMode;
 	currentBiome?: string;
 	team: PokemonEntry[];
-	
+
 	money: number;
 	pendingRewardDraft?: string[];
 	rerollCount?: number;
-	luck?: number; 
-	
+	luck?: number;
+
 	timesRerolled: number;
 	rotationalShop: string[];
 	keyItems: Record<string, number>;

@@ -24,7 +24,7 @@ export interface ShopItem {
 
 	moneyMultiplier: number;
 	tier: ItemRarityTier;
-	
+
 	weight?: number;
 	minWeight?: number;
 	maxWeight?: number;
@@ -160,19 +160,19 @@ export function weightedItemPick(items: [string, ShopItem][], state: PokeRogueSt
 	if (items.length === 0) return undefined;
 	const totalWeight = items.reduce((sum, [, item]) => sum + getItemWeight(item, state), 0);
 	let roll = Math.random() * totalWeight;
-	
+
 	for (const itemPair of items) {
 		roll -= getItemWeight(itemPair[1], state);
 		if (roll <= 0) return itemPair;
 	}
-	
+
 	return items[items.length - 1];
 }
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
 	const luck = calculatePartyLuck(state.team);
 	const draft: string[] = [];
-	
+
 	const partySpecies = new Set(state.team.map(m => toID(m.species)));
 
 	const needsHeal = state.team.some(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100);
@@ -189,16 +189,16 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 
 	const draftCount = Math.min(maxCount, baseCount + extraOptions);
 	const pickedKeys = new Set<string>();
-	
+
 	let tmsInDraft = 0;
 
 	for (let i = 0; i < draftCount; i++) {
 		const targetTier = rollRarity(luck, state);
-		
+
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 			if (pickedKeys.has(key)) return false;
 			if (item.tier !== targetTier) return false;
-			
+
 			if (item.type === 'healHP' && !needsHeal) return false;
 			if (item.type === 'revive' && !needsRevive) return false;
 			if (item.type === 'cureStatus' && !needsCure) return false;
@@ -209,7 +209,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				for (const species of partySpecies) {
 					const evos = Dex.species.get(species).evos;
 					if (!evos) continue;
-					
+
 					for (const evoTarget of evos) {
 						const evoData = Dex.species.get(evoTarget);
 						if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade')) {
@@ -221,27 +221,27 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				}
 				if (!hasCompatibleTarget) return false;
 			}
-			
+
 			if (item.type === 'tm') {
 				if (tmsInDraft >= 1) return false;
 
 				let anyoneCanLearn = false;
-				const moveId = key.includes('_') ? 
-					key.substring(key.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') : 
+				const moveId = key.includes('_') ?
+					key.substring(key.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') :
 					toID(item.name.replace(/^TM\d+\s*/i, ''));
 				const moveData = Dex.moves.get(moveId);
-				
+
 				if (moveData.exists) {
 					for (const mon of state.team) {
 						if (mon.moves.includes(moveData.id)) continue;
-						
+
 						let canLearn = false;
 						let spData = Dex.species.get(mon.species);
-						
+
 						while (spData && !canLearn) {
 							const learnsetData = Dex.species.getLearnsetData(spData.id)?.learnset;
-							if (learnsetData && learnsetData[moveData.id]) canLearn = true;
-							
+							if (learnsetData?.[moveData.id]) canLearn = true;
+
 							if (spData.prevo) {
 								spData = Dex.species.get(spData.prevo);
 							} else if (spData.baseSpecies && toID(spData.baseSpecies) !== spData.id) {
@@ -250,7 +250,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 								break;
 							}
 						}
-						
+
 						if (canLearn) {
 							anyoneCanLearn = true;
 							break;
@@ -259,10 +259,10 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				}
 				if (!anyoneCanLearn) return false;
 			}
-			
+
 			return true;
 		});
-		
+
 		if (validItems.length === 0) {
 			const anyUnpicked = Object.entries(SHOP_ITEMS).filter(([key]) => !pickedKeys.has(key));
 			const randomFallback = weightedItemPick(anyUnpicked, state);
@@ -289,7 +289,7 @@ export function getWaveSet(wave: number): number {
 
 export function getBaseMoneyReward(wave: number): number {
 	const waveSet = getWaveSet(wave);
-	return Math.pow(10 * wave + 175, 1 + 0.005 * waveSet);
+	return (10 * wave + 175) ** (1 + 0.005 * waveSet);
 }
 
 export function getRewardMoney(wave: number, multiplier: number): number {
@@ -302,5 +302,5 @@ export function getItemPrice(wave: number, multiplier: number): number {
 
 export function getRerollCost(wave: number, rerollCount: number): number {
 	const base = 250 * Math.ceil(Math.max(1, wave) / 10);
-	return base * Math.pow(2, rerollCount);
+	return base * 2 ** rerollCount;
 }

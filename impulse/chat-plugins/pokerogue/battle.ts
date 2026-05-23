@@ -571,7 +571,7 @@ function makeAIChoice(requestJson: string, roomid: string, turn: number, gen: nu
 			for (const m of usableMoves) {
 				const moveData = Dex.moves.get(m.id);
 				const originalIdx = moves.indexOf(m) + 1;
-				
+
 				const needsTarget = !['all', 'allAdjacent', 'allAdjacentFoes', 'allySide', 'allyTeam', 'foeSide', 'randomNormal', 'scripted', 'self'].includes(moveData.target || 'normal');
 				const targetsAlly = ['adjacentAlly', 'adjacentAllyOrSelf'].includes(moveData.target || '');
 
@@ -816,7 +816,7 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 
 	const hasLure = (state.keyItems?.['Lure'] ?? 0) > 0;
 	const isDoubles = !isTrainer && !isBoss && hasLure && botTeamData.team.length > 1 && livingTeam.length > 1;
-	
+
 	if (state.pendingTrainer) {
 		delete state.pendingTrainer;
 	}

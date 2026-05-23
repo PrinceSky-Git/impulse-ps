@@ -5,12 +5,12 @@ import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem, generateDraftOptions, getRewardMoney, getItemPrice, getRerollCost } from './items';
 import {
-	getState, setState, getUserData, saveUserData, globalStats, saveGlobalStats
+	getState, setState, getUserData, saveUserData, globalStats, saveGlobalStats,
 } from './state';
 import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon
+	packTeam, genPokemon,
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -414,14 +414,14 @@ function processFloorRewards(
 					state.keyItems = state.keyItems ?? {};
 					let added = 0;
 					const currentAmount = state.keyItems[reward.itemName] || 0;
-					
+
 					for (let i = 0; i < reward.amount; i++) {
 						if (reward.itemName === 'Exp. All' && (currentAmount + added) >= 5) continue;
 						if (reward.itemName === 'Exp. Charm' && (currentAmount + added) >= 99) continue;
 						if (reward.itemName !== 'Exp. All' && reward.itemName !== 'Exp. Charm' && (currentAmount + added) >= 1) continue;
 						added++;
 					}
-					
+
 					if (added > 0) {
 						state.keyItems[reward.itemName] = currentAmount + added;
 						extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received ${added}x ${reward.itemName} for clearing Floor ${clearedFloor}!</b></div>`);
@@ -463,7 +463,7 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 	if ((state.keyItems?.['Revive'] || 0) > 0) {
 		state.keyItems['Revive']--;
 		if (state.keyItems['Revive'] <= 0) delete state.keyItems['Revive'];
-		
+
 		state.notification = (state.notification ?? '') +
 			`<br><b>Revive used!</b> Retrying Floor ${floor}`;
 	} else {
@@ -731,9 +731,9 @@ export const commands: Chat.ChatCommands = {
 					const userData = getUserData(user.id);
 					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 					const unlockedStarterIds = Object.keys(userData.starters || {});
-					const starterPool = modeData.useNewStarterSelectionUI !== false
-						? [...new Set([...modeData.starters, ...unlockedStarterIds])]
-						: modeData.starters;
+					const starterPool = modeData.useNewStarterSelectionUI !== false ?
+						[...new Set([...modeData.starters, ...unlockedStarterIds])] :
+						modeData.starters;
 
 					state.team = [];
 					state.pendingChoice = starterPool;
@@ -798,7 +798,7 @@ export const commands: Chat.ChatCommands = {
 
 		cyclestarter(target, room, user) {
 			const state = getState(user.id);
-			if (!state || !state.isConfiguringStarter) return;
+			if (!state?.isConfiguringStarter) return;
 			const userData = getUserData(user.id);
 
 			const [trait, direction] = target.trim().split(' ');
@@ -863,7 +863,7 @@ export const commands: Chat.ChatCommands = {
 
 		confirmstarter(target, room, user) {
 			const state = getState(user.id);
-			if (!state || !state.isConfiguringStarter) return;
+			if (!state?.isConfiguringStarter) return;
 
 			delete state.isConfiguringStarter;
 			(state as any).view = 'main';
@@ -1051,7 +1051,7 @@ export const commands: Chat.ChatCommands = {
 				(state as any).view = 'main';
 			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm'].includes(item.type)) {
 				state.purchasedItem = itemKey;
-				state.pendingConsumableType = item.type as any;
+				state.pendingConsumableType = item.type;
 				(state as any).view = 'main';
 			}
 
@@ -1073,7 +1073,7 @@ export const commands: Chat.ChatCommands = {
 
 			state.money -= cost;
 			state.rerollCount = (state.rerollCount || 0) + 1;
-			
+
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 			state.pendingRewardDraft = generateDraftOptions(state, config);
 
@@ -1094,7 +1094,7 @@ export const commands: Chat.ChatCommands = {
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 			const item = activeShop[itemKey];
 
-			if (!item || !item.isShopItem) return this.errorReply("Unknown shop item.");
+			if (!item?.isShopItem) return this.errorReply("Unknown shop item.");
 
 			const price = getItemPrice(state.floor, item.moneyMultiplier);
 			if ((state.money || 0) < price) return this.errorReply(`Not enough money! Need $${price}.`);
@@ -1119,7 +1119,7 @@ export const commands: Chat.ChatCommands = {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
 			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm'].includes(item.type)) {
-				state.pendingConsumableType = item.type as any;
+				state.pendingConsumableType = item.type;
 			}
 			(state as any).view = 'main';
 
@@ -1268,7 +1268,7 @@ export const commands: Chat.ChatCommands = {
 				const pending = state.pendingMoves[0];
 				const mon = state.team[pending.pokemonIndex];
 				if (!mon.moves) mon.moves = getLevelUpMoves(mon.species, mon.level, MODE_CONFIGS[state.gameMode]?.generation || 9);
-				
+
 				if (rest === 'skip') {
 					state.notification = `Your Pokémon gave up on learning <b>${Dex.moves.get(pending.move).name}</b>.`;
 				} else {
@@ -1286,7 +1286,7 @@ export const commands: Chat.ChatCommands = {
 				if (!state.pendingSwap) return;
 				const newMon = state.pendingSwap;
 				const newMonName = Dex.species.get(toID(newMon.species)).name;
-				
+
 				if (rest === 'skip') {
 					state.notification = `You released <b>${newMonName}</b> into the wild.`;
 				} else {
@@ -1324,7 +1324,7 @@ export const commands: Chat.ChatCommands = {
 					delete state.pendingItemName;
 					delete state.purchasedItem;
 					delete state.pendingItemIsEvo;
-					
+
 					if (state.pendingRewardDraft) (state as any).view = 'draft';
 					else { state.floor++; (state as any).view = 'main'; }
 					break;
@@ -1339,18 +1339,18 @@ export const commands: Chat.ChatCommands = {
 
 				if (itemKey === 'memorymushroom') {
 					const allMoves = getMovesLearnedBetween(mon.species, 1, mon.level, false, MODE_CONFIGS[state.gameMode]?.generation || 9);
-					
+
 					if (allMoves.length === 0) return this.errorReply("This Pokémon has no moves to remember.");
 
 					state.pendingMoves = [{
 						pokemonIndex: slot,
-						move: allMoves[Math.floor(Math.random() * allMoves.length)], 
-						speciesName: mon.species
+						move: allMoves[Math.floor(Math.random() * allMoves.length)],
+						speciesName: mon.species,
 					}];
-					
+
 					delete state.purchasedItem;
 					delete state.pendingItemName;
-					
+
 					if (state.pendingRewardDraft) (state as any).view = 'draft';
 					else { state.floor++; (state as any).view = 'main'; }
 					break;
@@ -1364,7 +1364,7 @@ export const commands: Chat.ChatCommands = {
 						for (const newEvo of evoList) {
 							const evoData = Dex.species.get(newEvo);
 							const evoItemId = toID(evoData.evoItem);
-							
+
 							const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
 							const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
 							const isPlainTradeEvolution =
@@ -1383,10 +1383,10 @@ export const commands: Chat.ChatCommands = {
 					mon.expType = getExpType(evoTarget);
 					const evoName = Dex.species.get(evoTarget).name;
 					state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
-					
+
 					const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
 					const evoMoves = getMovesLearnedBetween(evoTarget, mon.level, mon.level, true, genNumber);
-					
+
 					state.pendingMoves = state.pendingMoves ?? [];
 					for (const move of evoMoves) {
 						if (mon.moves.includes(move)) continue;
@@ -1415,7 +1415,7 @@ export const commands: Chat.ChatCommands = {
 				delete state.pendingItemName;
 				delete state.purchasedItem;
 				delete state.pendingItemIsEvo;
-				
+
 				if (state.pendingRewardDraft) (state as any).view = 'draft';
 				else { state.floor++; (state as any).view = 'main'; }
 				break;
@@ -1428,7 +1428,7 @@ export const commands: Chat.ChatCommands = {
 				if (rest === 'skip') {
 					delete state.purchasedItem;
 					delete state.pendingConsumableType;
-					
+
 					if (state.pendingRewardDraft) (state as any).view = 'draft';
 					else { state.floor++; (state as any).view = 'main'; }
 					break;
@@ -1446,17 +1446,17 @@ export const commands: Chat.ChatCommands = {
 				if (item.type === 'healHP') {
 					if (hp <= 0) return this.errorReply("Can't heal a fainted Pokémon. Use a Revive.");
 					if (hp >= 100) return this.errorReply("That Pokémon is already at full HP.");
-					
+
 					const spData = Dex.species.get(toID(mon.species));
 					const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 					const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 					const maxHpActual = Math.floor((2 * bs.hp + 31 + Math.floor(evs.hp / 4)) * mon.level / 100) + mon.level + 10;
-					
+
 					const healPctCalculated = item.healAmount ? Math.max(item.healPercent || 0, (item.healAmount / maxHpActual) * 100) : (item.healPercent || 0);
-					
+
 					mon.currentHp = item.isMax ? 100 : Math.min(100, hp + Math.round(healPctCalculated));
 					if (item.curesStatus) delete mon.status;
-					
+
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
 				} else if (item.type === 'cureStatus') {
@@ -1498,7 +1498,7 @@ export const commands: Chat.ChatCommands = {
 						state.pendingMoves.push({
 							pokemonIndex: slot,
 							move: moveData.id,
-							speciesName: mon.species
+							speciesName: mon.species,
 						});
 						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${moveData.name}</b>!`;
 					}
@@ -1506,7 +1506,7 @@ export const commands: Chat.ChatCommands = {
 
 				delete state.purchasedItem;
 				delete state.pendingConsumableType;
-				
+
 				if (state.pendingRewardDraft) {
 					(state as any).view = 'draft';
 				} else {
@@ -1656,7 +1656,7 @@ export const commands: Chat.ChatCommands = {
 						hp: parseInt(swMatch[4]),
 						maxHp: swMatch[5] ? parseInt(swMatch[5]) : 100,
 						status: swMatch[6] || '',
-						fainted: false
+						fainted: false,
 					});
 					continue;
 				}
@@ -1728,7 +1728,7 @@ export const commands: Chat.ChatCommands = {
 			const p2Species = targetMon.species;
 			const p2Level = targetMon.level;
 			let p2Hp = targetMon.hp;
-			let p2MaxHp = targetMon.maxHp;
+			const p2MaxHp = targetMon.maxHp;
 			let p2Status = targetMon.status;
 
 			if (p2Status === 'none') p2Status = '';
@@ -1927,10 +1927,10 @@ export const commands: Chat.ChatCommands = {
 						marks: caught.marks ? [...caught.marks] : [],
 						unlockedNatures: Array.from(unlockedNatures),
 						unlockedAbilities: Array.from(unlockedAbilities),
-						selectedNature: selectedNature,
-						selectedAbility: selectedAbility,
+						selectedNature,
+						selectedAbility,
 					};
-					
+
 					delete baseCaught.status;
 					delete baseCaught.heldItem;
 
@@ -2003,7 +2003,7 @@ export const pages: Chat.PageTable = {
 		if (!state) return `<div class="pr-popup"><div class="pr-popup-header"><h2>PokéRogue</h2></div><div style="text-align:center;padding:16px"><button name="send" value="/pokerogue start" class="button">Start New Run</button></div></div>`;
 		const v = (state as any).view || 'main';
 		this.title = `PokéRogue - ${v.toUpperCase()}`;
-		
+
 		const html = renderGamePage(state, user);
 
 		if (state.notification) {
@@ -2118,12 +2118,11 @@ export const handlers: Chat.Handlers = {
 
 			state.displayName = Users.get(match.userId)?.name || match.userId;
 			state.timesRerolled = 0;
-			
+
 			state.pendingRewardDraft = generateDraftOptions(state, config);
-			
+
 			state.rerollCount = 0;
 			(state as any).view = 'draft';
-
 		} else {
 			handleBattleLoss(state, match.floor, match.userId);
 		}

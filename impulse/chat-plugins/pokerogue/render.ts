@@ -186,7 +186,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 	const titles: Record<string, string> = {
 		main: 'PokéRogue', top: 'Ladder',
 		resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome',
-		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game', draft: 'Reward Draft'
+		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game', draft: 'Reward Draft',
 	};
 
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
@@ -306,19 +306,19 @@ function renderDraftView(state: PokeRogueState): string {
 		'Great': '#3b82f6', // Blue
 		'Ultra': '#eab308', // Yellow
 		'Rogue': '#ef4444', // Red
-		'Master': '#a855f7' // Purple
+		'Master': '#a855f7', // Purple
 	};
 
 	let buf = `<div style="text-align:center; padding: 10px;">`;
 	buf += `<h2 style="color:#fac000; margin-bottom: 4px;">Wave Cleared!</h2>`;
 	buf += `<div style="font-size:14px; font-weight:bold; margin-bottom: 16px;">Current Money: <span style="color:#4caf50">$${currentMoney}</span></div>`;
-	
+
 	buf += `<div style="display:flex; justify-content:center; gap: 12px; flex-wrap:wrap; margin-bottom: 10px;">`;
 	for (let i = 0; i < (state.pendingRewardDraft?.length || 0); i++) {
 		const itemKey = state.pendingRewardDraft![i];
 		const item = SHOP_ITEMS[itemKey];
 		const cardColor = tierColors[item.tier] || '#444';
-		
+
 		buf += `<div class="pr-card" style="width: 150px; padding: 12px; text-align:center; border: 2px solid ${cardColor}; border-radius: 8px; background: rgba(0,0,0,0.5); box-shadow: 0 0 8px ${cardColor}40;">`;
 		buf += `<div style="margin-bottom: 8px;">${getShopItemIcon(item.icon, 32)}</div>`;
 		buf += `<div style="font-weight:bold; font-size:13px; margin-bottom: 4px; color:${cardColor};">${Utils.escapeHTML(item.name)}</div>`;
@@ -327,7 +327,7 @@ function renderDraftView(state: PokeRogueState): string {
 		buf += `</div>`;
 	}
 	buf += `</div>`;
-	
+
 	buf += `<div style="text-align:center; margin-bottom:20px;">`;
 	buf += renderBtn(canReroll ? '/pokerogue reroll' : null, `Reroll ($${rerollCost})`, `pr-btn ${canReroll ? 'primary' : ''}`, 'padding: 8px 16px; font-size: 13px;', !canReroll);
 	buf += `</div>`;
@@ -390,8 +390,8 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const unlockedCount = Object.keys(userData.starters || {}).length;
 	const search = ((state as any).starterSearch || '').toLowerCase().trim();
 
-	const filtered = search.length > 0
-		? pending.filter(sid => {
+	const filtered = search.length > 0 ?
+		pending.filter(sid => {
 			const sp = Dex.species.get(toID(sid));
 			const saved = userData.starters[toID(sid)];
 
@@ -401,8 +401,8 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 			if (types.includes(search)) return true;
 
 			return sp.name.toLowerCase().includes(search) || toID(sid).includes(search);
-		})
-		: pending;
+		}) :
+		pending;
 
 	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
 	buf += `<div style="text-align:center;font-size:11px;margin:-6px 0 12px">`;
@@ -535,7 +535,7 @@ function renderItemOptions(state: PokeRogueState): string {
 function renderGiveItem(state: PokeRogueState): string {
 	const dexItem = Dex.items.get(state.pendingItemName);
 	const pendingItemId = toID(state.pendingItemName);
-	
+
 	const actionVerb = state.pendingItemIsEvo ? 'Evolve' : 'Give';
 
 	let buf = `<h2 class="pr-choice-heading">${actionVerb} ${Utils.escapeHTML(dexItem.name || state.pendingItemName!)}?</h2>`;
@@ -545,23 +545,23 @@ function renderGiveItem(state: PokeRogueState): string {
 		const mon = state.team[i];
 		const dexSpecies = Dex.species.get(toID(mon.species));
 		const spName = dexSpecies.name;
-		
+
 		let isCompatible = true;
 		let reason = '';
 
 		if (state.pendingItemIsEvo) {
 			isCompatible = false;
 			const evoList = dexSpecies.evos;
-			
+
 			if (evoList) {
 				for (const newEvo of evoList) {
 					const evoData = Dex.species.get(newEvo);
 					const evoItemId = toID(evoData.evoItem);
-					
+
 					const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
 					const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
 					const isPlainTradeEvolution = evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
-					
+
 					if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
 						isCompatible = true;
 						break;
@@ -572,15 +572,15 @@ function renderGiveItem(state: PokeRogueState): string {
 		}
 
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${spName}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` <span style="color:#f87171">(${reason})</span>` : ''}</span>`;
-		
+
 		if (mon.heldItem) flexHtml += `<div style="font-size:9px;color:#8ab4f8">Holds: ${Utils.escapeHTML(Dex.items.get(mon.heldItem).name || mon.heldItem)}</div>`;
-		
+
 		if (state.pendingItemIsEvo && isCompatible) {
 			flexHtml += `<div style="font-size:10px;color:#4caf50;font-weight:bold;margin-top:2px;letter-spacing:0.5px;">ABLE!</div>`;
 		}
-		
+
 		const btnHtml = isCompatible ? renderBtn(`/pokerogue resolve giveitem ${i + 1}`, actionVerb, 'pr-pick-btn') : '';
-		
+
 		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, isCompatible ? '' : 'opacity:.4;filter:grayscale(80%);');
 	}
 
@@ -624,10 +624,10 @@ function renderConsumable(state: PokeRogueState): string {
 			reason = hp <= 0 ? 'fainted' : totalEvs >= 508 ? 'EVs full' : statEv >= 252 ? `${evStat} maxed` : '';
 			break;
 		case 'tm': {
-			const moveId = state.purchasedItem!.includes('_') ? 
-				state.purchasedItem!.substring(state.purchasedItem!.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') : 
+			const moveId = state.purchasedItem!.includes('_') ?
+				state.purchasedItem!.substring(state.purchasedItem!.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') :
 				toID(consumableItem!.name.replace(/^TM\d+\s*/i, ''));
-			
+
 			const moveData = Dex.moves.get(moveId);
 			if (!moveData.exists) { disabled = true; reason = 'invalid TM'; break; }
 			if (hp <= 0) { disabled = true; reason = 'fainted'; break; }
@@ -635,11 +635,11 @@ function renderConsumable(state: PokeRogueState): string {
 
 			let canLearn = false;
 			let spData = Dex.species.get(mon.species);
-			
+
 			while (spData && !canLearn) {
 				const learnsetData = Dex.species.getLearnsetData(spData.id)?.learnset;
-				if (learnsetData && learnsetData[moveData.id]) canLearn = true;
-				
+				if (learnsetData?.[moveData.id]) canLearn = true;
+
 				if (spData.prevo) {
 					spData = Dex.species.get(spData.prevo);
 				} else if (spData.baseSpecies && toID(spData.baseSpecies) !== spData.id) {

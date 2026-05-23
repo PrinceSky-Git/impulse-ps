@@ -188,7 +188,7 @@ export function botLevel(floor: number, config?: ModeConfig): number {
 	return minLevel;
 }
 
-export function getLevelUpEvo(speciesId: string, currentHappiness: number = 70): { evoTo: string, evoLevel: number } | null {
+export function getLevelUpEvo(speciesId: string, currentHappiness = 70): { evoTo: string, evoLevel: number } | null {
 	const species = Dex.species.get(toID(speciesId));
 	if (!species.exists || !species.evos.length) return null;
 	const validEvos: { evoTo: string, evoLevel: number }[] = [];
