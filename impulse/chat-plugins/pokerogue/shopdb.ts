@@ -1,6 +1,10 @@
 import { type ShopItem } from './items';
 import { type PokeRogueState } from './types';
 
+// Official PokéRogue formula for Evolution Item weights:
+// Starts at 1, increases with waves (floor / 15), maxes out at 8.
+const getEvoItemWeight = (state: PokeRogueState) => Math.min(8, Math.max(1, Math.floor(state.floor / 15)));
+
 export const SHOP_DB: Record<string, ShopItem> = {
 	pokeball: {
 		name: "Poke Ball", icon: "Poke Ball", type: "pokeball", category: "Pokéballs",
@@ -185,5 +189,274 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		desc: "Raises the Speed EVs of a Pokémon by 20. Max 252 per stat, 508 total.",
 		moneyMultiplier: 1.0, tier: "Ultra", evStat: "spe", evGain: 20,
 		weight: 4, minWeight: 0, maxWeight: 8,
+	},
+
+	// ==========================================
+	// EVOLUTION ITEMS (Great Tier, dynamically drafted)
+	// ==========================================
+	linkingcord: {
+		name: "Linking Cord", icon: "Linking Cord", type: "evolveItem", category: "Evolution Items",
+		desc: "A string exuding a mysterious energy. Evolves certain Pokémon without trading.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	firestone: {
+		name: "Fire Stone", icon: "Fire Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	waterstone: {
+		name: "Water Stone", icon: "Water Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	thunderstone: {
+		name: "Thunder Stone", icon: "Thunder Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	leafstone: {
+		name: "Leaf Stone", icon: "Leaf Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	moonstone: {
+		name: "Moon Stone", icon: "Moon Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	sunstone: {
+		name: "Sun Stone", icon: "Sun Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	shinystone: {
+		name: "Shiny Stone", icon: "Shiny Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	duskstone: {
+		name: "Dusk Stone", icon: "Dusk Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	dawnstone: {
+		name: "Dawn Stone", icon: "Dawn Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	icestone: {
+		name: "Ice Stone", icon: "Ice Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	metalcoat: {
+		name: "Metal Coat", icon: "Metal Coat", type: "evolveItem", category: "Evolution Items",
+		desc: "A special metallic film. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	kingsrock: {
+		name: "King's Rock", icon: "King's Rock", type: "evolveItem", category: "Evolution Items",
+		desc: "A rock that may make a Pokémon flinch. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	dragonscale: {
+		name: "Dragon Scale", icon: "Dragon Scale", type: "evolveItem", category: "Evolution Items",
+		desc: "A very tough and inflexible scale. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	upgrade: {
+		name: "Up-Grade", icon: "Up-Grade", type: "evolveItem", category: "Evolution Items",
+		desc: "A transparent device filled with all sorts of data. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	dubiousdisc: {
+		name: "Dubious Disc", icon: "Dubious Disc", type: "evolveItem", category: "Evolution Items",
+		desc: "A transparent device overflowing with dubious data. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	protector: {
+		name: "Protector", icon: "Protector", type: "evolveItem", category: "Evolution Items",
+		desc: "A protective item of some sort. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	electirizer: {
+		name: "Electirizer", icon: "Electirizer", type: "evolveItem", category: "Evolution Items",
+		desc: "A box packed with a tremendous amount of electric energy. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	magmarizer: {
+		name: "Magmarizer", icon: "Magmarizer", type: "evolveItem", category: "Evolution Items",
+		desc: "A box packed with a tremendous amount of magma energy. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	reapercloth: {
+		name: "Reaper Cloth", icon: "Reaper Cloth", type: "evolveItem", category: "Evolution Items",
+		desc: "A cloth imbued with horrifying spiritual energy. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	prismscale: {
+		name: "Prism Scale", icon: "Prism Scale", type: "evolveItem", category: "Evolution Items",
+		desc: "A mysterious scale that evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	whippeddream: {
+		name: "Whipped Dream", icon: "Whipped Dream", type: "evolveItem", category: "Evolution Items",
+		desc: "A soft and sweet treat. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	sachet: {
+		name: "Sachet", icon: "Sachet", type: "evolveItem", category: "Evolution Items",
+		desc: "A sachet filled with fragrant perfumes. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	ovalstone: {
+		name: "Oval Stone", icon: "Oval Stone", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar stone that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	razorclaw: {
+		name: "Razor Claw", icon: "Razor Claw", type: "evolveItem", category: "Evolution Items",
+		desc: "A sharply hooked claw. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	razorfang: {
+		name: "Razor Fang", icon: "Razor Fang", type: "evolveItem", category: "Evolution Items",
+		desc: "A sharply hooked fang. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	sweetapple: {
+		name: "Sweet Apple", icon: "Sweet Apple", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar apple that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	tartapple: {
+		name: "Tart Apple", icon: "Tart Apple", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar apple that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	syrupyapple: {
+		name: "Syrupy Apple", icon: "Syrupy Apple", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar apple that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	crackedpot: {
+		name: "Cracked Pot", icon: "Cracked Pot", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar teapot that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	chippedpot: {
+		name: "Chipped Pot", icon: "Chipped Pot", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar teapot that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	unremarkableteacup: {
+		name: "Unremarkable Teacup", icon: "Unremarkable Teacup", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar teacup that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	masterpieceteacup: {
+		name: "Masterpiece Teacup", icon: "Masterpiece Teacup", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar teacup that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	auspiciousarmor: {
+		name: "Auspicious Armor", icon: "Auspicious Armor", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar armor that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	maliciousarmor: {
+		name: "Malicious Armor", icon: "Malicious Armor", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar armor that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	peatblock: {
+		name: "Peat Block", icon: "Peat Block", type: "evolveItem", category: "Evolution Items",
+		desc: "A block of muddy material. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	blackaugurite: {
+		name: "Black Augurite", icon: "Black Augurite", type: "evolveItem", category: "Evolution Items",
+		desc: "A glossy black stone. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	scrollofdarkness: {
+		name: "Scroll of Darkness", icon: "Scroll of Darkness", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar scroll that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	scrollofwaters: {
+		name: "Scroll of Waters", icon: "Scroll of Waters", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar scroll that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	galaricacuff: {
+		name: "Galarica Cuff", icon: "Galarica Cuff", type: "evolveItem", category: "Evolution Items",
+		desc: "A cuff made from woven Galarica Twigs. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	galaricawreath: {
+		name: "Galarica Wreath", icon: "Galarica Wreath", type: "evolveItem", category: "Evolution Items",
+		desc: "A wreath made from woven Galarica Twigs. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	leaderscrest: {
+		name: "Leader's Crest", icon: "Leader's Crest", type: "evolveItem", category: "Evolution Items",
+		desc: "A shard of what appears to be an old crest. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	gimmighoulcoin: {
+		name: "Gimmighoul Coin", icon: "Gimmighoul Coin", type: "evolveItem", category: "Evolution Items",
+		desc: "A coin left behind by a Gimmighoul. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	metalalloy: {
+		name: "Metal Alloy", icon: "Metal Alloy", type: "evolveItem", category: "Evolution Items",
+		desc: "A peculiar metal that can make certain species of Pokémon evolve.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	deepseascale: {
+		name: "Deep Sea Scale", icon: "Deep Sea Scale", type: "evolveItem", category: "Evolution Items",
+		desc: "A scale that shines a pale pink. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	deepseatooth: {
+		name: "Deep Sea Tooth", icon: "Deep Sea Tooth", type: "evolveItem", category: "Evolution Items",
+		desc: "A fang that gleams a sharp silver. Evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	strawberrysweet: {
+		name: "Strawberry Sweet", icon: "Strawberry Sweet", type: "evolveItem", category: "Evolution Items",
+		desc: "A sweet that evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	lovesweet: {
+		name: "Love Sweet", icon: "Love Sweet", type: "evolveItem", category: "Evolution Items",
+		desc: "A sweet that evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	berrysweet: {
+		name: "Berry Sweet", icon: "Berry Sweet", type: "evolveItem", category: "Evolution Items",
+		desc: "A sweet that evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	cloversweet: {
+		name: "Clover Sweet", icon: "Clover Sweet", type: "evolveItem", category: "Evolution Items",
+		desc: "A sweet that evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	flowersweet: {
+		name: "Flower Sweet", icon: "Flower Sweet", type: "evolveItem", category: "Evolution Items",
+		desc: "A sweet that evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	starsweet: {
+		name: "Star Sweet", icon: "Star Sweet", type: "evolveItem", category: "Evolution Items",
+		desc: "A sweet that evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
+	},
+	ribbonsweet: {
+		name: "Ribbon Sweet", icon: "Ribbon Sweet", type: "evolveItem", category: "Evolution Items",
+		desc: "A sweet that evolves certain Pokémon.",
+		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
 	}
 };
