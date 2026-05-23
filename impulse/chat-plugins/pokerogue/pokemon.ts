@@ -93,10 +93,6 @@ export function getExpType(speciesId: string): string {
 	return 'Medium Fast';
 }
 
-export function getEvYield(_speciesId: string): { hp: number, atk: number, def: number, spa: number, spd: number, spe: number } {
-	return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-}
-
 function getMediumFastExp(level: number): number {
 	if (level <= 100) return expLevels[2][level - 1];
 	return Math.floor(level ** 3);
