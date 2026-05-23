@@ -667,8 +667,6 @@ function renderConsumable(state: PokeRogueState): string {
 		}
 		case 'mint': {
 			if (hp <= 0) { disabled = true; reason = 'fainted'; break; }
-			const natureName = consumableItem!.name.replace(' Mint', '');
-			if (mon.nature === natureName) { disabled = true; reason = 'already has nature'; break; }
 			break;
 		}
 		}
