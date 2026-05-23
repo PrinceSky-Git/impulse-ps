@@ -1,8 +1,6 @@
 import { SHOP_DB } from './shopdb';
 import { type PokemonEntry, type PokeRogueState, type ModeConfig } from './types';
 
-const ROGUELIKE_DATA_PATH = 'impulse/chat-plugins/pokerogue';
-
 export type ItemType =
 	| 'pokeball' |
 	'healHP' |
@@ -30,6 +28,8 @@ export interface ShopItem {
 	weight?: number;
 	minWeight?: number;
 	maxWeight?: number;
+	weightFunc?: (state: PokeRogueState) => number;
+	evGain?: number;
 
 	isShopItem?: boolean;
 	minFloor?: number;
@@ -111,9 +111,6 @@ export function getTierWeight(tier: ItemRarityTier, state: PokeRogueState): numb
 	const config = TIER_WEIGHTS[tier];
 	let w = config.weight;
 
-	// In the future, dynamic adjustments (e.g. luck scaling directly affecting base tier weights) 
-	// can be placed here before the min/max clamps are applied.
-
 	if (config.minWeight !== undefined && w < config.minWeight) w = config.minWeight;
 	if (config.maxWeight !== undefined && w > config.maxWeight) w = config.maxWeight;
 
@@ -123,8 +120,9 @@ export function getTierWeight(tier: ItemRarityTier, state: PokeRogueState): numb
 export function getItemWeight(item: ShopItem, state: PokeRogueState): number {
 	let w = item.weight ?? 1;
 
-	// Some PokeRogue items scale based on game state (e.g. Memory Mushroom scales with Highest Lv. Party Member, 
-	// evolution items scale with waves). This is where that scaling logic runs before clamping.
+	if (item.weightFunc) {
+		w = item.weightFunc(state);
+	}
 
 	if (item.minWeight !== undefined && w < item.minWeight) w = item.minWeight;
 	if (item.maxWeight !== undefined && w > item.maxWeight) w = item.maxWeight;
@@ -285,7 +283,6 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 	return draft;
 }
 
-// Economy Functions
 export function getWaveSet(wave: number): number {
 	return Math.ceil(wave / 10) - 1;
 }
