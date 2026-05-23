@@ -11,7 +11,7 @@ export type ItemType =
 	'item' |
 	'evolveItem' |
 	'vitamin' |
-	'tm';
+	'tm' | 'mint';
 
 export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
