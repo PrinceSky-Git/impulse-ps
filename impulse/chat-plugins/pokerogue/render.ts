@@ -665,6 +665,12 @@ function renderConsumable(state: PokeRogueState): string {
 			if (!canLearn) { disabled = true; reason = 'incompatible'; }
 			break;
 		}
+		case 'mint': {
+			if (hp <= 0) { disabled = true; reason = 'fainted'; break; }
+			const natureName = consumableItem!.name.replace(' Mint', '');
+			if (mon.nature === natureName) { disabled = true; reason = 'already has nature'; break; }
+			break;
+		}
 		}
 
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${Dex.species.get(toID(mon.species)).name}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` (${reason})` : ''}</span>`;
@@ -678,7 +684,7 @@ function renderConsumable(state: PokeRogueState): string {
 			flexHtml += `<div style="font-size:9px;">${statLabel[evStat] ?? evStat} EVs: ${(mon.evs as any)[evStat] ?? 0}/252 &nbsp;·&nbsp; Total: ${totalEvs}/508</div>`;
 		}
 
-		if (consumableType === 'tm' && !disabled) {
+		if ((consumableType === 'tm' || consumableType === 'mint') && !disabled) {
 			flexHtml += `<div style="font-size:9px;color:#8ab4f8">Compatible!</div>`;
 		}
 
