@@ -30,6 +30,16 @@ const SPRITE_ID_OVERRIDES: { [id: string]: string } = {
 	ursalunabloodmoon: 'ursaluna',
 };
 
+const MINT_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/mints/';
+const MINT_ICON_MAP: Record<string, string> = {
+	'Atk Mint': 'Lonely-Mint.png',
+	'Def Mint': 'Bold-Mint.png',
+	'SpAtk Mint': 'Modest-Mind.png',
+	'SpDef Mint': 'Calm-Mint.png',
+	'Spe Mint': 'Timid-Mint.png',
+	'Neutral Mint': 'Serious-Mint.png',
+};
+
 interface DialogConfig {
 	title: string;
 	spriteUrl?: string;
@@ -87,8 +97,11 @@ function getSprite(species: string, size = 80, shiny = false, className = 'pr-mo
 }
 
 function getShopItemIcon(icon: string, size = 20): string {
-	const url = `https://www.smogon.com/forums/media/minisprites/${itemURLFormat(icon)}.png`;
-	return `<img src="${Utils.escapeHTML(url)}" width="${size}" height="${size}" class="pr-shop-icon" onerror="this.style.display='none'" />`;
+	const mintFile = MINT_ICON_MAP[icon];
+	const url = mintFile
+		? `${MINT_SPRITE_BASE}${mintFile}`
+		: `https://www.smogon.com/forums/media/minisprites/${itemURLFormat(icon)}.png`;
+	return `<img src="${Utils.escapeHTML(url)}" width="${size}" height="${size}" class="pr-shop-icon">`;
 }
 
 function getPokeballInfo(speciesId: string, ball?: string): { src: string, alt: string } {
