@@ -3,7 +3,7 @@ import { type PokemonEntry, type PokeRogueState, type StatusCondition, type Game
 import { type AIPokemonSet } from './pokemon';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
-import { SHOP_ITEMS, genItem, generateDraftOptions } from './items';
+import { SHOP_ITEMS, genItem, generateDraftOptions, getRewardMoney, getItemPrice, getRerollCost } from './items';
 import {
 	getState, setState, deleteState, saveAllData,
 	getUserData, saveUserData, globalStats, saveGlobalStats, setActiveMode,
@@ -11,7 +11,7 @@ import {
 import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon, getRewardMoney, getItemPrice, getRerollCost
+	packTeam, genPokemon
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
