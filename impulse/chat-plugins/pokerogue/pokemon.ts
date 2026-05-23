@@ -504,7 +504,7 @@ function pickBestMoves(speciesId: string, chosenLevel: number, genNumber: number
 	return picked.slice(0, 4).map(m => Dex.moves.get(m).id || toID(m));
 }
 
-function pickBestAbility(species: Species, floor: number, config?: ModeConfig): string {
+function pickBestAbility(species: Species, floor: number, config?: ModeConfig, abilityCharms: number = 0): string {
 	if (config?.randomizeAbilities) {
 		const allAbilities = Dex.abilities.all().filter(a => !a.isNonstandard);
 		return allAbilities[Math.floor(Math.random() * allAbilities.length)].id;
@@ -524,8 +524,12 @@ function pickBestAbility(species: Species, floor: number, config?: ModeConfig): 
 			const chance = floor >= 150 ? 0.12 : floor >= 100 ? 0.06 : 0.02;
 			priority = Math.random() < chance ? 100 : 0;
 		} else if (slot === 'H') {
-			// Changed base chance to 1/128 (previously 0.04)
-			const chance = floor >= 99 ? 0.20 : floor >= 60 ? 0.10 : (1 / 128);
+			let baseChance = 1 / 128;
+			if (abilityCharms > 0) {
+				baseChance *= Math.pow(2, Math.min(abilityCharms, 4));
+			}
+			
+			const chance = floor >= 99 ? Math.max(0.20, baseChance) : floor >= 60 ? Math.max(0.10, baseChance) : baseChance;
 			priority = Math.random() < chance ? 80 : 0;
 		} else if (slot === '1') {
 			priority = Math.random() < 0.5 ? 50 : 0;
@@ -656,7 +660,9 @@ export function genPokemon(
 	forcedSpeciesPool?: (string | TrainerMon)[],
 	currentBiome?: string,
 	config?: ModeConfig,
-	data?: ModeData
+	data?: ModeData,
+	shinyCharms: number = 0,
+	abilityCharms: number = 0
 ): AIPokemonSet[] {
 	let minLevel: number;
 	let maxLevel: number;
@@ -830,11 +836,17 @@ export function genPokemon(
 		const nature = pickNatureForSpecies(finalSpecie, floor);
 
 		const ability = config?.randomizeAbilities ?
-			pickBestAbility(finalSpecie, floor, config) :
-			(forcedAbility ?? pickBestAbility(finalSpecie, floor, config));
+			pickBestAbility(finalSpecie, floor, config, abilityCharms) :
+			(forcedAbility ?? pickBestAbility(finalSpecie, floor, config, abilityCharms));
 
-		// Set explicit 1/1024 shiny chance for wild encounters
-		const shiny = Math.floor(Math.random() * 1024) === 0;
+		let shinyRate = 2048;
+		if (shinyCharms === 1) shinyRate = 256;
+		else if (shinyCharms === 2) shinyRate = 128;
+		else if (shinyCharms === 3) shinyRate = 64;
+		else if (shinyCharms >= 4) shinyRate = 32;
+
+		const shiny = Math.floor(Math.random() * shinyRate) === 0;
+
 		const item = forcedItem ?? pickRandomHeldItem(finalSpecie.name);
 		const teraType = forcedTeraType ?? (Math.floor(Math.random() * 20) === 0 ?
 			allTypes[Math.floor(Math.random() * allTypes.length)] :
