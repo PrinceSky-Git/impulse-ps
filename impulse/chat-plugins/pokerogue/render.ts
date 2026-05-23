@@ -1,4 +1,3 @@
-// render.ts
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
@@ -107,7 +106,7 @@ function getPokeballInfo(speciesId: string, ball?: string): { src: string, alt: 
 	return { src: `${BASE}i4.png`, alt: 'Poké Ball' };
 }
 
-export function getSpriteWithBall(species: string, size = 80, ball?: string, shiny = false): string {
+function getSpriteWithBall(species: string, size = 80, ball?: string, shiny = false): string {
 	const ballInfo = getPokeballInfo(species, ball);
 	return `<div class="pr-sprite-wrap" style="width:${size}px;height:${size}px;flex-shrink:0;margin:0 auto;">` +
 		getSprite(species, size, shiny) +
@@ -115,7 +114,7 @@ export function getSpriteWithBall(species: string, size = 80, ball?: string, shi
 		`</div>`;
 }
 
-export function renderTypeBadge(types: string[], large = false): string {
+function renderTypeBadge(types: string[], large = false): string {
 	return types.map(t => {
 		const color = typeColor(t);
 		const textColor = getContrastColor(color);
