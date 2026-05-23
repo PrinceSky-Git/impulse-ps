@@ -1049,7 +1049,7 @@ export const commands: Chat.ChatCommands = {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).view = 'main';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm'].includes(item.type)) {
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint'].includes(item.type)) {
 				state.purchasedItem = itemKey;
 				state.pendingConsumableType = item.type;
 				(state as any).view = 'main';
@@ -1058,7 +1058,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		reroll(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
@@ -1118,7 +1118,7 @@ export const commands: Chat.ChatCommands = {
 			if (item.type === 'item' || item.type === 'evolveItem') {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm'].includes(item.type)) {
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint'].includes(item.type)) {
 				state.pendingConsumableType = item.type;
 			}
 			(state as any).view = 'main';
@@ -1502,6 +1502,35 @@ export const commands: Chat.ChatCommands = {
 						});
 						state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> is trying to learn <b>${moveData.name}</b>!`;
 					}
+				} else if (item.type === 'mint') {
+					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+					const natureName = item.name.replace(' Mint', '');
+					const nature = Dex.natures.get(natureName);
+					if (!nature.exists) return this.errorReply("Invalid mint.");
+					if (mon.nature === nature.name) return this.errorReply("This Pokémon already has this nature.");
+
+					mon.nature = nature.name;
+					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
+					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s stats changed to match the <b>${nature.name}</b> nature!`;
+					
+					if (state.gameMode === 'classic') {
+						const userData = getUserData(user.id);
+						let baseSpecies = toID(mon.species);
+						while (true) {
+							const sp = Dex.species.get(baseSpecies);
+							const prevo = sp.prevo;
+							if (!prevo) break;
+							baseSpecies = toID(prevo);
+						}
+						const starterData = userData.starters[baseSpecies];
+						if (starterData) {
+							if (!starterData.unlockedNatures) starterData.unlockedNatures = [starterData.nature!];
+							if (!starterData.unlockedNatures.includes(nature.name)) {
+								starterData.unlockedNatures.push(nature.name);
+								saveUserData(user.id);
+							}
+						}
+					}
 				}
 
 				delete state.purchasedItem;
@@ -1523,7 +1552,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		prebattle(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			const state = getState(user.id);
