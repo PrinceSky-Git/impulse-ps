@@ -974,25 +974,3 @@ export function packTeam(mons: PokemonEntry[]): string {
 export function packAITeam(sets: AIPokemonSet[]): string {
 	return sets.map(s => packAIPokemon(s)).join(']');
 }
-
-export function getWaveSet(wave: number): number {
-	return Math.ceil(wave / 10) - 1;
-}
-
-export function getBaseMoneyReward(wave: number): number {
-	const waveSet = getWaveSet(wave);
-	return Math.pow(10 * wave + 175, 1 + 0.005 * waveSet);
-}
-
-export function getRewardMoney(wave: number, multiplier: number): number {
-	return Math.floor((getBaseMoneyReward(wave) * multiplier) / 10) * 10;
-}
-
-export function getItemPrice(wave: number, multiplier: number): number {
-	return Math.floor(getBaseMoneyReward(wave) / 10) * 10 * multiplier;
-}
-
-export function getRerollCost(wave: number, rerollCount: number): number {
-	const base = 250 * Math.ceil(Math.max(1, wave) / 10);
-	return base * Math.pow(2, rerollCount);
-}
