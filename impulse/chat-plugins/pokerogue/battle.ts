@@ -90,7 +90,7 @@ function getLastUsedTurn(roomid: string, slot: number, moveId: string): number {
 	return recentMoveHistory.get(roomid)?.get(slot)?.get(moveId) ?? -99;
 }
 
-export function clearMoveHistory(roomid: string): void {
+function clearMoveHistory(roomid: string): void {
 	recentMoveHistory.delete(roomid);
 }
 
