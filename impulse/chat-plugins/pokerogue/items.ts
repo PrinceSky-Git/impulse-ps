@@ -137,7 +137,6 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 	const draftCount = Math.min(maxCount, baseCount + extraOptions);
 	const pickedKeys = new Set<string>();
 	
-	// Track how many TMs have been rolled in this draft
 	let tmsInDraft = 0;
 
 	for (let i = 0; i < draftCount; i++) {
@@ -171,7 +170,6 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 			}
 			
 			if (item.type === 'tm') {
-				// Prevent more than 1 TM from appearing in the draft choices
 				if (tmsInDraft >= 1) return false;
 
 				let anyoneCanLearn = false;
@@ -228,4 +226,27 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		}
 	}
 	return draft;
+}
+
+// Economy Functions
+export function getWaveSet(wave: number): number {
+	return Math.ceil(wave / 10) - 1;
+}
+
+export function getBaseMoneyReward(wave: number): number {
+	const waveSet = getWaveSet(wave);
+	return Math.pow(10 * wave + 175, 1 + 0.005 * waveSet);
+}
+
+export function getRewardMoney(wave: number, multiplier: number): number {
+	return Math.floor((getBaseMoneyReward(wave) * multiplier) / 10) * 10;
+}
+
+export function getItemPrice(wave: number, multiplier: number): number {
+	return Math.floor(getBaseMoneyReward(wave) / 10) * 10 * multiplier;
+}
+
+export function getRerollCost(wave: number, rerollCount: number): number {
+	const base = 250 * Math.ceil(Math.max(1, wave) / 10);
+	return base * Math.pow(2, rerollCount);
 }
