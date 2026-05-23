@@ -1,7 +1,3 @@
-export const LEGENDARY_TAGS = new Set<string>([
-	'Sub-Legendary', 'Restricted Legendary', 'Mythical', 'Ultra Beast', 'Paradox',
-]);
-
 export type StatusCondition = 'brn' | 'psn' | 'tox' | 'par' | 'slp' | 'frz';
 
 export type GameMode = 'classic' | 'random';
