@@ -536,10 +536,10 @@ function renderGiveItem(state: PokeRogueState): string {
 	const dexItem = Dex.items.get(state.pendingItemName);
 	const pendingItemId = toID(state.pendingItemName);
 	
-	const actionVerb = state.pendingItemIsEvo ? 'Use' : 'Give';
+	const actionVerb = state.pendingItemIsEvo ? 'Evolve' : 'Give';
 
 	let buf = `<h2 class="pr-choice-heading">${actionVerb} ${Utils.escapeHTML(dexItem.name || state.pendingItemName!)}?</h2>`;
-	buf += `<div style="font-size:12px;color:#aaa;margin-bottom:8px">Choose a Pokémon to ${actionVerb.toLowerCase()} it to:</div><div class="pr-choice-grid">`;
+	buf += `<div style="font-size:12px;color:#aaa;margin-bottom:8px">Choose a Pokémon:</div><div class="pr-choice-grid">`;
 
 	for (let i = 0; i < state.team.length; i++) {
 		const mon = state.team[i];
@@ -572,11 +572,16 @@ function renderGiveItem(state: PokeRogueState): string {
 		}
 
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${spName}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` <span style="color:#f87171">(${reason})</span>` : ''}</span>`;
+		
 		if (mon.heldItem) flexHtml += `<div style="font-size:9px;color:#8ab4f8">Holds: ${Utils.escapeHTML(Dex.items.get(mon.heldItem).name || mon.heldItem)}</div>`;
+		
+		if (state.pendingItemIsEvo && isCompatible) {
+			flexHtml += `<div style="font-size:10px;color:#4caf50;font-weight:bold;margin-top:2px;letter-spacing:0.5px;">ABLE!</div>`;
+		}
 		
 		const btnHtml = isCompatible ? renderBtn(`/pokerogue resolve giveitem ${i + 1}`, actionVerb, 'pr-pick-btn') : '';
 		
-		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, isCompatible ? '' : 'opacity:.45');
+		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, isCompatible ? '' : 'opacity:.4;filter:grayscale(80%);');
 	}
 
 	buf += renderBtn('/pokerogue resolve giveitem skip', 'Cancel <small style="color:#888">(refund)</small>', 'pr-btn', 'width:100%;padding:8px;margin-top:2px') + `</div>`;
