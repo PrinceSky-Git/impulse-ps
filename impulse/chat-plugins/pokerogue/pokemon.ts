@@ -890,7 +890,9 @@ export function genAIPokemon(
 	trainerKey?: string,
 	currentBiome?: string,
 	config?: ModeConfig,
-	data?: ModeData
+	data?: ModeData,
+	shinyCharms = 0,
+	abilityCharms = 0
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
 	const scale = getLevelScaling(floor, config);
 	const bossInterval = config?.bossInterval || 10;
@@ -931,7 +933,7 @@ export function genAIPokemon(
 		}
 	}
 
-	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data);
+	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data, shinyCharms, abilityCharms);
 
 	mons.sort((a, b) => a.level - b.level);
 	return { team: mons, isTrainer: isTrainerBattle, trainerName };
