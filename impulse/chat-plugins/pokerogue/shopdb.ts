@@ -157,6 +157,20 @@ export const SHOP_DB: Record<string, ShopItem> = {
 			return (state.keyItems?.['Exp. Charm'] || 0) >= 99 ? 0 : 8;
 		},
 	},
+	shinycharm: {
+		name: "Shiny Charm", icon: "Shiny Charm", type: "key", category: "Key Items",
+		desc: "Greatly increases the chance of finding Shiny Pokémon. (Max 4)",
+		moneyMultiplier: 0, tier: "Master",
+		maxStack: 4,
+		weight: 2, minWeight: 2, maxWeight: 2,
+	},
+	abilitycharm: {
+		name: "Ability Charm", icon: "Ability Charm", type: "key", category: "Key Items",
+		desc: "Increases the chance of wild Pokémon having their Hidden Ability. (Max 4)",
+		moneyMultiplier: 0, tier: "Rogue",
+		maxStack: 4,
+		weight: 4, minWeight: 4, maxWeight: 4,
+	},
 	hpup: {
 		name: "HP Up", icon: "HP Up", type: "vitamin", category: "Vitamins",
 		desc: "Raises the HP EVs of a Pokémon by 20. Max 252 per stat, 508 total.",
