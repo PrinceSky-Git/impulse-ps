@@ -5,8 +5,7 @@ import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem, generateDraftOptions, getRewardMoney, getItemPrice, getRerollCost } from './items';
 import {
-	getState, setState, deleteState, saveAllData,
-	getUserData, saveUserData, globalStats, saveGlobalStats, setActiveMode,
+	getState, setState, getUserData, saveUserData, globalStats, saveGlobalStats
 } from './state';
 import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
