@@ -301,6 +301,14 @@ function renderDraftView(state: PokeRogueState): string {
 	const rerollCost = getRerollCost(state.floor, state.rerollCount || 0);
 	const canReroll = currentMoney >= rerollCost;
 
+	const tierColors: Record<string, string> = {
+		'Common': '#b0b0b0',
+		'Great': '#3b82f6', // Blue
+		'Ultra': '#eab308', // Yellow
+		'Rogue': '#ef4444', // Red
+		'Master': '#a855f7' // Purple
+	};
+
 	let buf = `<div style="text-align:center; padding: 10px;">`;
 	buf += `<h2 style="color:#fac000; margin-bottom: 4px;">Wave Cleared!</h2>`;
 	buf += `<div style="font-size:14px; font-weight:bold; margin-bottom: 16px;">Current Money: <span style="color:#4caf50">$${currentMoney}</span></div>`;
@@ -309,10 +317,11 @@ function renderDraftView(state: PokeRogueState): string {
 	for (let i = 0; i < (state.pendingRewardDraft?.length || 0); i++) {
 		const itemKey = state.pendingRewardDraft![i];
 		const item = SHOP_ITEMS[itemKey];
+		const cardColor = tierColors[item.tier] || '#444';
 		
-		buf += `<div class="pr-card" style="width: 150px; padding: 12px; text-align:center; border: 1px solid #444; border-radius: 8px; background: rgba(0,0,0,0.3);">`;
+		buf += `<div class="pr-card" style="width: 150px; padding: 12px; text-align:center; border: 2px solid ${cardColor}; border-radius: 8px; background: rgba(0,0,0,0.5); box-shadow: 0 0 8px ${cardColor}40;">`;
 		buf += `<div style="margin-bottom: 8px;">${getShopItemIcon(item.icon, 32)}</div>`;
-		buf += `<div style="font-weight:bold; font-size:13px; margin-bottom: 4px;">${Utils.escapeHTML(item.name)}</div>`;
+		buf += `<div style="font-weight:bold; font-size:13px; margin-bottom: 4px; color:${cardColor};">${Utils.escapeHTML(item.name)}</div>`;
 		buf += `<div style="font-size:10px; color:#aaa; height: 40px; overflow: hidden; margin-bottom: 8px;">${Utils.escapeHTML(item.desc)}</div>`;
 		buf += renderBtn(`/pokerogue draft ${i + 1}`, 'Take', 'pr-pick-btn', 'width:100%');
 		buf += `</div>`;
