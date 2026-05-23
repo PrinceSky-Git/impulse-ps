@@ -192,8 +192,11 @@ function applyExpShare(
 	baseShareExpMap: Map<number, number>,
 	state: PokeRogueState,
 ): Map<number, number> {
-	const expAllStacks = Math.min(5, (state.keyItems?.[EXP_SHARE_NAME] || 0));
-	const expCharmStacks = state.keyItems?.['Exp. Charm'] || 0;
+	const maxExpAllStacks = SHOP_ITEMS['expall']?.maxStack ?? 5;
+	const maxExpCharmStacks = SHOP_ITEMS['expcharm']?.maxStack ?? 99;
+
+	const expAllStacks = Math.min(maxExpAllStacks, (state.keyItems?.[EXP_SHARE_NAME] || 0));
+	const expCharmStacks = Math.min(maxExpCharmStacks, (state.keyItems?.['Exp. Charm'] || 0));
 	const charmMult = expCharmStacks > 0 ? (1 + 0.25 * expCharmStacks) : 1;
 
 	const result = new Map<number, number>();
@@ -414,11 +417,11 @@ function processFloorRewards(
 					state.keyItems = state.keyItems ?? {};
 					let added = 0;
 					const currentAmount = state.keyItems[reward.itemName] || 0;
+					const shopItemDef = Object.values(SHOP_ITEMS).find(item => item.name === reward.itemName);
+					const maxStack = shopItemDef?.maxStack ?? 1;
 
 					for (let i = 0; i < reward.amount; i++) {
-						if (reward.itemName === 'Exp. All' && (currentAmount + added) >= 5) continue;
-						if (reward.itemName === 'Exp. Charm' && (currentAmount + added) >= 99) continue;
-						if (reward.itemName !== 'Exp. All' && reward.itemName !== 'Exp. Charm' && (currentAmount + added) >= 1) continue;
+						if ((currentAmount + added) >= maxStack) continue;
 						added++;
 					}
 
@@ -429,8 +432,20 @@ function processFloorRewards(
 				} else if (reward.itemType === 'inventory') {
 					const ballType = reward.itemName.replace(' ', '').toLowerCase();
 					state.inventory = state.inventory || {};
-					state.inventory[ballType] = (state.inventory[ballType] || 0) + reward.amount;
-					extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received ${reward.amount}x ${reward.itemName} for clearing Floor ${clearedFloor}!</b></div>`);
+					const shopItemDef = SHOP_ITEMS[ballType];
+					const maxStack = shopItemDef?.maxStack ?? 99;
+					let added = 0;
+					const currentAmount = state.inventory[ballType] || 0;
+					
+					for (let i = 0; i < reward.amount; i++) {
+						if ((currentAmount + added) >= maxStack) continue;
+						added++;
+					}
+					
+					if (added > 0) {
+						state.inventory[ballType] = currentAmount + added;
+						extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received ${added}x ${reward.itemName} for clearing Floor ${clearedFloor}!</b></div>`);
+					}
 				}
 			}
 		}
@@ -1013,22 +1028,35 @@ export const commands: Chat.ChatCommands = {
 			const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
 			const item = activeShop[itemKey];
 
-			delete state.pendingRewardDraft;
-			delete state.rerollCount;
-
 			if (item.type === 'pokeball') {
 				state.inventory = state.inventory || {};
-				state.inventory[itemKey] = (state.inventory[itemKey] || 0) + 1;
-				state.notification = `You took 1x <b>${item.name}</b>!`;
+				const maxStack = item.maxStack ?? 99;
+				if ((state.inventory[itemKey] || 0) < maxStack) {
+					state.inventory[itemKey] = (state.inventory[itemKey] || 0) + 1;
+					state.notification = `You took 1x <b>${item.name}</b>!`;
+				} else {
+					return this.errorReply(`You can't hold any more ${item.name}s!`);
+				}
+				delete state.pendingRewardDraft;
+				delete state.rerollCount;
 				state.floor++;
 				(state as any).view = 'main';
 			} else if (item.type === 'key') {
 				state.keyItems = state.keyItems || {};
-				state.keyItems[item.name] = (state.keyItems[item.name] || 0) + 1;
-				state.notification = `Obtained Key Item: <b>${item.name}</b>!`;
+				const maxStack = item.maxStack ?? 1;
+				if ((state.keyItems[item.name] || 0) < maxStack) {
+					state.keyItems[item.name] = (state.keyItems[item.name] || 0) + 1;
+					state.notification = `Obtained Key Item: <b>${item.name}</b>!`;
+				} else {
+					return this.errorReply(`You can't hold any more ${item.name}s!`);
+				}
+				delete state.pendingRewardDraft;
+				delete state.rerollCount;
 				state.floor++;
 				(state as any).view = 'main';
 			} else if (item.type === 'itemPack') {
+				delete state.pendingRewardDraft;
+				delete state.rerollCount;
 				if (itemKey === 'nugget') {
 					state.money = (state.money || 0) + 5000;
 					state.notification = `You sold the Nugget for $5000!`;
@@ -1045,11 +1073,15 @@ export const commands: Chat.ChatCommands = {
 					(state as any).view = 'main';
 				}
 			} else if (item.type === 'item' || item.type === 'evolveItem') {
+				delete state.pendingRewardDraft;
+				delete state.rerollCount;
 				state.purchasedItem = itemKey;
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).view = 'main';
 			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint'].includes(item.type)) {
+				delete state.pendingRewardDraft;
+				delete state.rerollCount;
 				state.purchasedItem = itemKey;
 				state.pendingConsumableType = item.type;
 				(state as any).view = 'main';
