@@ -41,6 +41,7 @@ export interface ShopItem {
 	reviveAmount?: number;
 	isMax?: boolean;
 	evStat?: string;
+	maxStack?: number;
 }
 
 export interface TierConfig {
@@ -199,6 +200,16 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 			if (pickedKeys.has(key)) return false;
 			if (item.tier !== targetTier) return false;
+
+			if (item.type === 'key') {
+				const currentAmount = state.keyItems?.[item.name] || 0;
+				if (currentAmount >= (item.maxStack ?? 1)) return false;
+			}
+
+			if (item.type === 'pokeball') {
+				const currentAmount = state.inventory?.[key] || 0;
+				if (currentAmount >= (item.maxStack ?? 99)) return false;
+			}
 
 			if (item.type === 'healHP' && !needsHeal) return false;
 			if (item.type === 'revive' && !needsRevive) return false;
