@@ -797,12 +797,6 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
-		dismissnotif(target, room, user) {
-			const s = getState(user.id);
-			if (s?.notification) { delete s.notification; setState(user.id, s); }
-			refreshGamePage(user);
-		},
-
 		cyclestarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state || !state.isConfiguringStarter) return;
@@ -1371,6 +1365,7 @@ export const commands: Chat.ChatCommands = {
 						for (const newEvo of evoList) {
 							const evoData = Dex.species.get(newEvo);
 							const evoItemId = toID(evoData.evoItem);
+							
 							const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
 							const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
 							const isPlainTradeEvolution =
@@ -1993,7 +1988,15 @@ export const pages: Chat.PageTable = {
 		if (!state) return `<div class="pr-popup"><div class="pr-popup-header"><h2>PokéRogue</h2></div><div style="text-align:center;padding:16px"><button name="send" value="/pokerogue start" class="button">Start New Run</button></div></div>`;
 		const v = (state as any).view || 'main';
 		this.title = `PokéRogue - ${v.toUpperCase()}`;
-		return renderGamePage(state, user);
+		
+		const html = renderGamePage(state, user);
+
+		if (state.notification) {
+			delete state.notification;
+			setState(user.id, state);
+		}
+
+		return html;
 	},
 };
 

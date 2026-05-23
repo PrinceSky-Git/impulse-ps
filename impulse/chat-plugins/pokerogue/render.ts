@@ -1,3 +1,4 @@
+// render.ts
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
@@ -171,7 +172,7 @@ function renderNotification(state: PokeRogueState): string {
 	if (!state.notification) return '';
 	return `<div class="pr-notification">` +
 		`<div class="pr-notif-text">${state.notification}</div>` +
-		renderBtn('/pokerogue dismissnotif', '✕', 'pr-notification-dismiss') + `</div>`;
+		`</div>`;
 }
 
 function renderStatBar(state: PokeRogueState, cols2 = false): string {
