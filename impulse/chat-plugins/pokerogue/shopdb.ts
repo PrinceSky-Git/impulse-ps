@@ -1,8 +1,6 @@
 import { type ShopItem } from './items';
 import { type PokeRogueState } from './types';
 
-// Official PokéRogue formula for Evolution Item weights:
-// Starts at 1, increases with waves (floor / 15), maxes out at 8.
 const getEvoItemWeight = (state: PokeRogueState) => Math.min(8, Math.max(1, Math.floor(state.floor / 15)));
 
 export const SHOP_DB: Record<string, ShopItem> = {
@@ -10,9 +8,9 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Poke Ball", icon: "Poke Ball", type: "pokeball", category: "Pokéballs",
 		desc: "A standard ball for catching wild Pokemon.",
 		moneyMultiplier: 0.2, tier: "Common",
+		maxStack: 99,
 		weight: 40, minWeight: 5, maxWeight: 40,
 		weightFunc: (state: PokeRogueState) => {
-			// Weight drops slowly as your run gets deeper
 			return Math.max(5, 40 - Math.floor(state.floor / 10));
 		},
 	},
@@ -20,6 +18,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Great Ball", icon: "Great Ball", type: "pokeball", category: "Pokéballs",
 		desc: "A good ball with a higher catch rate.",
 		moneyMultiplier: 0.6, tier: "Great",
+		maxStack: 99,
 		weight: 30, minWeight: 5, maxWeight: 30,
 		weightFunc: (state: PokeRogueState) => {
 			return Math.max(5, 30 - Math.floor(state.floor / 15));
@@ -29,12 +28,14 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Ultra Ball", icon: "Ultra Ball", type: "pokeball", category: "Pokéballs",
 		desc: "An excellent ball with a very high catch rate.",
 		moneyMultiplier: 1.5, tier: "Ultra",
+		maxStack: 99,
 		weight: 20, minWeight: 5, maxWeight: 20,
 	},
 	masterball: {
 		name: "Master Ball", icon: "Master Ball", type: "pokeball", category: "Pokéballs",
 		desc: "Catches any wild Pokemon without fail.",
 		moneyMultiplier: 10.0, tier: "Master",
+		maxStack: 99,
 		weight: 1, minWeight: 1, maxWeight: 1,
 	},
 	potion: {
@@ -140,6 +141,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Exp. All", icon: "Exp Share", type: "key", category: "Key Items",
 		desc: "Gives 20% Exp. to all non-fainted Pokemon not in the battle. Stacks up to 5 times.",
 		moneyMultiplier: 2.0, tier: "Rogue",
+		maxStack: 5,
 		weight: 4, minWeight: 0, maxWeight: 4,
 		weightFunc: (state: PokeRogueState) => {
 			return (state.keyItems?.['Exp. All'] || 0) >= 5 ? 0 : 4;
@@ -149,6 +151,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Exp. Charm", icon: "Exp. Share", type: "key", category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 25%. Stacks up to 99 times.",
 		moneyMultiplier: 1.5, tier: "Ultra",
+		maxStack: 99,
 		weight: 8, minWeight: 0, maxWeight: 8,
 		weightFunc: (state: PokeRogueState) => {
 			return (state.keyItems?.['Exp. Charm'] || 0) >= 99 ? 0 : 8;
@@ -191,9 +194,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weight: 4, minWeight: 0, maxWeight: 8,
 	},
 
-	// ==========================================
-	// EVOLUTION ITEMS (Great Tier, dynamically drafted)
-	// ==========================================
 	linkingcord: {
 		name: "Linking Cord", icon: "Linking Cord", type: "evolveItem", category: "Evolution Items",
 		desc: "A string exuding a mysterious energy. Evolves certain Pokémon without trading.",
