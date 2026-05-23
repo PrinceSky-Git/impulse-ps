@@ -26,7 +26,10 @@ export interface ShopItem {
 
 	moneyMultiplier: number;
 	tier: ItemRarityTier;
+	
 	weight?: number;
+	minWeight?: number;
+	maxWeight?: number;
 
 	isShopItem?: boolean;
 	minFloor?: number;
@@ -38,6 +41,20 @@ export interface ShopItem {
 	isMax?: boolean;
 	evStat?: string;
 }
+
+export interface TierConfig {
+	weight: number;
+	minWeight?: number;
+	maxWeight?: number;
+}
+
+export const TIER_WEIGHTS: Record<ItemRarityTier, TierConfig> = {
+	'Common': { weight: 7500 },
+	'Great': { weight: 1904 },
+	'Ultra': { weight: 469 },
+	'Rogue': { weight: 117 },
+	'Master': { weight: 10 },
+};
 
 export const SHOP_ITEMS: Record<string, ShopItem> = SHOP_DB;
 
@@ -90,9 +107,34 @@ export function calculatePartyLuck(team: PokemonEntry[]): number {
 	return luck;
 }
 
-export function rollRarity(luck: number): ItemRarityTier {
+export function getTierWeight(tier: ItemRarityTier, state: PokeRogueState): number {
+	const config = TIER_WEIGHTS[tier];
+	let w = config.weight;
+
+	// In the future, dynamic adjustments (e.g. luck scaling directly affecting base tier weights) 
+	// can be placed here before the min/max clamps are applied.
+
+	if (config.minWeight !== undefined && w < config.minWeight) w = config.minWeight;
+	if (config.maxWeight !== undefined && w > config.maxWeight) w = config.maxWeight;
+
+	return w;
+}
+
+export function getItemWeight(item: ShopItem, state: PokeRogueState): number {
+	let w = item.weight ?? 1;
+
+	// Some PokeRogue items scale based on game state (e.g. Memory Mushroom scales with Highest Lv. Party Member, 
+	// evolution items scale with waves). This is where that scaling logic runs before clamping.
+
+	if (item.minWeight !== undefined && w < item.minWeight) w = item.minWeight;
+	if (item.maxWeight !== undefined && w > item.maxWeight) w = item.maxWeight;
+
+	return w;
+}
+
+export function rollRarity(luck: number, state: PokeRogueState): ItemRarityTier {
 	const tiers: ItemRarityTier[] = ['Common', 'Great', 'Ultra', 'Rogue', 'Master'];
-	const weights = [7500, 1904, 469, 117, 10];
+	const weights = tiers.map(t => getTierWeight(t, state));
 	const totalWeight = weights.reduce((acc, val) => acc + val, 0);
 	let roll = Math.random() * totalWeight;
 	let currentTier = 0;
@@ -114,6 +156,19 @@ export function rollRarity(luck: number): ItemRarityTier {
 	}
 
 	return tiers[currentTier];
+}
+
+export function weightedItemPick(items: [string, ShopItem][], state: PokeRogueState): [string, ShopItem] | undefined {
+	if (items.length === 0) return undefined;
+	const totalWeight = items.reduce((sum, [, item]) => sum + getItemWeight(item, state), 0);
+	let roll = Math.random() * totalWeight;
+	
+	for (const itemPair of items) {
+		roll -= getItemWeight(itemPair[1], state);
+		if (roll <= 0) return itemPair;
+	}
+	
+	return items[items.length - 1];
 }
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
@@ -140,7 +195,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 	let tmsInDraft = 0;
 
 	for (let i = 0; i < draftCount; i++) {
-		const targetTier = rollRarity(luck);
+		const targetTier = rollRarity(luck, state);
 		
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 			if (pickedKeys.has(key)) return false;
@@ -212,17 +267,19 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		
 		if (validItems.length === 0) {
 			const anyUnpicked = Object.entries(SHOP_ITEMS).filter(([key]) => !pickedKeys.has(key));
-			const randomFallback = anyUnpicked[Math.floor(Math.random() * anyUnpicked.length)];
+			const randomFallback = weightedItemPick(anyUnpicked, state);
 			if (randomFallback) {
 				draft.push(randomFallback[0]);
 				pickedKeys.add(randomFallback[0]);
 				if (randomFallback[1].type === 'tm') tmsInDraft++;
 			}
 		} else {
-			const randomValid = validItems[Math.floor(Math.random() * validItems.length)];
-			draft.push(randomValid[0]);
-			pickedKeys.add(randomValid[0]);
-			if (randomValid[1].type === 'tm') tmsInDraft++;
+			const randomValid = weightedItemPick(validItems, state);
+			if (randomValid) {
+				draft.push(randomValid[0]);
+				pickedKeys.add(randomValid[0]);
+				if (randomValid[1].type === 'tm') tmsInDraft++;
+			}
 		}
 	}
 	return draft;
