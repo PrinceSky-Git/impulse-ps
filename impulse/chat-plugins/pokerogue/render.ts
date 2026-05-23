@@ -1,11 +1,11 @@
-// render.ts
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS } from './items';
 import { globalStats, getUserData } from './state';
-import { expForLevel, getLevelUpMoves, getRerollCost, getItemPrice } from './pokemon';
+import { expForLevel, getLevelUpMoves } from './pokemon';
+import { getRerollCost, getItemPrice } from './items';
 
 const PAGE_REFRESH_SECONDS = 20;
 
