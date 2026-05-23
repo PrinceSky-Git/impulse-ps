@@ -1,4 +1,5 @@
 import { SHOP_DB } from './shopdb';
+import { TMS_DB } from './tms-db';
 import { type PokemonEntry, type PokeRogueState, type ModeConfig } from './types';
 
 export type ItemType =
@@ -56,7 +57,7 @@ export const TIER_WEIGHTS: Record<ItemRarityTier, TierConfig> = {
 	'Master': { weight: 10 },
 };
 
-export const SHOP_ITEMS: Record<string, ShopItem> = SHOP_DB;
+export const SHOP_ITEMS: Record<string, ShopItem> = { ...SHOP_DB, ...TMS_DB };
 
 export function genItem(quantity: number, extraArg?: PokemonSet[] | string): string[] {
 	let all = Dex.items.all().filter(s => (s.isGem || s.itemUser || s.zMove) || !s.isNonstandard);
