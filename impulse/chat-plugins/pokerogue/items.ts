@@ -287,13 +287,17 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 
 	const baseCount = config?.economy?.draftChoicesCount ?? 3;
 	const maxCount = config?.economy?.maxDraftChoicesCount ?? Math.max(4, baseCount);
+	const goldenBallStacks = state.keyItems?.['Golden Ball'] || 0;
 
 	let extraOptions = 0;
 	for (let i = 0; i < luck; i++) {
 		if (Math.random() < 0.25) extraOptions++;
 	}
 
-	const draftCount = Math.min(maxCount, baseCount + extraOptions);
+	const effectiveBase = baseCount + goldenBallStacks;
+	const effectiveMax = maxCount + goldenBallStacks;
+	const draftCount = Math.min(effectiveMax, effectiveBase + extraOptions);
+
 	const pickedKeys = new Set<string>();
 
 	let tmsInDraft = 0;
@@ -309,7 +313,6 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		});
 
 		if (validItems.length === 0) {
-			// Fix: Ensure the fallback ignores TMs if we already drafted one
 			const anyUnpicked = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 				if (pickedKeys.has(key)) return false;
 				if (item.type === 'tm' && tmsInDraft >= 1) return false;
