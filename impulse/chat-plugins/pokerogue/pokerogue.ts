@@ -1057,18 +1057,21 @@ export const commands: Chat.ChatCommands = {
 			} else if (item.type === 'itemPack') {
 				delete state.pendingRewardDraft;
 				delete state.rerollCount;
-				if (itemKey === 'nugget') {
-					state.money = (state.money || 0) + 5000;
-					state.notification = `You sold the Nugget for $5000!`;
-					state.floor++;
-					(state as any).view = 'main';
-				} else if (itemKey === 'big_nugget') {
-					state.money = (state.money || 0) + 20000;
-					state.notification = `You sold the Big Nugget for $20,000!`;
-					state.floor++;
-					(state as any).view = 'main';
-				} else if (itemKey === 'starter_token') {
+				
+				if (itemKey === 'starter_token') {
 					state.notification = `You unlocked a new Starter!`;
+					state.floor++;
+					(state as any).view = 'main';
+				} else {
+					const amuletCoinStacks = state.keyItems?.['Amulet Coin'] || 0;
+					let rewardMoney = getRewardMoney(state.floor, item.moneyMultiplier || 1);
+					
+					if (amuletCoinStacks > 0) {
+						rewardMoney = Math.floor(rewardMoney * (1 + 0.20 * amuletCoinStacks));
+					}
+
+					state.money = (state.money || 0) + rewardMoney;
+					state.notification = `You sold the ${item.name} for $${rewardMoney}!`;
 					state.floor++;
 					(state as any).view = 'main';
 				}
@@ -2172,7 +2175,13 @@ export const handlers: Chat.Handlers = {
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
 
 			const rewardMultiplier = isBossFloor ? 1.0 : 0.2;
-			const moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
+			let moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
+			
+			const amuletCoinStacks = state.keyItems?.['Amulet Coin'] || 0;
+			if (amuletCoinStacks > 0) {
+				moneyGained = Math.floor(moneyGained * (1 + 0.20 * amuletCoinStacks));
+			}
+
 			state.money = (state.money ?? 0) + moneyGained;
 			battleLogMsgs.push(`<div style="color:#fac000; font-weight:bold;">Earned $${moneyGained}!</div>`);
 
