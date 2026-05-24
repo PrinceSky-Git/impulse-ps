@@ -227,7 +227,6 @@ for (const [id, name, tier, weight, moneyMult, desc] of HELD_ITEMS_DATA) {
 	generatedHeldItems[id] = {
 		name, icon: name, type: "item", category: "Held Items",
 		desc, moneyMultiplier: moneyMult, tier, weight, minWeight: weight, maxWeight: weight,
-		isShopItem: true, minFloor: 1
 	};
 }
 
