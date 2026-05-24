@@ -778,9 +778,16 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 	if (item.type === 'pokeball') {
 		state.inventory = state.inventory || {};
 		const maxStack = item.maxStack ?? 99;
+		
+		let amountToAdd = 1;
+		if (itemKey === 'pokeball' || itemKey === 'greatball') amountToAdd = 5;
+		else if (itemKey === 'ultraball') amountToAdd = 2;
+		else if (itemKey === 'masterball') amountToAdd = 1;
+
 		if ((state.inventory[itemKey] || 0) < maxStack) {
-			state.inventory[itemKey] = (state.inventory[itemKey] || 0) + 1;
-			state.notification = `You took 1x <b>${item.name}</b>!`;
+			const actualAdded = Math.min(amountToAdd, maxStack - (state.inventory[itemKey] || 0));
+			state.inventory[itemKey] = (state.inventory[itemKey] || 0) + actualAdded;
+			state.notification = `You took ${actualAdded}x <b>${item.name}</b>!`;
 		} else {
 			ctx.errorReply(`You can't hold any more ${item.name}s!`);
 			return false;
