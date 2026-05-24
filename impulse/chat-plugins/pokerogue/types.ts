@@ -28,6 +28,7 @@ export interface TrainerData {
 	chance?: number;
 	spriteUrl?: string;
 	dialog?: string;
+	doubles?: boolean;
 }
 
 export type BiomePool = Partial<Record<RarityTier, BiomeEntry[]>>;
