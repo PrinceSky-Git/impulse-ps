@@ -1,19 +1,22 @@
 import { SHOP_DB } from './shopdb';
 import { TMS_DB } from './tms-db';
 import { type PokemonEntry, type PokeRogueState, type ModeConfig } from './types';
+import { canLearnTM } from './pokemon';
 
 export type ItemType =
-	| 'pokeball' |
-	| 'healHP' |
-	| 'key' |
-	| 'revive' |
-	| 'cureStatus' |
-	| 'itemPack' |
-	| 'item' |
-	| 'evolveItem' |
-	| 'megaStone' |
-	| 'vitamin' |
-	| 'tm' | 'mint' | 'rareCandy';
+	| 'pokeball'
+	| 'healHP'
+	| 'key'
+	| 'revive'
+	| 'cureStatus'
+	| 'itemPack'
+	| 'item'
+	| 'evolveItem'
+	| 'megaStone'
+	| 'vitamin'
+	| 'tm'
+	| 'mint'
+	| 'rareCandy';
 
 export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
@@ -225,7 +228,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 
 					for (const evoTarget of evos) {
 						const evoData = Dex.species.get(evoTarget);
-						if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade')) {
+						if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade' && !evoData.evoItem)) {
 							hasCompatibleTarget = true;
 							break;
 						}
@@ -263,23 +266,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 					for (const mon of state.team) {
 						if (mon.moves.includes(moveData.id)) continue;
 
-						let canLearn = false;
-						let spData = Dex.species.get(mon.species);
-
-						while (spData && !canLearn) {
-							const learnsetData = Dex.species.getLearnsetData(spData.id)?.learnset;
-							if (learnsetData?.[moveData.id]) canLearn = true;
-
-							if (spData.prevo) {
-								spData = Dex.species.get(spData.prevo);
-							} else if (spData.baseSpecies && toID(spData.baseSpecies) !== spData.id) {
-								spData = Dex.species.get(spData.baseSpecies);
-							} else {
-								break;
-							}
-						}
-
-						if (canLearn) {
+						if (canLearnTM(mon.species, moveData.id)) {
 							anyoneCanLearn = true;
 							break;
 						}
