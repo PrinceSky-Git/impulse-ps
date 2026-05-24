@@ -140,13 +140,13 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	rarecandy: {
 		name: "Rare Candy", icon: "Rare Candy", type: "rareCandy", category: "Level Up",
 		desc: "Increases a Pokémon's level by 1. Bypasses the level cap. Stacks with Candy Jar.",
-		moneyMultiplier: 1.0, tier: "Common", isShopItem: true, minFloor: 1,
+		moneyMultiplier: 1.0, tier: "Common", minFloor: 1,
 		weight: 2, minWeight: 2, maxWeight: 2,
 	},
 	rarercandy: {
 		name: "Rarer Candy", icon: "Rare Candy", type: "itemPack", category: "Level Up",
 		desc: "Increases the entire party's level by 1. Bypasses the level cap. Stacks with Candy Jar.",
-		moneyMultiplier: 3.0, tier: "Ultra", isShopItem: true, minFloor: 1,
+		moneyMultiplier: 3.0, tier: "Ultra", minFloor: 1,
 		weight: 4, minWeight: 4, maxWeight: 4,
 	},
 	candyjar: {
