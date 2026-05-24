@@ -137,6 +137,25 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		moneyMultiplier: 4.0, tier: "Ultra", isShopItem: true, minFloor: 1,
 		weight: 4, minWeight: 0, maxWeight: 8,
 	},
+	rarecandy: {
+		name: "Rare Candy", icon: "Rare Candy", type: "rareCandy", category: "Level Up",
+		desc: "Increases a Pokémon's level by 1. Bypasses the level cap. Stacks with Candy Jar.",
+		moneyMultiplier: 1.0, tier: "Common", isShopItem: true, minFloor: 1,
+		weight: 2, minWeight: 2, maxWeight: 2,
+	},
+	rarercandy: {
+		name: "Rarer Candy", icon: "Rare Candy", type: "itemPack", category: "Level Up",
+		desc: "Increases the entire party's level by 1. Bypasses the level cap. Stacks with Candy Jar.",
+		moneyMultiplier: 3.0, tier: "Ultra", isShopItem: true, minFloor: 1,
+		weight: 4, minWeight: 4, maxWeight: 4,
+	},
+	candyjar: {
+		name: "Candy Jar", icon: "Candy Jar", type: "key", category: "Key Items",
+		desc: "Increases the number of levels added by Rare Candy and Rarer Candy items by 1. Stacks up to 99 times.",
+		moneyMultiplier: 2.0, tier: "Ultra",
+		maxStack: 99,
+		weight: 5, minWeight: 5, maxWeight: 5,
+	},
 	expall: {
 		name: "Exp. All", icon: "Exp Share", type: "key", category: "Key Items",
 		desc: "Gives 20% Exp. to all non-fainted Pokemon not in the battle. Stacks up to 5 times.",
@@ -156,6 +175,13 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state: PokeRogueState) => {
 			return (state.keyItems?.['Exp. Charm'] || 0) >= 99 ? 0 : 8;
 		},
+	},
+	superexpcharm: {
+		name: "Super Exp. Charm", icon: "Exp. Charm", type: "key", category: "Key Items",
+		desc: "Boosts total EXP gained by the entire party by 60%. Stacks up to 30 times.",
+		moneyMultiplier: 2.5, tier: "Rogue",
+		maxStack: 30,
+		weight: 8, minWeight: 8, maxWeight: 8,
 	},
 	shinycharm: {
 		name: "Shiny Charm", icon: "Shiny Charm", type: "key", category: "Key Items",
@@ -225,7 +251,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		moneyMultiplier: 1.0, tier: "Ultra", evStat: "spe", evGain: 20,
 		weight: 4, minWeight: 0, maxWeight: 8,
 	},
-
 	linkingcord: {
 		name: "Linking Cord", icon: "Linking Cord", type: "evolveItem", category: "Evolution Items",
 		desc: "A string exuding a mysterious energy. Evolves certain Pokémon without trading.",
