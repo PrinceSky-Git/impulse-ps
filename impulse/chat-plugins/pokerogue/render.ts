@@ -340,8 +340,10 @@ function renderDraftView(state: PokeRogueState): string {
 	}
 	buf += `</div>`;
 
-	buf += `<div style="text-align:center; margin-bottom:20px;">`;
-	buf += renderBtn(canReroll ? '/pokerogue reroll' : null, `Reroll ($${rerollCost})`, `pr-btn ${canReroll ? 'primary' : ''}`, 'padding: 8px 16px; font-size: 13px;', !canReroll);
+	buf += `<div style="text-align:center; margin-bottom:20px; display:flex; justify-content:center; gap:8px;">`;
+	buf += renderBtn(canReroll ? '/pokerogue reroll' : null, `Reroll ($${rerollCost})`, `pr-btn ${canReroll ? 'primary' : ''}`, 'font-size:11px;padding:5px 10px', !canReroll);
+	buf += `&nbsp;&nbsp;`;
+	buf += renderBtn('/pokerogue draft skip', 'Skip', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	buf += `</div>`;
 
 	buf += `<div class="pr-section-title">Shop</div>`;
