@@ -169,6 +169,7 @@ export interface PokeRogueState {
 	pendingConsumableType?: 'healHP' | 'revive' | 'cureStatus' | 'vitamin' | 'tm' | 'evolveItem' | 'mint' | 'rareCandy';
 	pendingItemName?: string;
 	pendingItemIsEvo?: boolean;
+	pendingItemIsMega?: boolean;
 	isRotationalItem?: boolean;
 	moveToLearn?: string;
 	pokemonForTM?: number;
