@@ -56,6 +56,25 @@ const EVO_TYPE_FALLBACK_LEVEL: Partial<Record<string, number>> = {
 	levelMove: 30, levelExtra: 20, levelHold: 30,
 };
 
+export function canLearnTM(speciesId: string, moveId: string): boolean {
+	let canLearn = false;
+	let spData = Dex.species.get(speciesId);
+
+	while (spData && !canLearn) {
+		const learnsetData = Dex.species.getLearnsetData(spData.id)?.learnset;
+		if (learnsetData?.[moveId]) canLearn = true;
+
+		if (spData.prevo) {
+			spData = Dex.species.get(spData.prevo);
+		} else if (spData.baseSpecies && toID(spData.baseSpecies) !== spData.id) {
+			spData = Dex.species.get(spData.baseSpecies);
+		} else {
+			break;
+		}
+	}
+	return canLearn;
+}
+
 function weightedPick(pool: BiomeEntry[]): string {
 	const totalWeight = pool.reduce((sum, entry) => sum + entry.weight, 0);
 	let roll = Math.random() * totalWeight;
