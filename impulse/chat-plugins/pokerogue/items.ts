@@ -130,6 +130,11 @@ export function getItemWeight(item: ShopItem, state: PokeRogueState): number {
 		w = item.weightFunc(state);
 	}
 
+	// Halve the weight of TMs to reduce their overall frequency in drafts
+	if (item.type === 'tm') {
+		w = Math.max(1, Math.floor(w * 0.5));
+	}
+
 	if (item.minWeight !== undefined && w < item.minWeight) w = item.minWeight;
 	if (item.maxWeight !== undefined && w > item.maxWeight) w = item.maxWeight;
 
@@ -304,7 +309,13 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		});
 
 		if (validItems.length === 0) {
-			const anyUnpicked = Object.entries(SHOP_ITEMS).filter(([key]) => !pickedKeys.has(key));
+			// Fix: Ensure the fallback ignores TMs if we already drafted one
+			const anyUnpicked = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
+				if (pickedKeys.has(key)) return false;
+				if (item.type === 'tm' && tmsInDraft >= 1) return false;
+				return true;
+			});
+			
 			const randomFallback = weightedItemPick(anyUnpicked, state);
 			if (randomFallback) {
 				draft.push(randomFallback[0]);
