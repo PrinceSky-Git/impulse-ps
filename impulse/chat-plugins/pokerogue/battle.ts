@@ -770,8 +770,10 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 
 	let size = 1;
 	if (!isBossFloor) {
-		const hasLure = (state.keyItems?.['Lure'] ?? 0) > 0;
-		if (hasLure && Math.random() < 0.5) size = 2;
+		const hasLure = (state.lureCharges ?? 0) > 0;
+		// Base 15% chance for double battle naturally, forced 85% chance if Lure is active
+		const doubleChance = hasLure ? 0.85 : 0.15; 
+		if (Math.random() < doubleChance) size = 2;
 	}
 
 	const luck = state.luck ?? 0;
@@ -819,8 +821,8 @@ export function startBattle(user: User, state: PokeRogueState): boolean {
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 	const isBoss = state.floor % config.bossInterval === 0;
 
-	const hasLure = (state.keyItems?.['Lure'] ?? 0) > 0;
-	const isDoubles = !isTrainer && !isBoss && hasLure && botTeamData.team.length > 1 && livingTeam.length > 1;
+	// Switch to doubles if the bot generated a team of 2 and the player has at least 2 living Pokémon
+	const isDoubles = !isTrainer && !isBoss && botTeamData.team.length > 1 && livingTeam.length > 1;
 
 	if (state.pendingTrainer) {
 		delete state.pendingTrainer;
