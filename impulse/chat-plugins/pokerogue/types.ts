@@ -158,6 +158,7 @@ export interface PokeRogueState {
 	rotationalShop: string[];
 	keyItems: Record<string, number>;
 	inventory?: Record<string, number>;
+	lureCharges?: number;
 	caughtPokemon?: PokemonEntry;
 	pendingChoice?: string[];
 	pendingChoiceType?: 'starter' | 'add';
