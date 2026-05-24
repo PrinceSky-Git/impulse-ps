@@ -171,6 +171,24 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		maxStack: 4,
 		weight: 4, minWeight: 4, maxWeight: 4,
 	},
+	lure: {
+		name: "Lure", icon: "Lure", type: "itemPack", category: "Buffs",
+		desc: "Greatly increases the chance of encountering double battles for 5 floors.",
+		moneyMultiplier: 0, tier: "Great",
+		weight: 3, minWeight: 3, maxWeight: 3,
+	},
+	superlure: {
+		name: "Super Lure", icon: "Lure", type: "itemPack", category: "Buffs",
+		desc: "Greatly increases the chance of encountering double battles for 10 floors.",
+		moneyMultiplier: 0, tier: "Ultra",
+		weight: 3, minWeight: 3, maxWeight: 3,
+	},
+	maxlure: {
+		name: "Max Lure", icon: "Lure", type: "itemPack", category: "Buffs",
+		desc: "Greatly increases the chance of encountering double battles for 25 floors.",
+		moneyMultiplier: 0, tier: "Rogue",
+		weight: 1, minWeight: 1, maxWeight: 1,
+	},
 	hpup: {
 		name: "HP Up", icon: "HP Up", type: "vitamin", category: "Vitamins",
 		desc: "Raises the HP EVs of a Pokémon by 20. Max 252 per stat, 508 total.",
