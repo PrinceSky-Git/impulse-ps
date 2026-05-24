@@ -669,6 +669,10 @@ function renderConsumable(state: PokeRogueState): string {
 			if (hp <= 0) { disabled = true; reason = 'fainted'; break; }
 			break;
 		}
+		case 'rareCandy': {
+			if (hp <= 0) { disabled = true; reason = 'fainted'; break; }
+			break;
+		}
 		}
 
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${Dex.species.get(toID(mon.species)).name}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` (${reason})` : ''}</span>`;
