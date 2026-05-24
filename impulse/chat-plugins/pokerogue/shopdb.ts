@@ -3,7 +3,45 @@ import { type PokeRogueState } from './types';
 
 const getEvoItemWeight = (state: PokeRogueState) => Math.min(8, Math.max(1, Math.floor(state.floor / 15)));
 
+const MEGA_STONES = [
+	"Abomasite", "Absolite", "Aerodactylite", "Aggronite", "Alakazite", "Altarianite",
+	"Ampharosite", "Audinite", "Banettite", "Beedrillite", "Blastoisinite", "Blazikenite",
+	"Cameruptite", "Charizardite X", "Charizardite Y", "Diancite", "Galladite", "Garchompite",
+	"Gardevoirite", "Gengarite", "Glalitite", "Gyaradosite", "Heracronite", "Houndoominite",
+	"Kangaskhanite", "Latiasite", "Latiosite", "Lopunnite", "Lucarionite", "Manectite",
+	"Mawilite", "Medichamite", "Metagrossite", "Mewtwonite X", "Mewtwonite Y", "Pidgeotite",
+	"Pinsirite", "Sablenite", "Salamencite", "Sceptilite", "Scizorite", "Sharpedonite",
+	"Slowbronite", "Steelixite", "Swampertite", "Tyranitarite", "Venusaurite"
+];
+
+const generatedMegaStones: Record<string, ShopItem> = {};
+for (const stone of MEGA_STONES) {
+	const id = stone.toLowerCase().replace(/[^a-z0-9]/g, '');
+	generatedMegaStones[id] = {
+		name: stone,
+		icon: stone,
+		type: "megaStone",
+		category: "Mega Stones",
+		desc: `A mysterious stone that allows certain Pokémon to Mega Evolve.`,
+		moneyMultiplier: 1.0,
+		tier: "Rogue",
+		weight: 4, minWeight: 4, maxWeight: 4,
+	};
+}
+
 export const SHOP_DB: Record<string, ShopItem> = {
+	...generatedMegaStones,
+	
+	megabracelet: {
+		name: "Mega Bracelet", icon: "Mega Bracelet", type: "key", category: "Key Items",
+		desc: "A cuff that enables Pokémon to Mega Evolve. Unlocks Mega Stones in the item pool.",
+		moneyMultiplier: 0, tier: "Rogue",
+		maxStack: 1,
+		weight: 4, minWeight: 4, maxWeight: 4,
+		weightFunc: (state: PokeRogueState) => {
+			return (state.keyItems?.['Mega Bracelet'] || 0) >= 1 ? 0 : 4;
+		},
+	},
 	pokeball: {
 		name: "Poke Ball", icon: "Poke Ball", type: "pokeball", category: "Pokéballs",
 		desc: "A standard ball for catching wild Pokemon.",
@@ -140,13 +178,13 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	rarecandy: {
 		name: "Rare Candy", icon: "Rare Candy", type: "rareCandy", category: "Level Up",
 		desc: "Increases a Pokémon's level by 1. Bypasses the level cap. Stacks with Candy Jar.",
-		moneyMultiplier: 1.0, tier: "Common", minFloor: 1,
+		moneyMultiplier: 1.0, tier: "Common",
 		weight: 2, minWeight: 2, maxWeight: 2,
 	},
 	rarercandy: {
 		name: "Rarer Candy", icon: "Rare Candy", type: "itemPack", category: "Level Up",
 		desc: "Increases the entire party's level by 1. Bypasses the level cap. Stacks with Candy Jar.",
-		moneyMultiplier: 3.0, tier: "Ultra", minFloor: 1,
+		moneyMultiplier: 3.0, tier: "Ultra",
 		weight: 4, minWeight: 4, maxWeight: 4,
 	},
 	candyjar: {
@@ -251,6 +289,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		moneyMultiplier: 1.0, tier: "Ultra", evStat: "spe", evGain: 20,
 		weight: 4, minWeight: 0, maxWeight: 8,
 	},
+
 	linkingcord: {
 		name: "Linking Cord", icon: "Linking Cord", type: "evolveItem", category: "Evolution Items",
 		desc: "A string exuding a mysterious energy. Evolves certain Pokémon without trading.",
