@@ -268,6 +268,24 @@ function isItemValidForDraft(
 		if (!hasCompatibleTMTarget(state.team, key, item)) return false;
 	}
 
+	// Restrict Pokémon-specific items (e.g. Light Ball, Thick Club) to teams that can use them
+	if (item.type === 'item') {
+		const dexItem = Dex.items.get(key);
+		if (dexItem.itemUser) {
+			let hasCompatibleUser = false;
+			const targetUsers = dexItem.itemUser.map(toID);
+			
+			for (const species of partySpecies) {
+				const spData = Dex.species.get(species);
+				if (targetUsers.includes(spData.id) || (spData.baseSpecies && targetUsers.includes(toID(spData.baseSpecies)))) {
+					hasCompatibleUser = true;
+					break;
+				}
+			}
+			if (!hasCompatibleUser) return false;
+		}
+	}
+
 	return true;
 }
 
