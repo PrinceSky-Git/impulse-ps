@@ -1578,6 +1578,35 @@ export const commands: Chat.ChatCommands = {
 
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 3);
 					state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> restored HP! (${hp}% → ${mon.currentHp}%)`;
+				} else if (item.type === 'rareCandy') {
+					if (hp <= 0) return this.errorReply("Can't use on a fainted Pokémon.");
+					const candyJarStacks = state.keyItems?.['Candy Jar'] || 0;
+					const levelsToGain = 1 + candyJarStacks;
+					
+					const oldLevel = mon.level;
+					const oldSpecies = mon.species;
+					
+					mon.level += levelsToGain;
+					mon.exp = expForLevel(mon.level, mon.expType || getExpType(mon.species));
+					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
+					
+					let evolved = false;
+					while (true) {
+						const evo = getLevelUpEvo(mon.species, mon.happiness);
+						if (!evo || mon.level < evo.evoLevel) break;
+						mon.expType = getExpType(evo.evoTo);
+						mon.species = evo.evoTo;
+						evolved = true;
+					}
+					
+					const currentName = Dex.species.get(toID(mon.species)).name;
+					state.notification = `<b>${currentName}</b> leveled up by ${levelsToGain} (Lv. ${mon.level})!`;
+					
+					const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+					const msgs = processLevelUp(mon, oldLevel, oldSpecies, evolved, slot, state, config.generation || 9);
+					if (msgs.length) {
+						state.notification += '<br>' + msgs.join('<br>');
+					}
 				} else if (item.type === 'cureStatus') {
 					if (hp <= 0) return this.errorReply("Can't cure a fainted Pokémon.");
 					if (!mon.status) return this.errorReply("That Pokémon has no status condition.");
