@@ -1,615 +1,167 @@
-import { type ShopItem } from './items';
+import { type ShopItem, type ItemRarityTier } from './items';
 
-export const TMS_DB: Record<string, ShopItem> = {
-	// ==========================================
-	// COMMON TIER (Weight: 40) - Utility, setup, and low/mid-power moves
-	// ==========================================
-	tm_swords_dance: {
-		name: "TM Swords Dance", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Sharply raises the user's Attack stat.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_thunder_wave: {
-		name: "TM Thunder Wave", icon: "TM Electric", type: "tm", category: "TMs",
-		desc: "A weak jolt of electricity that paralyzes the target.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_light_screen: {
-		name: "TM Light Screen", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "Reduces damage from special attacks for five turns.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_reflect: {
-		name: "TM Reflect", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "Reduces damage from physical attacks for five turns.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_substitute: {
-		name: "TM Substitute", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Creates a decoy using 1/4 of the user's maximum HP.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_protect: {
-		name: "TM Protect", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Protects the user from all attacks this turn.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_rain_dance: {
-		name: "TM Rain Dance", icon: "TM Water", type: "tm", category: "TMs",
-		desc: "Summons rain for five turns, boosting Water moves.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_sunny_day: {
-		name: "TM Sunny Day", icon: "TM Fire", type: "tm", category: "TMs",
-		desc: "Intensifies the sun for five turns, boosting Fire moves.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_will_o_wisp: {
-		name: "TM Will-O-Wisp", icon: "TM Fire", type: "tm", category: "TMs",
-		desc: "Shoots a sinister flame to inflict a burn.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_taunt: {
-		name: "TM Taunt", icon: "TM Dark", type: "tm", category: "TMs",
-		desc: "Forces the target to use only attacking moves for three turns.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_trick_room: {
-		name: "TM Trick Room", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "Slower Pokémon move first for five turns.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_stealth_rock: {
-		name: "TM Stealth Rock", icon: "TM Rock", type: "tm", category: "TMs",
-		desc: "Lays pointed stones that hurt switching-in foes.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_spikes: {
-		name: "TM Spikes", icon: "TM Ground", type: "tm", category: "TMs",
-		desc: "Lays a trap of spikes that hurt grounded foes switching in.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_toxic_spikes: {
-		name: "TM Toxic Spikes", icon: "TM Poison", type: "tm", category: "TMs",
-		desc: "Lays poison spikes to poison grounded foes switching in.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_defog: {
-		name: "TM Defog", icon: "TM Flying", type: "tm", category: "TMs",
-		desc: "Clears hazards and lowers target's evasion.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_roost: {
-		name: "TM Roost", icon: "TM Flying", type: "tm", category: "TMs",
-		desc: "Heals up to 50% of maximum HP.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_tailwind: {
-		name: "TM Tailwind", icon: "TM Flying", type: "tm", category: "TMs",
-		desc: "Doubles the Speed of your team for four turns.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_bulk_up: {
-		name: "TM Bulk Up", icon: "TM Fighting", type: "tm", category: "TMs",
-		desc: "Raises the user's Attack and Defense stats.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_agility: {
-		name: "TM Agility", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "Sharply raises the user's Speed stat.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_dragon_dance: {
-		name: "TM Dragon Dance", icon: "TM Dragon", type: "tm", category: "TMs",
-		desc: "Raises the user's Attack and Speed stats.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_sandstorm: {
-		name: "TM Sandstorm", icon: "TM Rock", type: "tm", category: "TMs",
-		desc: "Summons a sandstorm for five turns.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_snowscape: {
-		name: "TM Snowscape", icon: "TM Ice", type: "tm", category: "TMs",
-		desc: "Summons snow for five turns, boosting Ice types' Defense.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_endure: {
-		name: "TM Endure", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Endures any attack with at least 1 HP.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_rest: {
-		name: "TM Rest", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "The user sleeps for 2 turns to fully heal.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_sleep_talk: {
-		name: "TM Sleep Talk", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Uses a random known move while asleep.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_baton_pass: {
-		name: "TM Baton Pass", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Switches out, passing stat changes to the replacement.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_trailblaze: {
-		name: "TM Trailblaze", icon: "TM Grass", type: "tm", category: "TMs",
-		desc: "An attack that also raises the user's Speed.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_pounce: {
-		name: "TM Pounce", icon: "TM Bug", type: "tm", category: "TMs",
-		desc: "An attack that lowers the target's Speed.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_chilling_water: {
-		name: "TM Chilling Water", icon: "TM Water", type: "tm", category: "TMs",
-		desc: "An attack that lowers the target's Attack.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_facade: {
-		name: "TM Facade", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Power doubles if the user is poisoned, burned, or paralyzed.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_swift: {
-		name: "TM Swift", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Fires star-shaped rays that never miss.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_icy_wind: {
-		name: "TM Icy Wind", icon: "TM Ice", type: "tm", category: "TMs",
-		desc: "Attacks with cold air. Lowers opposing Pokémon's Speed.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_mud_shot: {
-		name: "TM Mud Shot", icon: "TM Ground", type: "tm", category: "TMs",
-		desc: "Hurls mud at the target. Lowers the target's Speed.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_rock_tomb: {
-		name: "TM Rock Tomb", icon: "TM Rock", type: "tm", category: "TMs",
-		desc: "Hurls boulders at the target. Lowers the target's Speed.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_low_sweep: {
-		name: "TM Low Sweep", icon: "TM Fighting", type: "tm", category: "TMs",
-		desc: "Attacks the target's legs. Lowers the target's Speed.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_snarl: {
-		name: "TM Snarl", icon: "TM Dark", type: "tm", category: "TMs",
-		desc: "Yells to lower the opposing Pokémon's Sp. Atk.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_electroweb: {
-		name: "TM Electroweb", icon: "TM Electric", type: "tm", category: "TMs",
-		desc: "Traps foes in an electric net. Lowers their Speed.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_bulldoze: {
-		name: "TM Bulldoze", icon: "TM Ground", type: "tm", category: "TMs",
-		desc: "Stomps the ground to attack. Lowers Speed of hit targets.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_magical_leaf: {
-		name: "TM Magical Leaf", icon: "TM Grass", type: "tm", category: "TMs",
-		desc: "Scatters curious leaves that never miss.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
-	tm_air_cutter: {
-		name: "TM Air Cutter", icon: "TM Flying", type: "tm", category: "TMs",
-		desc: "Launches razor wind. High critical-hit ratio.",
-		moneyMultiplier: 0.5, tier: "Common", weight: 40, minWeight: 40, maxWeight: 40,
-	},
+// TM Factory & Configurations
 
-	// ==========================================
-	// GREAT TIER (Weight: 20) - Mid/High power STABs and strong utility
-	// ==========================================
-	tm_toxic: {
-		name: "TM Toxic", icon: "TM Poison", type: "tm", category: "TMs",
-		desc: "Badly poisons the target. Poison damage worsens every turn.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_calm_mind: {
-		name: "TM Calm Mind", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "Raises the user's Sp. Atk and Sp. Def stats.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_iron_defense: {
-		name: "TM Iron Defense", icon: "TM Steel", type: "tm", category: "TMs",
-		desc: "Sharply raises the user's Defense stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_u_turn: {
-		name: "TM U-turn", icon: "TM Bug", type: "tm", category: "TMs",
-		desc: "After attacking, the user switches out.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_volt_switch: {
-		name: "TM Volt Switch", icon: "TM Electric", type: "tm", category: "TMs",
-		desc: "After attacking, the user switches out.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_flip_turn: {
-		name: "TM Flip Turn", icon: "TM Water", type: "tm", category: "TMs",
-		desc: "After attacking, the user switches out.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_brick_break: {
-		name: "TM Brick Break", icon: "TM Fighting", type: "tm", category: "TMs",
-		desc: "Destroys barriers like Light Screen and Reflect.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_drain_punch: {
-		name: "TM Drain Punch", icon: "TM Fighting", type: "tm", category: "TMs",
-		desc: "Restores HP equal to half the damage dealt.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_energy_ball: {
-		name: "TM Energy Ball", icon: "TM Grass", type: "tm", category: "TMs",
-		desc: "May lower the target's Sp. Def stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_shadow_claw: {
-		name: "TM Shadow Claw", icon: "TM Ghost", type: "tm", category: "TMs",
-		desc: "High critical-hit ratio.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_iron_head: {
-		name: "TM Iron Head", icon: "TM Steel", type: "tm", category: "TMs",
-		desc: "May make the target flinch.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_scald: {
-		name: "TM Scald", icon: "TM Water", type: "tm", category: "TMs",
-		desc: "Shoots boiling water. May burn the target.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_poison_jab: {
-		name: "TM Poison Jab", icon: "TM Poison", type: "tm", category: "TMs",
-		desc: "May poison the target.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_x_scissor: {
-		name: "TM X-Scissor", icon: "TM Bug", type: "tm", category: "TMs",
-		desc: "Slashes the target with scythes or claws.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_zen_headbutt: {
-		name: "TM Zen Headbutt", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "May make the target flinch.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_seed_bomb: {
-		name: "TM Seed Bomb", icon: "TM Grass", type: "tm", category: "TMs",
-		desc: "Slams a barrage of hard-shelled seeds from above.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_dragon_claw: {
-		name: "TM Dragon Claw", icon: "TM Dragon", type: "tm", category: "TMs",
-		desc: "Slashes the target with huge, sharp claws.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_crunch: {
-		name: "TM Crunch", icon: "TM Dark", type: "tm", category: "TMs",
-		desc: "May lower the target's Defense stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_play_rough: {
-		name: "TM Play Rough", icon: "TM Fairy", type: "tm", category: "TMs",
-		desc: "May lower the target's Attack stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_liquidation: {
-		name: "TM Liquidation", icon: "TM Water", type: "tm", category: "TMs",
-		desc: "May lower the target's Defense stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_rock_slide: {
-		name: "TM Rock Slide", icon: "TM Rock", type: "tm", category: "TMs",
-		desc: "May make opposing Pokémon flinch.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_body_press: {
-		name: "TM Body Press", icon: "TM Fighting", type: "tm", category: "TMs",
-		desc: "Damage is calculated using the user's Defense stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_dazzling_gleam: {
-		name: "TM Dazzling Gleam", icon: "TM Fairy", type: "tm", category: "TMs",
-		desc: "Damages opposing Pokémon by emitting a powerful flash.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_flash_cannon: {
-		name: "TM Flash Cannon", icon: "TM Steel", type: "tm", category: "TMs",
-		desc: "May lower the target's Sp. Def stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_sludge_bomb: {
-		name: "TM Sludge Bomb", icon: "TM Poison", type: "tm", category: "TMs",
-		desc: "May poison the target.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_thunderbolt: {
-		name: "TM Thunderbolt", icon: "TM Electric", type: "tm", category: "TMs",
-		desc: "May paralyze the target.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_ice_beam: {
-		name: "TM Ice Beam", icon: "TM Ice", type: "tm", category: "TMs",
-		desc: "May freeze the target.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_flamethrower: {
-		name: "TM Flamethrower", icon: "TM Fire", type: "tm", category: "TMs",
-		desc: "May burn the target.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_psychic: {
-		name: "TM Psychic", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "May lower the target's Sp. Def stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_surf: {
-		name: "TM Surf", icon: "TM Water", type: "tm", category: "TMs",
-		desc: "Attacks everything around it.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_dark_pulse: {
-		name: "TM Dark Pulse", icon: "TM Dark", type: "tm", category: "TMs",
-		desc: "May make the target flinch.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_earth_power: {
-		name: "TM Earth Power", icon: "TM Ground", type: "tm", category: "TMs",
-		desc: "May lower the target's Sp. Def stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_bug_buzz: {
-		name: "TM Bug Buzz", icon: "TM Bug", type: "tm", category: "TMs",
-		desc: "May lower the target's Sp. Def stat.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_aura_sphere: {
-		name: "TM Aura Sphere", icon: "TM Fighting", type: "tm", category: "TMs",
-		desc: "This attack never misses.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_giga_drain: {
-		name: "TM Giga Drain", icon: "TM Grass", type: "tm", category: "TMs",
-		desc: "Restores HP equal to half the damage dealt.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_leech_life: {
-		name: "TM Leech Life", icon: "TM Bug", type: "tm", category: "TMs",
-		desc: "Restores HP equal to half the damage dealt.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_wild_charge: {
-		name: "TM Wild Charge", icon: "TM Electric", type: "tm", category: "TMs",
-		desc: "The user takes recoil damage.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_waterfall: {
-		name: "TM Waterfall", icon: "TM Water", type: "tm", category: "TMs",
-		desc: "May make the target flinch.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_acrobatics: {
-		name: "TM Acrobatics", icon: "TM Flying", type: "tm", category: "TMs",
-		desc: "Damage doubles if the user holds no item.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-	tm_knock_off: {
-		name: "TM Knock Off", icon: "TM Dark", type: "tm", category: "TMs",
-		desc: "Removes target's item. Does more damage if target holds an item.",
-		moneyMultiplier: 1.0, tier: "Great", weight: 20, minWeight: 20, maxWeight: 20,
-	},
-
-	// ==========================================
-	// ULTRA TIER (Weight: 10) - Nukes and signature coverage
-	// ==========================================
-	tm_hydro_pump: {
-		name: "TM Hydro Pump", icon: "TM Water", type: "tm", category: "TMs",
-		desc: "A powerful watery blast.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_fire_blast: {
-		name: "TM Fire Blast", icon: "TM Fire", type: "tm", category: "TMs",
-		desc: "A powerful fiery blast. May burn the target.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_thunder: {
-		name: "TM Thunder", icon: "TM Electric", type: "tm", category: "TMs",
-		desc: "A massive lightning bolt. May paralyze the target.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_blizzard: {
-		name: "TM Blizzard", icon: "TM Ice", type: "tm", category: "TMs",
-		desc: "A howling blizzard. May freeze the target.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_focus_blast: {
-		name: "TM Focus Blast", icon: "TM Fighting", type: "tm", category: "TMs",
-		desc: "A high-powered fighting attack. May lower Sp. Def.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_stone_edge: {
-		name: "TM Stone Edge", icon: "TM Rock", type: "tm", category: "TMs",
-		desc: "High critical-hit ratio.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_earthquake: {
-		name: "TM Earthquake", icon: "TM Ground", type: "tm", category: "TMs",
-		desc: "A powerful earthquake that damages all surrounding Pokémon.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_shadow_ball: {
-		name: "TM Shadow Ball", icon: "TM Ghost", type: "tm", category: "TMs",
-		desc: "Hurls a shadowy blob. May lower Sp. Def.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_close_combat: {
-		name: "TM Close Combat", icon: "TM Fighting", type: "tm", category: "TMs",
-		desc: "High power, but lowers the user's Defense and Sp. Def.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_brave_bird: {
-		name: "TM Brave Bird", icon: "TM Flying", type: "tm", category: "TMs",
-		desc: "High power. The user takes serious recoil damage.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_flare_blitz: {
-		name: "TM Flare Blitz", icon: "TM Fire", type: "tm", category: "TMs",
-		desc: "High power. The user takes recoil. May burn the target.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_wood_hammer: {
-		name: "TM Wood Hammer", icon: "TM Grass", type: "tm", category: "TMs",
-		desc: "High power. The user takes serious recoil damage.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_power_whip: {
-		name: "TM Power Whip", icon: "TM Grass", type: "tm", category: "TMs",
-		desc: "The user violently whirls vines or tentacles to attack.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_leaf_storm: {
-		name: "TM Leaf Storm", icon: "TM Grass", type: "tm", category: "TMs",
-		desc: "High power, but harshly lowers the user's Sp. Atk.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_draco_meteor: {
-		name: "TM Draco Meteor", icon: "TM Dragon", type: "tm", category: "TMs",
-		desc: "High power, but harshly lowers the user's Sp. Atk.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_overheat: {
-		name: "TM Overheat", icon: "TM Fire", type: "tm", category: "TMs",
-		desc: "High power, but harshly lowers the user's Sp. Atk.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_megahorn: {
-		name: "TM Megahorn", icon: "TM Bug", type: "tm", category: "TMs",
-		desc: "Using its tough horn, the user rams into the target.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_outrage: {
-		name: "TM Outrage", icon: "TM Dragon", type: "tm", category: "TMs",
-		desc: "Rampages for 2-3 turns, then becomes confused.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_gunk_shot: {
-		name: "TM Gunk Shot", icon: "TM Poison", type: "tm", category: "TMs",
-		desc: "Shoots filthy garbage. May poison the target.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_hurricane: {
-		name: "TM Hurricane", icon: "TM Flying", type: "tm", category: "TMs",
-		desc: "Wraps the foe in a fierce wind. May confuse the target.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_meteor_mash: {
-		name: "TM Meteor Mash", icon: "TM Steel", type: "tm", category: "TMs",
-		desc: "Punches with a meteor's force. May raise the user's Attack.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_poltergeist: {
-		name: "TM Poltergeist", icon: "TM Ghost", type: "tm", category: "TMs",
-		desc: "Attacks the target by controlling its held item.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_triple_axel: {
-		name: "TM Triple Axel", icon: "TM Ice", type: "tm", category: "TMs",
-		desc: "A three-kick attack that gains power with each hit.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_expanding_force: {
-		name: "TM Expanding Force", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "Power increases on Psychic Terrain.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_meteor_beam: {
-		name: "TM Meteor Beam", icon: "TM Rock", type: "tm", category: "TMs",
-		desc: "Raises Sp. Atk on turn 1, hits turn 2.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_scorching_sands: {
-		name: "TM Scorching Sands", icon: "TM Ground", type: "tm", category: "TMs",
-		desc: "Throws scorching sand. May burn the target.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_high_horsepower: {
-		name: "TM High Horsepower", icon: "TM Ground", type: "tm", category: "TMs",
-		desc: "Fiercely attacks the target using its entire body.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_supercell_slam: {
-		name: "TM Supercell Slam", icon: "TM Electric", type: "tm", category: "TMs",
-		desc: "Takes damage if the attack misses.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_hard_press: {
-		name: "TM Hard Press", icon: "TM Steel", type: "tm", category: "TMs",
-		desc: "Does more damage the more HP the target has.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_alluring_voice: {
-		name: "TM Alluring Voice", icon: "TM Fairy", type: "tm", category: "TMs",
-		desc: "Confuses the target if its stats were boosted this turn.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_temper_flare: {
-		name: "TM Temper Flare", icon: "TM Fire", type: "tm", category: "TMs",
-		desc: "Power doubles if the user's previous move failed.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_psychic_noise: {
-		name: "TM Psychic Noise", icon: "TM Psychic", type: "tm", category: "TMs",
-		desc: "Prevents the target from recovering HP for two turns.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_tera_blast: {
-		name: "TM Tera Blast", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Changes type when the user Terastallizes.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_double_edge: {
-		name: "TM Double-Edge", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "A reckless tackle that damages the user.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_sludge_wave: {
-		name: "TM Sludge Wave", icon: "TM Poison", type: "tm", category: "TMs",
-		desc: "Strikes everything around it. May poison.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_boomburst: {
-		name: "TM Boomburst", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Attacks everything around it with a terrible, destructive sound.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_hyper_voice: {
-		name: "TM Hyper Voice", icon: "TM Normal", type: "tm", category: "TMs",
-		desc: "Lets loose a horribly echoing shout.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_ice_spinner: {
-		name: "TM Ice Spinner", icon: "TM Ice", type: "tm", category: "TMs",
-		desc: "Destroys active terrain.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_steel_beam: {
-		name: "TM Steel Beam", icon: "TM Steel", type: "tm", category: "TMs",
-		desc: "The user takes damage equal to half its maximum HP.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
-	tm_foul_play: {
-		name: "TM Foul Play", icon: "TM Dark", type: "tm", category: "TMs",
-		desc: "Uses the target's Attack stat to calculate damage.",
-		moneyMultiplier: 2.0, tier: "Ultra", weight: 10, minWeight: 10, maxWeight: 10,
-	},
+const TM_CONFIGS = {
+	Common: { mult: 0.5, weight: 40 },
+	Great: { mult: 1.0, weight: 20 },
+	Ultra: { mult: 2.0, weight: 10 },
 };
+
+function buildTM(name: string, typeName: string, desc: string, tier: ItemRarityTier): ShopItem {
+	const cfg = TM_CONFIGS[tier as keyof typeof TM_CONFIGS];
+	return {
+		name, icon: `TM ${typeName}`, type: "tm", category: "TMs", desc,
+		moneyMultiplier: cfg.mult, tier,
+		weight: cfg.weight, minWeight: cfg.weight, maxWeight: cfg.weight,
+	};
+}
+
+export const TMS_DB: Record<string, ShopItem> = {};
+
+// COMMON TIER (Weight: 40) - Utility, setup, and low/mid-power moves
+
+const COMMON_TMS: [string, string, string, string][] = [
+	['tm_swords_dance', "TM Swords Dance", "Normal", "Sharply raises the user's Attack stat."],
+	['tm_thunder_wave', "TM Thunder Wave", "Electric", "A weak jolt of electricity that paralyzes the target."],
+	['tm_light_screen', "TM Light Screen", "Psychic", "Reduces damage from special attacks for five turns."],
+	['tm_reflect', "TM Reflect", "Psychic", "Reduces damage from physical attacks for five turns."],
+	['tm_substitute', "TM Substitute", "Normal", "Creates a decoy using 1/4 of the user's maximum HP."],
+	['tm_protect', "TM Protect", "Normal", "Protects the user from all attacks this turn."],
+	['tm_rain_dance', "TM Rain Dance", "Water", "Summons rain for five turns, boosting Water moves."],
+	['tm_sunny_day', "TM Sunny Day", "Fire", "Intensifies the sun for five turns, boosting Fire moves."],
+	['tm_will_o_wisp', "TM Will-O-Wisp", "Fire", "Shoots a sinister flame to inflict a burn."],
+	['tm_taunt', "TM Taunt", "Dark", "Forces the target to use only attacking moves for three turns."],
+	['tm_trick_room', "TM Trick Room", "Psychic", "Slower Pokémon move first for five turns."],
+	['tm_stealth_rock', "TM Stealth Rock", "Rock", "Lays pointed stones that hurt switching-in foes."],
+	['tm_spikes', "TM Spikes", "Ground", "Lays a trap of spikes that hurt grounded foes switching in."],
+	['tm_toxic_spikes', "TM Toxic Spikes", "Poison", "Lays poison spikes to poison grounded foes switching in."],
+	['tm_defog', "TM Defog", "Flying", "Clears hazards and lowers target's evasion."],
+	['tm_roost', "TM Roost", "Flying", "Heals up to 50% of maximum HP."],
+	['tm_tailwind', "TM Tailwind", "Flying", "Doubles the Speed of your team for four turns."],
+	['tm_bulk_up', "TM Bulk Up", "Fighting", "Raises the user's Attack and Defense stats."],
+	['tm_agility', "TM Agility", "Psychic", "Sharply raises the user's Speed stat."],
+	['tm_dragon_dance', "TM Dragon Dance", "Dragon", "Raises the user's Attack and Speed stats."],
+	['tm_sandstorm', "TM Sandstorm", "Rock", "Summons a sandstorm for five turns."],
+	['tm_snowscape', "TM Snowscape", "Ice", "Summons snow for five turns, boosting Ice types' Defense."],
+	['tm_endure', "TM Endure", "Normal", "Endures any attack with at least 1 HP."],
+	['tm_rest', "TM Rest", "Psychic", "The user sleeps for 2 turns to fully heal."],
+	['tm_sleep_talk', "TM Sleep Talk", "Normal", "Uses a random known move while asleep."],
+	['tm_baton_pass', "TM Baton Pass", "Normal", "Switches out, passing stat changes to the replacement."],
+	['tm_trailblaze', "TM Trailblaze", "Grass", "An attack that also raises the user's Speed."],
+	['tm_pounce', "TM Pounce", "Bug", "An attack that lowers the target's Speed."],
+	['tm_chilling_water', "TM Chilling Water", "Water", "An attack that lowers the target's Attack."],
+	['tm_facade', "TM Facade", "Normal", "Power doubles if the user is poisoned, burned, or paralyzed."],
+	['tm_swift', "TM Swift", "Normal", "Fires star-shaped rays that never miss."],
+	['tm_icy_wind', "TM Icy Wind", "Ice", "Attacks with cold air. Lowers opposing Pokémon's Speed."],
+	['tm_mud_shot', "TM Mud Shot", "Ground", "Hurls mud at the target. Lowers the target's Speed."],
+	['tm_rock_tomb', "TM Rock Tomb", "Rock", "Hurls boulders at the target. Lowers the target's Speed."],
+	['tm_low_sweep', "TM Low Sweep", "Fighting", "Attacks the target's legs. Lowers the target's Speed."],
+	['tm_snarl', "TM Snarl", "Dark", "Yells to lower the opposing Pokémon's Sp. Atk."],
+	['tm_electroweb', "TM Electroweb", "Electric", "Traps foes in an electric net. Lowers their Speed."],
+	['tm_bulldoze', "TM Bulldoze", "Ground", "Stomps the ground to attack. Lowers Speed of hit targets."],
+	['tm_magical_leaf', "TM Magical Leaf", "Grass", "Scatters curious leaves that never miss."],
+	['tm_air_cutter', "TM Air Cutter", "Flying", "Launches razor wind. High critical-hit ratio."],
+];
+
+COMMON_TMS.forEach(([id, name, type, desc]) => {
+	TMS_DB[id] = buildTM(name, type, desc, "Common");
+});
+
+// GREAT TIER (Weight: 20) - Mid/High power STABs and strong utility
+
+const GREAT_TMS: [string, string, string, string][] = [
+	['tm_toxic', "TM Toxic", "Poison", "Badly poisons the target. Poison damage worsens every turn."],
+	['tm_calm_mind', "TM Calm Mind", "Psychic", "Raises the user's Sp. Atk and Sp. Def stats."],
+	['tm_iron_defense', "TM Iron Defense", "Steel", "Sharply raises the user's Defense stat."],
+	['tm_u_turn', "TM U-turn", "Bug", "After attacking, the user switches out."],
+	['tm_volt_switch', "TM Volt Switch", "Electric", "After attacking, the user switches out."],
+	['tm_flip_turn', "TM Flip Turn", "Water", "After attacking, the user switches out."],
+	['tm_brick_break', "TM Brick Break", "Fighting", "Destroys barriers like Light Screen and Reflect."],
+	['tm_drain_punch', "TM Drain Punch", "Fighting", "Restores HP equal to half the damage dealt."],
+	['tm_energy_ball', "TM Energy Ball", "Grass", "May lower the target's Sp. Def stat."],
+	['tm_shadow_claw', "TM Shadow Claw", "Ghost", "High critical-hit ratio."],
+	['tm_iron_head', "TM Iron Head", "Steel", "May make the target flinch."],
+	['tm_scald', "TM Scald", "Water", "Shoots boiling water. May burn the target."],
+	['tm_poison_jab', "TM Poison Jab", "Poison", "May poison the target."],
+	['tm_x_scissor', "TM X-Scissor", "Bug", "Slashes the target with scythes or claws."],
+	['tm_zen_headbutt', "TM Zen Headbutt", "Psychic", "May make the target flinch."],
+	['tm_seed_bomb', "TM Seed Bomb", "Grass", "Slams a barrage of hard-shelled seeds from above."],
+	['tm_dragon_claw', "TM Dragon Claw", "Dragon", "Slashes the target with huge, sharp claws."],
+	['tm_crunch', "TM Crunch", "Dark", "May lower the target's Defense stat."],
+	['tm_play_rough', "TM Play Rough", "Fairy", "May lower the target's Attack stat."],
+	['tm_liquidation', "TM Liquidation", "Water", "May lower the target's Defense stat."],
+	['tm_rock_slide', "TM Rock Slide", "Rock", "May make opposing Pokémon flinch."],
+	['tm_body_press', "TM Body Press", "Fighting", "Damage is calculated using the user's Defense stat."],
+	['tm_dazzling_gleam', "TM Dazzling Gleam", "Fairy", "Damages opposing Pokémon by emitting a powerful flash."],
+	['tm_flash_cannon', "TM Flash Cannon", "Steel", "May lower the target's Sp. Def stat."],
+	['tm_sludge_bomb', "TM Sludge Bomb", "Poison", "May poison the target."],
+	['tm_thunderbolt', "TM Thunderbolt", "Electric", "May paralyze the target."],
+	['tm_ice_beam', "TM Ice Beam", "Ice", "May freeze the target."],
+	['tm_flamethrower', "TM Flamethrower", "Fire", "May burn the target."],
+	['tm_psychic', "TM Psychic", "Psychic", "May lower the target's Sp. Def stat."],
+	['tm_surf', "TM Surf", "Water", "Attacks everything around it."],
+	['tm_dark_pulse', "TM Dark Pulse", "Dark", "May make the target flinch."],
+	['tm_earth_power', "TM Earth Power", "Ground", "May lower the target's Sp. Def stat."],
+	['tm_bug_buzz', "TM Bug Buzz", "Bug", "May lower the target's Sp. Def stat."],
+	['tm_aura_sphere', "TM Aura Sphere", "Fighting", "This attack never misses."],
+	['tm_giga_drain', "TM Giga Drain", "Grass", "Restores HP equal to half the damage dealt."],
+	['tm_leech_life', "TM Leech Life", "Bug", "Restores HP equal to half the damage dealt."],
+	['tm_wild_charge', "TM Wild Charge", "Electric", "The user takes recoil damage."],
+	['tm_waterfall', "TM Waterfall", "Water", "May make the target flinch."],
+	['tm_acrobatics', "TM Acrobatics", "Flying", "Damage doubles if the user holds no item."],
+	['tm_knock_off', "TM Knock Off", "Dark", "Removes target's item. Does more damage if target holds an item."],
+];
+
+GREAT_TMS.forEach(([id, name, type, desc]) => {
+	TMS_DB[id] = buildTM(name, type, desc, "Great");
+});
+
+// ULTRA TIER (Weight: 10) - Nukes and signature coverage
+
+const ULTRA_TMS: [string, string, string, string][] = [
+	['tm_hydro_pump', "TM Hydro Pump", "Water", "A powerful watery blast."],
+	['tm_fire_blast', "TM Fire Blast", "Fire", "A powerful fiery blast. May burn the target."],
+	['tm_thunder', "TM Thunder", "Electric", "A massive lightning bolt. May paralyze the target."],
+	['tm_blizzard', "TM Blizzard", "Ice", "A howling blizzard. May freeze the target."],
+	['tm_focus_blast', "TM Focus Blast", "Fighting", "A high-powered fighting attack. May lower Sp. Def."],
+	['tm_stone_edge', "TM Stone Edge", "Rock", "High critical-hit ratio."],
+	['tm_earthquake', "TM Earthquake", "Ground", "A powerful earthquake that damages all surrounding Pokémon."],
+	['tm_shadow_ball', "TM Shadow Ball", "Ghost", "Hurls a shadowy blob. May lower Sp. Def."],
+	['tm_close_combat', "TM Close Combat", "Fighting", "High power, but lowers the user's Defense and Sp. Def."],
+	['tm_brave_bird', "TM Brave Bird", "Flying", "High power. The user takes serious recoil damage."],
+	['tm_flare_blitz', "TM Flare Blitz", "Fire", "High power. The user takes recoil. May burn the target."],
+	['tm_wood_hammer', "TM Wood Hammer", "Grass", "High power. The user takes serious recoil damage."],
+	['tm_power_whip', "TM Power Whip", "Grass", "The user violently whirls vines or tentacles to attack."],
+	['tm_leaf_storm', "TM Leaf Storm", "Grass", "High power, but harshly lowers the user's Sp. Atk."],
+	['tm_draco_meteor', "TM Draco Meteor", "Dragon", "High power, but harshly lowers the user's Sp. Atk."],
+	['tm_overheat', "TM Overheat", "Fire", "High power, but harshly lowers the user's Sp. Atk."],
+	['tm_megahorn', "TM Megahorn", "Bug", "Using its tough horn, the user rams into the target."],
+	['tm_outrage', "TM Outrage", "Dragon", "Rampages for 2-3 turns, then becomes confused."],
+	['tm_gunk_shot', "TM Gunk Shot", "Poison", "Shoots filthy garbage. May poison the target."],
+	['tm_hurricane', "TM Hurricane", "Flying", "Wraps the foe in a fierce wind. May confuse the target."],
+	['tm_meteor_mash', "TM Meteor Mash", "Steel", "Punches with a meteor's force. May raise the user's Attack."],
+	['tm_poltergeist', "TM Poltergeist", "Ghost", "Attacks the target by controlling its held item."],
+	['tm_triple_axel', "TM Triple Axel", "Ice", "A three-kick attack that gains power with each hit."],
+	['tm_expanding_force', "TM Expanding Force", "Psychic", "Power increases on Psychic Terrain."],
+	['tm_meteor_beam', "TM Meteor Beam", "Rock", "Raises Sp. Atk on turn 1, hits turn 2."],
+	['tm_scorching_sands', "TM Scorching Sands", "Ground", "Throws scorching sand. May burn the target."],
+	['tm_high_horsepower', "TM High Horsepower", "Ground", "Fiercely attacks the target using its entire body."],
+	['tm_supercell_slam', "TM Supercell Slam", "Electric", "Takes damage if the attack misses."],
+	['tm_hard_press', "TM Hard Press", "Steel", "Does more damage the more HP the target has."],
+	['tm_alluring_voice', "TM Alluring Voice", "Fairy", "Confuses the target if its stats were boosted this turn."],
+	['tm_temper_flare', "TM Temper Flare", "Fire", "Power doubles if the user's previous move failed."],
+	['tm_psychic_noise', "TM Psychic Noise", "Psychic", "Prevents the target from recovering HP for two turns."],
+	['tm_tera_blast', "TM Tera Blast", "Normal", "Changes type when the user Terastallizes."],
+	['tm_double_edge', "TM Double-Edge", "Normal", "A reckless tackle that damages the user."],
+	['tm_sludge_wave', "TM Sludge Wave", "Poison", "Strikes everything around it. May poison."],
+	['tm_boomburst', "TM Boomburst", "Normal", "Attacks everything around it with a terrible, destructive sound."],
+	['tm_hyper_voice', "TM Hyper Voice", "Normal", "Lets loose a horribly echoing shout."],
+	['tm_ice_spinner', "TM Ice Spinner", "Ice", "Destroys active terrain."],
+	['tm_steel_beam', "TM Steel Beam", "Steel", "The user takes damage equal to half its maximum HP."],
+	['tm_foul_play', "TM Foul Play", "Dark", "Uses the target's Attack stat to calculate damage."],
+];
+
+ULTRA_TMS.forEach(([id, name, type, desc]) => {
+	TMS_DB[id] = buildTM(name, type, desc, "Ultra");
+});
