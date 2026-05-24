@@ -549,7 +549,9 @@ function renderGiveItem(state: PokeRogueState): string {
 	const dexItem = Dex.items.get(state.pendingItemName);
 	const pendingItemId = toID(state.pendingItemName);
 
-	const actionVerb = state.pendingItemIsEvo ? 'Evolve' : 'Give';
+	let actionVerb = 'Give';
+	if (state.pendingItemIsEvo) actionVerb = 'Evolve';
+	if (state.pendingItemIsMega) actionVerb = 'Mega Evolve';
 
 	let buf = `<h2 class="pr-choice-heading">${actionVerb} ${Utils.escapeHTML(dexItem.name || state.pendingItemName!)}?</h2>`;
 	buf += `<div style="font-size:12px;color:#aaa;margin-bottom:8px">Choose a Pokémon:</div><div class="pr-choice-grid">`;
@@ -582,13 +584,19 @@ function renderGiveItem(state: PokeRogueState): string {
 				}
 			}
 			if (!isCompatible) reason = 'Incompatible';
+		} else if (state.pendingItemIsMega) {
+			isCompatible = false;
+			if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(mon.species)) {
+				isCompatible = true;
+			}
+			if (!isCompatible) reason = 'Incompatible';
 		}
 
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${spName}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` <span style="color:#f87171">(${reason})</span>` : ''}</span>`;
 
 		if (mon.heldItem) flexHtml += `<div style="font-size:9px;color:#8ab4f8">Holds: ${Utils.escapeHTML(Dex.items.get(mon.heldItem).name || mon.heldItem)}</div>`;
 
-		if (state.pendingItemIsEvo && isCompatible) {
+		if ((state.pendingItemIsEvo || state.pendingItemIsMega) && isCompatible) {
 			flexHtml += `<div style="font-size:10px;color:#4caf50;font-weight:bold;margin-top:2px;letter-spacing:0.5px;">ABLE!</div>`;
 		}
 
