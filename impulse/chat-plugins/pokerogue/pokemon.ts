@@ -1026,7 +1026,7 @@ export function genAIPokemon(
 	return { team: mons, isTrainer: isTrainerBattle, trainerName, isDoubles: isTrainerDoubles };
 }
 
-export function packPokemon(mon: PokemonEntry): string {
+/*export function packPokemon(mon: PokemonEntry): string {
 	const sp = Dex.species.get(toID(mon.species));
 	const name = sp.exists ? sp.name : mon.species;
 	const ability = mon.ability || (sp.abilities as any)['0'] || '';
@@ -1053,6 +1053,46 @@ export function packPokemon(mon: PokemonEntry): string {
 		tail = `,,,,,,${hp !== 100 ? hp : ''},${status}`;
 		if (!status) tail = tail.replace(/,$/, '');
 	}
+	return base + tail;
+}*/
+
+export function packPokemon(mon: PokemonEntry): string {
+	const sp = Dex.species.get(toID(mon.species));
+	const name = sp.exists ? sp.name : mon.species;
+	const ability = mon.ability || (sp.abilities as any)['0'] || '';
+	const nature = mon.nature || 'Hardy';
+	if (!mon.moves) mon.moves = getLevelUpMoves(toID(mon.species), mon.level);
+
+	const evs = mon.evs ? `${mon.evs.hp},${mon.evs.atk},${mon.evs.def},${mon.evs.spa},${mon.evs.spd},${mon.evs.spe}` : '';
+	const ivs = mon.ivs ? `${mon.ivs.hp},${mon.ivs.atk},${mon.ivs.def},${mon.ivs.spa},${mon.ivs.spd},${mon.ivs.spe}` : '';
+	const gender = mon.gender || 'M';
+	const shiny = mon.shiny ? 'S' : '';
+	const item = mon.heldItem ?? '';
+	const moves = mon.moves.join(',');
+
+	const base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
+
+	if ((mon.currentHp ?? 100) <= 0) {
+		return base;
+	}
+
+	const hpPct = mon.currentHp ?? 100;
+	const status = mon.status ?? '';
+	
+	let tail = '';
+	if (hpPct !== 100 || status) {
+		const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+		const ivHp = mon.ivs?.hp ?? 31;
+		const evHp = mon.evs?.hp ?? 0;
+		const maxHp = sp.id === 'shedinja' ? 1 : Math.floor((2 * bs.hp + ivHp + Math.floor(evHp / 4)) * mon.level / 100) + mon.level + 10;
+		
+		// Convert stored percentage back to RAW HP for the PS simulator
+		const rawHp = Math.max(1, Math.round((hpPct / 100) * maxHp));
+		
+		tail = `,,,,,,${hpPct !== 100 ? rawHp : ''},${status}`;
+		if (!status) tail = tail.replace(/,$/, '');
+	}
+	
 	return base + tail;
 }
 
