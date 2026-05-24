@@ -772,6 +772,8 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 	if (isNaN(idx) || idx < 0 || idx >= state.pendingRewardDraft!.length) return false;
 
 	const itemKey = state.pendingRewardDraft![idx];
+	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+	const item = activeShop[itemKey];
 
 	if (item.type === 'pokeball') {
 		state.inventory = state.inventory || {};
