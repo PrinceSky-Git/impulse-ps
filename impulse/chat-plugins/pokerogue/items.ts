@@ -26,19 +26,15 @@ export interface ShopItem {
 	type: ItemType;
 	category: string;
 	desc: string;
-
 	moneyMultiplier: number;
 	tier: ItemRarityTier;
-
 	weight?: number;
 	minWeight?: number;
 	maxWeight?: number;
 	weightFunc?: (state: PokeRogueState) => number;
 	evGain?: number;
-
 	isShopItem?: boolean;
 	minFloor?: number;
-
 	healAmount?: number;
 	healPercent?: number;
 	curesStatus?: boolean;
@@ -130,8 +126,7 @@ export function getItemWeight(item: ShopItem, state: PokeRogueState): number {
 		w = item.weightFunc(state);
 	}
 
-	// Halve the weight of TMs to reduce their overall frequency in drafts
-	if (item.type === 'tm') {
+	if (item.type === 'tm' || item.type === 'item') {
 		w = Math.max(1, Math.floor(w * 0.5));
 	}
 
@@ -180,10 +175,6 @@ export function weightedItemPick(items: [string, ShopItem][], state: PokeRogueSt
 	return items[items.length - 1];
 }
 
-// ============================================================================
-// Draft Validation Helpers
-// ============================================================================
-
 function hasCompatibleEvoTarget(partySpecies: Set<string>, itemKey: string): boolean {
 	for (const species of partySpecies) {
 		const evos = Dex.species.get(species).evos;
@@ -231,6 +222,7 @@ function isItemValidForDraft(
 	targetTier: ItemRarityTier,
 	pickedKeys: Set<string>,
 	tmsInDraft: number,
+	heldItemsInDraft: number,
 	needsHeal: boolean,
 	needsRevive: boolean,
 	needsCure: boolean,
@@ -268,8 +260,9 @@ function isItemValidForDraft(
 		if (!hasCompatibleTMTarget(state.team, key, item)) return false;
 	}
 
-	// Restrict Pokémon-specific items (e.g. Light Ball, Thick Club) to teams that can use them
 	if (item.type === 'item') {
+		if (heldItemsInDraft >= 1) return false;
+
 		const dexItem = Dex.items.get(key);
 		if (dexItem.itemUser) {
 			let hasCompatibleUser = false;
@@ -288,10 +281,6 @@ function isItemValidForDraft(
 
 	return true;
 }
-
-// ============================================================================
-// Core Draft Generation
-// ============================================================================
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
 	const luck = calculatePartyLuck(state.team);
@@ -319,13 +308,14 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 	const pickedKeys = new Set<string>();
 
 	let tmsInDraft = 0;
+	let heldItemsInDraft = 0;
 
 	for (let i = 0; i < draftCount; i++) {
 		const targetTier = rollRarity(luck, state);
 
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 			return isItemValidForDraft(
-				key, item, state, targetTier, pickedKeys, tmsInDraft, 
+				key, item, state, targetTier, pickedKeys, tmsInDraft, heldItemsInDraft, 
 				needsHeal, needsRevive, needsCure, partySpecies
 			);
 		});
@@ -334,6 +324,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 			const anyUnpicked = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 				if (pickedKeys.has(key)) return false;
 				if (item.type === 'tm' && tmsInDraft >= 1) return false;
+				if (item.type === 'item' && heldItemsInDraft >= 1) return false;
 				return true;
 			});
 			
@@ -342,6 +333,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				draft.push(randomFallback[0]);
 				pickedKeys.add(randomFallback[0]);
 				if (randomFallback[1].type === 'tm') tmsInDraft++;
+				if (randomFallback[1].type === 'item') heldItemsInDraft++;
 			}
 		} else {
 			const randomValid = weightedItemPick(validItems, state);
@@ -349,6 +341,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				draft.push(randomValid[0]);
 				pickedKeys.add(randomValid[0]);
 				if (randomValid[1].type === 'tm') tmsInDraft++;
+				if (randomValid[1].type === 'item') heldItemsInDraft++;
 			}
 		}
 	}
