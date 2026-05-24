@@ -2,17 +2,10 @@ import { SHOP_DB } from './shopdb';
 import { TMS_DB } from './tms-db';
 import { type PokemonEntry, type PokeRogueState, type ModeConfig } from './types';
 
-export type ItemType =
-	| 'pokeball' |
-	'healHP' |
-	'key' |
-	'revive' |
-	'cureStatus' |
-	'itemPack' |
-	'item' |
-	'evolveItem' |
-	'vitamin' |
-	'tm' | 'mint';
+export type ItemType = | 'pokeball' | 'healHP' |
+	'key' | 'revive' | 'cureStatus' | 'itemPack' |
+	'item' | 'evolveItem' | 'vitamin' | 'tm' | 'mint' |
+	'rareCandy';
 
 export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
