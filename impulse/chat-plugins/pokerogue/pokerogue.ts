@@ -1117,12 +1117,13 @@ export const commands: Chat.ChatCommands = {
 					state.floor++;
 					(state as any).view = 'main';
 				}
-			} else if (item.type === 'item' || item.type === 'evolveItem') {
+			} else if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone') {
 				delete state.pendingRewardDraft;
 				delete state.rerollCount;
 				state.purchasedItem = itemKey;
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
+				state.pendingItemIsMega = item.type === 'megaStone';
 				(state as any).view = 'main';
 			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy'].includes(item.type)) {
 				delete state.pendingRewardDraft;
@@ -1131,28 +1132,6 @@ export const commands: Chat.ChatCommands = {
 				state.pendingConsumableType = item.type;
 				(state as any).view = 'main';
 			}
-
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-		
-		reroll(target, room, user) {
-			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft') return;
-
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined) {
-				return this.errorReply("You must resolve your pending actions first.");
-			}
-
-			const cost = getRerollCost(state.floor, state.rerollCount || 0);
-			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
-
-			state.money -= cost;
-			state.rerollCount = (state.rerollCount || 0) + 1;
-
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			state.pendingRewardDraft = generateDraftOptions(state, config);
 
 			setState(user.id, state);
 			refreshGamePage(user);
@@ -1234,141 +1213,15 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			state.purchasedItem = itemKey;
-			if (item.type === 'item' || item.type === 'evolveItem') {
+			if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone') {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
+				state.pendingItemIsMega = item.type === 'megaStone';
 			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy'].includes(item.type)) {
 				state.pendingConsumableType = item.type;
 			}
 			(state as any).view = 'main';
 
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-		
-		choose(target, room, user) {
-			const state = getState(user.id);
-			if (!state) return this.parse('/pokerogue start');
-			const userData = getUserData(user.id);
-			const n = parseInt(target) - 1;
-			if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
-			const choice = state.pendingChoice[n];
-
-			const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
-
-			let addedLevel = config.starterLevel ?? 5;
-			if (!isStarterChoice) {
-				const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
-				if (state.floor <= 30) {
-					addedLevel = Math.max(1, maxPlayerLevel - 1);
-				} else if (state.floor <= 50) {
-					addedLevel = Math.max(1, maxPlayerLevel - 2);
-				} else {
-					const levelDrop = Math.floor(Math.random() * 2) + 2;
-					addedLevel = Math.max(1, maxPlayerLevel - levelDrop);
-				}
-			}
-
-			let finalSpecies = choice;
-			if (!isStarterChoice) {
-				while (true) {
-					const evo = getLevelUpEvo(finalSpecies, 70);
-					if (!evo || addedLevel < evo.evoLevel) break;
-					finalSpecies = evo.evoTo;
-				}
-			}
-
-			let newMon: PokemonEntry;
-			const savedStarter = isStarterChoice ? userData.starters[toID(finalSpecies)] : null;
-
-			const randomIvs = {
-				hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
-				def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
-				spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
-			};
-			const shiny = savedStarter ? !!savedStarter.shiny : (Math.floor(Math.random() * 4096) === 0);
-			const gender = savedStarter?.gender || Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
-			const allTypes = Dex.types.all().map(t => t.name);
-			const teraType = savedStarter?.teraType || (Math.floor(Math.random() * 20) === 0 ?
-				allTypes[Math.floor(Math.random() * allTypes.length)] :
-				Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)]);
-
-			const commonProps = {
-				ivs: savedStarter?.ivs ? { ...savedStarter.ivs } : randomIvs,
-				evs: savedStarter?.evs ? { ...savedStarter.evs } : { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-				shiny,
-				gender: gender as any,
-				teraType,
-				happiness: 120,
-				originalTrainer: state.displayName || user.name,
-				otId: user.id.substring(0, 6),
-				metLocation: "Professor Oak's Lab",
-				metLevel: addedLevel,
-				metDate: Date.now(),
-				marks: savedStarter?.marks ? [...savedStarter.marks] : [],
-				ball: savedStarter?.ball || 'pokeball',
-			};
-
-			if (config.randomizeMoves || config.randomizeAbilities) {
-				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
-				const g = generated[0];
-				newMon = {
-					species: g.species,
-					level: g.level,
-					exp: expForLevel(g.level, getExpType(g.species)),
-					expType: getExpType(g.species),
-					moves: g.moves,
-					nature: savedStarter?.selectedNature || savedStarter?.nature || g.nature,
-					ability: savedStarter?.selectedAbility || savedStarter?.ability || g.ability,
-					...commonProps,
-				} as PokemonEntry;
-			} else {
-				const finalExpType = getExpType(finalSpecies);
-				const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
-				const natures = Dex.natures.all().map(n => n.name);
-				const hash = ((state.floor ?? 1) * 37) + (n * 13) + Dex.species.get(finalSpecies).id.length;
-				const displayNature = natures[hash % natures.length] ?? 'Hardy';
-
-				newMon = {
-					species: finalSpecies,
-					level: addedLevel,
-					exp: expForLevel(addedLevel, finalExpType),
-					expType: finalExpType,
-					moves: initialMoves,
-					nature: savedStarter?.selectedNature || savedStarter?.nature || displayNature,
-					ability: savedStarter?.selectedAbility || savedStarter?.ability || (Dex.species.get(finalSpecies).abilities as any)['0'] || '',
-					...commonProps,
-				} as PokemonEntry;
-			}
-
-			if (isStarterChoice) {
-				const sid = toID(finalSpecies);
-				if (!userData.starters[sid]) {
-					userData.starters[sid] = {
-						...newMon,
-						unlockedNatures: [newMon.nature!],
-						unlockedAbilities: [newMon.ability!],
-						selectedNature: newMon.nature,
-						selectedAbility: newMon.ability,
-					};
-					saveUserData(user.id);
-				}
-
-				state.team = [newMon];
-				(state as any).view = 'stats';
-				(state as any).pendingStatsSlot = 0;
-				state.isConfiguringStarter = true;
-			} else if (state.team.length < 6) {
-				state.team.push(newMon);
-			} else {
-				state.pendingSwap = newMon;
-			}
-
-			delete state.pendingChoice;
-			delete state.pendingChoiceType;
-			delete state.pendingChoiceFloor;
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
@@ -1443,6 +1296,7 @@ export const commands: Chat.ChatCommands = {
 					delete state.pendingItemName;
 					delete state.purchasedItem;
 					delete state.pendingItemIsEvo;
+					delete state.pendingItemIsMega;
 
 					if (state.pendingRewardDraft) (state as any).view = 'draft';
 					else { state.floor++; (state as any).view = 'main'; }
@@ -1495,13 +1349,21 @@ export const commands: Chat.ChatCommands = {
 						}
 					}
 					if (!evoTarget) return this.errorReply("That Pokémon can't evolve with this item.");
+				} else if (state.pendingItemIsMega) {
+					const pendingItemId = toID(dexNewItem.name);
+					const dexItem = Dex.items.get(pendingItemId);
+					if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(mon.species)) {
+						evoTarget = dexItem.megaStone || '';
+					}
+					if (!evoTarget) return this.errorReply("That Pokémon can't Mega Evolve with this stone.");
 				}
 
-				if (state.pendingItemIsEvo) {
-					mon.species = evoTarget;
+				if (state.pendingItemIsEvo || state.pendingItemIsMega) {
+					mon.species = toID(evoTarget);
 					mon.expType = getExpType(evoTarget);
 					const evoName = Dex.species.get(evoTarget).name;
-					state.notification = `<b>${dexSpecies.name}</b> evolved into <b>${evoName}</b>!`;
+					const actionName = state.pendingItemIsMega ? 'Mega Evolved' : 'evolved';
+					state.notification = `<b>${dexSpecies.name}</b> ${actionName} into <b>${evoName}</b>!`;
 
 					const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
 					const evoMoves = getMovesLearnedBetween(evoTarget, mon.level, mon.level, true, genNumber);
@@ -1534,6 +1396,7 @@ export const commands: Chat.ChatCommands = {
 				delete state.pendingItemName;
 				delete state.purchasedItem;
 				delete state.pendingItemIsEvo;
+				delete state.pendingItemIsMega;
 
 				if (state.pendingRewardDraft) (state as any).view = 'draft';
 				else { state.floor++; (state as any).view = 'main'; }
@@ -1696,6 +1559,155 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("Unknown resolve action.");
 			}
 
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+		
+		reroll(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'draft') return;
+
+			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined) {
+				return this.errorReply("You must resolve your pending actions first.");
+			}
+
+			const cost = getRerollCost(state.floor, state.rerollCount || 0);
+			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
+
+			state.money -= cost;
+			state.rerollCount = (state.rerollCount || 0) + 1;
+
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			state.pendingRewardDraft = generateDraftOptions(state, config);
+
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+		
+		choose(target, room, user) {
+			const state = getState(user.id);
+			if (!state) return this.parse('/pokerogue start');
+			const userData = getUserData(user.id);
+			const n = parseInt(target) - 1;
+			if (!state?.pendingChoice || isNaN(n) || n < 0 || n >= state.pendingChoice.length) return;
+			const choice = state.pendingChoice[n];
+
+			const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+
+			let addedLevel = config.starterLevel ?? 5;
+			if (!isStarterChoice) {
+				const maxPlayerLevel = state.team.length > 0 ? Math.max(...state.team.map(m => m.level)) : (config.starterLevel ?? 5);
+				if (state.floor <= 30) {
+					addedLevel = Math.max(1, maxPlayerLevel - 1);
+				} else if (state.floor <= 50) {
+					addedLevel = Math.max(1, maxPlayerLevel - 2);
+				} else {
+					const levelDrop = Math.floor(Math.random() * 2) + 2;
+					addedLevel = Math.max(1, maxPlayerLevel - levelDrop);
+				}
+			}
+
+			let finalSpecies = choice;
+			if (!isStarterChoice) {
+				while (true) {
+					const evo = getLevelUpEvo(finalSpecies, 70);
+					if (!evo || addedLevel < evo.evoLevel) break;
+					finalSpecies = evo.evoTo;
+				}
+			}
+
+			let newMon: PokemonEntry;
+			const savedStarter = isStarterChoice ? userData.starters[toID(finalSpecies)] : null;
+
+			const randomIvs = {
+				hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+				def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+				spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+			};
+			const shiny = savedStarter ? !!savedStarter.shiny : (Math.floor(Math.random() * 4096) === 0);
+			const gender = savedStarter?.gender || Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
+			const allTypes = Dex.types.all().map(t => t.name);
+			const teraType = savedStarter?.teraType || (Math.floor(Math.random() * 20) === 0 ?
+				allTypes[Math.floor(Math.random() * allTypes.length)] :
+				Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)]);
+
+			const commonProps = {
+				ivs: savedStarter?.ivs ? { ...savedStarter.ivs } : randomIvs,
+				evs: savedStarter?.evs ? { ...savedStarter.evs } : { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+				shiny,
+				gender: gender as any,
+				teraType,
+				happiness: 120,
+				originalTrainer: state.displayName || user.name,
+				otId: user.id.substring(0, 6),
+				metLocation: "Professor Oak's Lab",
+				metLevel: addedLevel,
+				metDate: Date.now(),
+				marks: savedStarter?.marks ? [...savedStarter.marks] : [],
+				ball: savedStarter?.ball || 'pokeball',
+			};
+
+			if (config.randomizeMoves || config.randomizeAbilities) {
+				const generated = genPokemon(1, addedLevel, true, state.floor, false, 0, [finalSpecies], state.currentBiome, config, data);
+				const g = generated[0];
+				newMon = {
+					species: g.species,
+					level: g.level,
+					exp: expForLevel(g.level, getExpType(g.species)),
+					expType: getExpType(g.species),
+					moves: g.moves,
+					nature: savedStarter?.selectedNature || savedStarter?.nature || g.nature,
+					ability: savedStarter?.selectedAbility || savedStarter?.ability || g.ability,
+					...commonProps,
+				} as PokemonEntry;
+			} else {
+				const finalExpType = getExpType(finalSpecies);
+				const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
+				const natures = Dex.natures.all().map(n => n.name);
+				const hash = ((state.floor ?? 1) * 37) + (n * 13) + Dex.species.get(finalSpecies).id.length;
+				const displayNature = natures[hash % natures.length] ?? 'Hardy';
+
+				newMon = {
+					species: finalSpecies,
+					level: addedLevel,
+					exp: expForLevel(addedLevel, finalExpType),
+					expType: finalExpType,
+					moves: initialMoves,
+					nature: savedStarter?.selectedNature || savedStarter?.nature || displayNature,
+					ability: savedStarter?.selectedAbility || savedStarter?.ability || (Dex.species.get(finalSpecies).abilities as any)['0'] || '',
+					...commonProps,
+				} as PokemonEntry;
+			}
+
+			if (isStarterChoice) {
+				const sid = toID(finalSpecies);
+				if (!userData.starters[sid]) {
+					userData.starters[sid] = {
+						...newMon,
+						unlockedNatures: [newMon.nature!],
+						unlockedAbilities: [newMon.ability!],
+						selectedNature: newMon.nature,
+						selectedAbility: newMon.ability,
+					};
+					saveUserData(user.id);
+				}
+
+				state.team = [newMon];
+				(state as any).view = 'stats';
+				(state as any).pendingStatsSlot = 0;
+				state.isConfiguringStarter = true;
+			} else if (state.team.length < 6) {
+				state.team.push(newMon);
+			} else {
+				state.pendingSwap = newMon;
+			}
+
+			delete state.pendingChoice;
+			delete state.pendingChoiceType;
+			delete state.pendingChoiceFloor;
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
