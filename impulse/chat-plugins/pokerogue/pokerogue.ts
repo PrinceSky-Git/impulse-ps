@@ -40,11 +40,11 @@ const SELF_KO_MOVES = new Set([
 	'healingwish', 'lunardance', 'finalgambit',
 ]);
 
-function hasPendingActions(state: PokeRogueState): boolean {
+function hasPendingActions(state: PokeRogueState, ignoreDraft = false): boolean {
 	return !!(
 		state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
 		state.moveToLearn || state.pendingItemName || state.itemOptions?.length ||
-		state.pendingConsumableType || state.pendingRewardDraft?.length ||
+		state.pendingConsumableType || (!ignoreDraft && state.pendingRewardDraft?.length) ||
 		state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined
 	);
 }
@@ -1048,7 +1048,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft' || !state.pendingRewardDraft) return;
 
-			if (hasPendingActions(state)) {
+			if (hasPendingActions(state, true)) {
 				return this.errorReply("You must resolve your pending actions first.");
 			}
 
@@ -1143,7 +1143,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
 
-			if (hasPendingActions(state)) {
+			if (hasPendingActions(state, true)) {
 				return this.errorReply("You must resolve your pending actions first.");
 			}
 
@@ -1196,6 +1196,27 @@ export const commands: Chat.ChatCommands = {
 				state.pendingConsumableType = item.type;
 			}
 			(state as any).view = 'main';
+
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		reroll(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'draft') return;
+
+			if (hasPendingActions(state, true)) {
+				return this.errorReply("You must resolve your pending actions first.");
+			}
+
+			const cost = getRerollCost(state.floor, state.rerollCount || 0);
+			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
+
+			state.money -= cost;
+			state.rerollCount = (state.rerollCount || 0) + 1;
+
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			state.pendingRewardDraft = generateDraftOptions(state, config);
 
 			setState(user.id, state);
 			refreshGamePage(user);
@@ -1506,27 +1527,6 @@ export const commands: Chat.ChatCommands = {
 			default:
 				return this.errorReply("Unknown resolve action.");
 			}
-
-			setState(user.id, state);
-			refreshGamePage(user);
-		},
-		
-		reroll(target, room, user) {
-			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft') return;
-
-			if (hasPendingActions(state)) {
-				return this.errorReply("You must resolve your pending actions first.");
-			}
-
-			const cost = getRerollCost(state.floor, state.rerollCount || 0);
-			if ((state.money || 0) < cost) return this.errorReply(`Not enough money! Need $${cost}.`);
-
-			state.money -= cost;
-			state.rerollCount = (state.rerollCount || 0) + 1;
-
-			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-			state.pendingRewardDraft = generateDraftOptions(state, config);
 
 			setState(user.id, state);
 			refreshGamePage(user);
