@@ -2,10 +2,18 @@ import { SHOP_DB } from './shopdb';
 import { TMS_DB } from './tms-db';
 import { type PokemonEntry, type PokeRogueState, type ModeConfig } from './types';
 
-export type ItemType = | 'pokeball' | 'healHP' |
-	'key' | 'revive' | 'cureStatus' | 'itemPack' |
-	'item' | 'evolveItem' | 'vitamin' | 'tm' | 'mint' |
-	'rareCandy';
+export type ItemType =
+	| 'pokeball' |
+	| 'healHP' |
+	| 'key' |
+	| 'revive' |
+	| 'cureStatus' |
+	| 'itemPack' |
+	| 'item' |
+	| 'evolveItem' |
+	| 'megaStone' |
+	| 'vitamin' |
+	| 'tm' | 'mint' | 'rareCandy';
 
 export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
@@ -223,6 +231,21 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 						}
 					}
 					if (hasCompatibleTarget) break;
+				}
+				if (!hasCompatibleTarget) return false;
+			}
+
+			if (item.type === 'megaStone') {
+				if (!state.keyItems?.['Mega Bracelet']) return false;
+
+				let hasCompatibleTarget = false;
+				for (const mon of state.team) {
+					const speciesId = toID(mon.species);
+					const dexItem = Dex.items.get(key);
+					if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === speciesId) {
+						hasCompatibleTarget = true;
+						break;
+					}
 				}
 				if (!hasCompatibleTarget) return false;
 			}
