@@ -1654,9 +1654,42 @@ export const commands: Chat.ChatCommands = {
 			const toMon = state.team[toSlot];
 			if (!fromMon.heldItem) return this.errorReply("That Pokémon isn't holding anything.");
 
+			const fromDexSpecies = Dex.species.get(toID(fromMon.species));
+			const toDexSpecies = Dex.species.get(toID(toMon.species));
+			
+			// Revert old forms before un-equipping
+			if (fromMon.heldItem) {
+				const dexOldItem = Dex.items.get(fromMon.heldItem);
+				if (dexOldItem.forcedForme && fromDexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
+					fromMon.species = toID(fromDexSpecies.changesFrom ?? fromDexSpecies.baseSpecies);
+				}
+			}
+			if (toMon.heldItem) {
+				const dexOldItem = Dex.items.get(toMon.heldItem);
+				if (dexOldItem.forcedForme && toDexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
+					toMon.species = toID(toDexSpecies.changesFrom ?? toDexSpecies.baseSpecies);
+				}
+			}
+			
+			// Swap items
 			const temp = toMon.heldItem;
 			toMon.heldItem = fromMon.heldItem;
-			fromMon.heldItem = temp;
+			if (temp) fromMon.heldItem = temp;
+			else delete fromMon.heldItem;
+
+			// Apply new forms after re-equipping
+			if (fromMon.heldItem) {
+				const dexNewItem = Dex.items.get(fromMon.heldItem);
+				if (dexNewItem.forcedForme && fromDexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
+					fromMon.species = toID(dexNewItem.forcedForme);
+				}
+			}
+			if (toMon.heldItem) {
+				const dexNewItem = Dex.items.get(toMon.heldItem);
+				if (dexNewItem.forcedForme && toDexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
+					toMon.species = toID(dexNewItem.forcedForme);
+				}
+			}
 
 			const fromName = Dex.species.get(toID(fromMon.species)).name;
 			const toName = Dex.species.get(toID(toMon.species)).name;
@@ -1666,6 +1699,32 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
+		unequip(target, room, user) {
+			const state = getState(user.id);
+			if (!state || state.battleRoomId) return;
+			if (hasPendingActions(state)) return this.errorReply("Resolve pending choices first.");
+			
+			const slot = parseInt(target.trim()) - 1;
+			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
+			
+			const mon = state.team[slot];
+			if (!mon.heldItem) return this.errorReply("That Pokémon isn't holding anything.");
+			
+			const dexOldItem = Dex.items.get(mon.heldItem);
+			const dexSpecies = Dex.species.get(toID(mon.species));
+			
+			// Revert form if discarding a form-changing item
+			if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
+				mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
+			}
+			
+			delete mon.heldItem;
+			state.notification = `Discarded ${dexOldItem.name} from ${dexSpecies.name}.`;
+			
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+		
 		reroll(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
