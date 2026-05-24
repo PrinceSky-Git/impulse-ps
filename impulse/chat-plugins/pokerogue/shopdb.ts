@@ -3,6 +3,30 @@ import { type PokeRogueState } from './types';
 
 const getEvoItemWeight = (state: PokeRogueState) => Math.min(8, Math.max(1, Math.floor(state.floor / 15)));
 
+const NATURES = [
+	{ name: "Lonely", stat: "Atk Mint" }, { name: "Adamant", stat: "Atk Mint" }, { name: "Naughty", stat: "Atk Mint" }, { name: "Brave", stat: "Atk Mint" },
+	{ name: "Bold", stat: "Def Mint" }, { name: "Impish", stat: "Def Mint" }, { name: "Lax", stat: "Def Mint" }, { name: "Relaxed", stat: "Def Mint" },
+	{ name: "Modest", stat: "SpAtk Mint" }, { name: "Mild", stat: "SpAtk Mint" }, { name: "Rash", stat: "SpAtk Mint" }, { name: "Quiet", stat: "SpAtk Mint" },
+	{ name: "Calm", stat: "SpDef Mint" }, { name: "Gentle", stat: "SpDef Mint" }, { name: "Careful", stat: "SpDef Mint" }, { name: "Sassy", stat: "SpDef Mint" },
+	{ name: "Timid", stat: "Spe Mint" }, { name: "Hasty", stat: "Spe Mint" }, { name: "Jolly", stat: "Spe Mint" }, { name: "Naive", stat: "Spe Mint" },
+	{ name: "Serious", stat: "Neutral Mint" }
+];
+
+const generatedMints: Record<string, ShopItem> = {};
+for (const mint of NATURES) {
+	const id = toID(mint.name + "Mint");
+	generatedMints[id] = {
+		name: `${mint.name} Mint`,
+		icon: mint.stat,
+		type: "mint",
+		category: "Mints",
+		desc: `Changes a Pokémon's stats to match the ${mint.name} nature.`,
+		moneyMultiplier: 1.0,
+		tier: "Ultra",
+		weight: 4, minWeight: 0, maxWeight: 4,
+	};
+}
+
 const MEGA_STONES = [
 	"Abomasite", "Absolite", "Aerodactylite", "Aggronite", "Alakazite", "Altarianite",
 	"Ampharosite", "Audinite", "Banettite", "Beedrillite", "Blastoisinite", "Blazikenite",
@@ -554,132 +578,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Ribbon Sweet", icon: "Ribbon Sweet", type: "evolveItem", category: "Evolution Items",
 		desc: "A sweet that evolves certain Pokémon.",
 		moneyMultiplier: 1.0, tier: "Great", weightFunc: getEvoItemWeight,
-	},
-	lonelymint: {
-		name: "Lonely Mint", icon: "Atk Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Lonely nature (+Atk, -Def).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	adamantmint: {
-		name: "Adamant Mint", icon: "Atk Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Adamant nature (+Atk, -SpA).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	naughtymint: {
-		name: "Naughty Mint", icon: "Atk Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Naughty nature (+Atk, -SpD).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	bravemint: {
-		name: "Brave Mint", icon: "Atk Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Brave nature (+Atk, -Spe).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	boldmint: {
-		name: "Bold Mint", icon: "Def Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Bold nature (+Def, -Atk).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	impishmint: {
-		name: "Impish Mint", icon: "Def Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Impish nature (+Def, -SpA).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	laxmint: {
-		name: "Lax Mint", icon: "Def Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Lax nature (+Def, -SpD).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	relaxedmint: {
-		name: "Relaxed Mint", icon: "Def Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Relaxed nature (+Def, -Spe).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	modestmint: {
-		name: "Modest Mint", icon: "SpAtk Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Modest nature (+SpA, -Atk).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	mildmint: {
-		name: "Mild Mint", icon: "SpAtk Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Mild nature (+SpA, -Def).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	rashmint: {
-		name: "Rash Mint", icon: "SpAtk Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Rash nature (+SpA, -SpD).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	quietmint: {
-		name: "Quiet Mint", icon: "SpAtk Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Quiet nature (+SpA, -Spe).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	calmmint: {
-		name: "Calm Mint", icon: "SpDef Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Calm nature (+SpD, -Atk).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	gentlemint: {
-		name: "Gentle Mint", icon: "SpDef Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Gentle nature (+SpD, -Def).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	carefulmint: {
-		name: "Careful Mint", icon: "SpDef Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Careful nature (+SpD, -SpA).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	sassymint: {
-		name: "Sassy Mint", icon: "SpDef Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Sassy nature (+SpD, -Spe).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	timidmint: {
-		name: "Timid Mint", icon: "Spe Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Timid nature (+Spe, -Atk).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	hastymint: {
-		name: "Hasty Mint", icon: "Spe Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Hasty nature (+Spe, -Def).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	jollymint: {
-		name: "Jolly Mint", icon: "Spe Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Jolly nature (+Spe, -SpA).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	naivemint: {
-		name: "Naive Mint", icon: "Spe Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Naive nature (+Spe, -SpD).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
-	},
-	seriousmint: {
-		name: "Serious Mint", icon: "Neutral Mint", type: "mint", category: "Mints",
-		desc: "Changes a Pokémon's stats to match the Serious nature (Neutral).",
-		moneyMultiplier: 1.0, tier: "Ultra",
-		weight: 4, minWeight: 0, maxWeight: 4,
 	},
 	nugget: {
 		name: "Nugget", icon: "Nugget", type: "itemPack", category: "Money",
