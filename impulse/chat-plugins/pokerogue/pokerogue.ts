@@ -1560,7 +1560,6 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return this.parse('/pokerogue start');
 			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't organize your team during a battle.");
-			if (hasPendingActions(state)) return this.errorReply("Resolve pending choices first.");
 
 			const args = target.split(' ').map(s => s.trim());
 
@@ -1587,6 +1586,9 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
+			// Only check for pending actions if we are initiating a NEW move
+			if (hasPendingActions(state)) return this.errorReply("Resolve pending choices first.");
+
 			const fromSlot = parseInt(args[0]) - 1;
 			if (isNaN(fromSlot) || fromSlot < 0 || fromSlot >= state.team.length) return this.errorReply("Invalid slot.");
 			state.pendingMoveSlot = fromSlot;
@@ -1599,7 +1601,6 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return this.parse('/pokerogue start');
 			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't release Pokémon during a battle.");
-			if (hasPendingActions(state)) return this.errorReply("Resolve pending choices first.");
 
 			const args = target.split(' ').map(s => s.trim());
 
@@ -1626,6 +1627,9 @@ export const commands: Chat.ChatCommands = {
 				refreshGamePage(user);
 				return;
 			}
+
+			// Only check for pending actions if we are initiating a NEW release
+			if (hasPendingActions(state)) return this.errorReply("Resolve pending choices first.");
 
 			const slot = parseInt(args[0]) - 1;
 			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
