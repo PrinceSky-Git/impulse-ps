@@ -325,28 +325,36 @@ function renderDraftView(state: PokeRogueState): string {
 	buf += `<h2 style="color:#fac000; margin-bottom: 4px;">Wave Cleared!</h2>`;
 	buf += `<div style="font-size:14px; font-weight:bold; margin-bottom: 16px;">Current Money: <span style="color:#4caf50">$${currentMoney}</span></div>`;
 
-	buf += `<div style="display:flex; justify-content:center; gap: 12px; flex-wrap:wrap; margin-bottom: 10px;">`;
+	// --- Reward Draft Table ---
+	buf += `<div class="pr-section-title" style="text-align:left;">Reward Draft</div>`;
+	buf += `<div class="pr-table-container" style="margin-bottom: 16px;"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
+	buf += `<tbody>`;
+
 	for (let i = 0; i < (state.pendingRewardDraft?.length || 0); i++) {
 		const itemKey = state.pendingRewardDraft![i];
 		const item = SHOP_ITEMS[itemKey];
-		const cardColor = tierColors[item.tier] || '#444';
+		const rowColor = tierColors[item.tier] || '#b0b0b0';
 
-		let cardContent = `<div style="margin-bottom: 8px;">${getShopItemIcon(item.icon, 32)}</div>`;
-		cardContent += `<div style="font-weight:bold; font-size:13px; margin-bottom: 4px; color:${cardColor};">${Utils.escapeHTML(item.name)}</div>`;
-		cardContent += `<div style="font-size:10px; color:#aaa; height: 40px; overflow: hidden; margin-bottom: 8px;">${Utils.escapeHTML(item.desc)}</div>`;
-		cardContent += renderBtn(`/pokerogue draft ${i + 1}`, 'Take', 'pr-pick-btn', 'width:100%');
-
-		buf += renderCard(cardContent, cardColor);
+		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
+		buf += `<td class="pr-td-icon" style="padding:4px; width:18px;">${getShopItemIcon(item.icon, 16)}</td>`;
+		buf += `<td class="pr-td-name" style="padding:4px; font-weight:bold; color:${rowColor}; white-space:nowrap;">${Utils.escapeHTML(item.name)}</td>`;
+		buf += `<td class="pr-td-desc" style="padding:4px; font-size:10px; text-align:left;">${Utils.escapeHTML(item.desc)}</td>`;
+		buf += `<td class="pr-td-action" style="padding:4px; text-align:right;">`;
+		buf += renderBtn(`/pokerogue draft ${i + 1}`, 'Take', 'pr-pick-btn', 'padding:2px 6px; font-size:10px; min-width:45px;');
+		buf += `</td></tr>`;
 	}
-	buf += `</div>`;
 
+	buf += `</tbody></table></div>`;
+
+	// --- Reroll & Skip Actions ---
 	buf += `<div style="text-align:center; margin-bottom:20px;">`;
 	buf += renderBtn(canReroll ? '/pokerogue reroll' : null, `Reroll ($${rerollCost})`, `pr-btn ${canReroll ? 'primary' : ''}`, 'font-size:11px;padding:5px 10px', !canReroll);
 	buf += `&nbsp;&nbsp;`;
 	buf += renderBtn('/pokerogue draft skip', 'Skip', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	buf += `</div>`;
 
-	buf += `<div class="pr-section-title">Shop</div>`;
+	// --- Rotational Shop Table ---
+	buf += `<div class="pr-section-title" style="text-align:left;">Shop</div>`;
 	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
 	buf += `<tbody>`;
 
@@ -361,7 +369,7 @@ function renderDraftView(state: PokeRogueState): string {
 		buf += `<tr style="border-bottom:1px solid rgba(150,150,150,0.1);">`;
 		buf += `<td class="pr-td-icon" style="padding:4px; width:18px;">${getShopItemIcon(item.icon, 16)}</td>`;
 		buf += `<td class="pr-td-name" style="padding:4px; font-weight:500; white-space:nowrap;">${Utils.escapeHTML(item.name)}</td>`;
-		buf += `<td class="pr-td-desc" style="padding:4px; font-size:10px;">${Utils.escapeHTML(item.desc)}</td>`;
+		buf += `<td class="pr-td-desc" style="padding:4px; font-size:10px; text-align:left;">${Utils.escapeHTML(item.desc)}</td>`;
 		buf += `<td class="pr-td-cost" style="padding:4px; white-space:nowrap; color:#fac000;">$${price}</td>`;
 		buf += `<td class="pr-td-action" style="padding:4px; text-align:right;">`;
 		buf += renderBtn(canBuy ? `/pokerogue buyshop ${key}` : null, canBuy ? 'Buy' : 'Need $', 'pr-shop-buy', 'padding:2px 6px; font-size:10px; min-width:45px;', !canBuy);
