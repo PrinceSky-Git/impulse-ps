@@ -10,7 +10,7 @@ import {
 import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon,
+	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -39,6 +39,15 @@ const SELF_KO_MOVES = new Set([
 	'explosion', 'selfdestruct', 'mistyexplosion', 'memento',
 	'healingwish', 'lunardance', 'finalgambit',
 ]);
+
+function hasPendingActions(state: PokeRogueState): boolean {
+	return !!(
+		state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
+		state.moveToLearn || state.pendingItemName || state.itemOptions?.length ||
+		state.pendingConsumableType || state.pendingRewardDraft?.length ||
+		state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined
+	);
+}
 
 function repairEmptyPendingChoice(state: PokeRogueState, userId: string): void {
 	if (!state.pendingChoice || state.pendingChoice.length) return;
@@ -131,6 +140,30 @@ function processLevelUp(
 	}
 
 	return detailMsgs;
+}
+
+function applyRarerCandy(state: PokeRogueState, config: ModeConfig): string[] {
+	const candyJarStacks = state.keyItems?.['Candy Jar'] || 0;
+	const levelsToGain = 1 + candyJarStacks;
+	const notifs = [`The party gained ${levelsToGain} level(s)!`];
+
+	for (let i = 0; i < state.team.length; i++) {
+		const mon = state.team[i];
+		if ((mon.currentHp ?? 100) <= 0) continue;
+
+		const oldLevel = mon.level;
+		const oldSpecies = mon.species;
+
+		mon.level += levelsToGain;
+		mon.exp = expForLevel(mon.level, mon.expType || getExpType(mon.species));
+		mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
+
+		const evolved = processLevelUpEvolutions(mon);
+		const msgs = processLevelUp(mon, oldLevel, oldSpecies, evolved, i, state, config.generation || 9);
+		if (msgs.length) notifs.push(...msgs);
+	}
+
+	return notifs;
 }
 
 function parseKillExp(
@@ -631,8 +664,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.gameOver || state.battleRoomId) return this.errorReply("Cannot save right now.");
 
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("You must resolve your pending choices before saving.");
 			}
 
@@ -894,8 +926,7 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return this.parse('/pokerogue start');
 			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't organize your team during a battle.");
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("Resolve pending choices first.");
 			}
 
@@ -938,8 +969,7 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return this.parse('/pokerogue start');
 			if (state.gameOver) return this.errorReply("No active run.");
 			if (state.battleRoomId) return this.errorReply("Can't release Pokémon during a battle.");
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("Resolve pending choices first.");
 			}
 
@@ -987,8 +1017,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.battleRoomId) return;
 
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("Resolve pending choices first.");
 			}
 
@@ -1019,8 +1048,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft' || !state.pendingRewardDraft) return;
 
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("You must resolve your pending actions first.");
 			}
 
@@ -1072,34 +1100,8 @@ export const commands: Chat.ChatCommands = {
 					state.floor++;
 					(state as any).view = 'main';
 				} else if (itemKey === 'rarercandy') {
-					const candyJarStacks = state.keyItems?.['Candy Jar'] || 0;
-					const levelsToGain = 1 + candyJarStacks;
-					const notifs = [`The party gained ${levelsToGain} level(s)!`];
 					const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-					
-					for (let i = 0; i < state.team.length; i++) {
-						const mon = state.team[i];
-						if ((mon.currentHp ?? 100) <= 0) continue;
-						
-						const oldLevel = mon.level;
-						const oldSpecies = mon.species;
-						
-						mon.level += levelsToGain;
-						mon.exp = expForLevel(mon.level, mon.expType || getExpType(mon.species));
-						mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
-						
-						let evolved = false;
-						while (true) {
-							const evo = getLevelUpEvo(mon.species, mon.happiness);
-							if (!evo || mon.level < evo.evoLevel) break;
-							mon.expType = getExpType(evo.evoTo);
-							mon.species = evo.evoTo;
-							evolved = true;
-						}
-						
-						const msgs = processLevelUp(mon, oldLevel, oldSpecies, evolved, i, state, config.generation || 9);
-						if (msgs.length) notifs.push(...msgs);
-					}
+					const notifs = applyRarerCandy(state, config);
 					
 					state.notification = notifs.join('<br>');
 					state.floor++;
@@ -1141,8 +1143,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
 
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("You must resolve your pending actions first.");
 			}
 
@@ -1171,34 +1172,8 @@ export const commands: Chat.ChatCommands = {
 			}
 
 			if (itemKey === 'rarercandy') {
-				const candyJarStacks = state.keyItems?.['Candy Jar'] || 0;
-				const levelsToGain = 1 + candyJarStacks;
-				const notifs = [`The party gained ${levelsToGain} level(s)!`];
 				const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
-				
-				for (let i = 0; i < state.team.length; i++) {
-					const mon = state.team[i];
-					if ((mon.currentHp ?? 100) <= 0) continue;
-					
-					const oldLevel = mon.level;
-					const oldSpecies = mon.species;
-					
-					mon.level += levelsToGain;
-					mon.exp = expForLevel(mon.level, mon.expType || getExpType(mon.species));
-					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
-					
-					let evolved = false;
-					while (true) {
-						const evo = getLevelUpEvo(mon.species, mon.happiness);
-						if (!evo || mon.level < evo.evoLevel) break;
-						mon.expType = getExpType(evo.evoTo);
-						mon.species = evo.evoTo;
-						evolved = true;
-					}
-					
-					const msgs = processLevelUp(mon, oldLevel, oldSpecies, evolved, i, state, config.generation || 9);
-					if (msgs.length) notifs.push(...msgs);
-				}
+				const notifs = applyRarerCandy(state, config);
 				
 				state.notification = notifs.join('<br>');
 				if (state.pendingRewardDraft) {
@@ -1331,30 +1306,10 @@ export const commands: Chat.ChatCommands = {
 
 				let evoTarget = '';
 				if (state.pendingItemIsEvo) {
-					const evoList = dexSpecies.evos;
-					const pendingItemId = toID(dexNewItem.name);
-					if (evoList) {
-						for (const newEvo of evoList) {
-							const evoData = Dex.species.get(newEvo);
-							const evoItemId = toID(evoData.evoItem);
-
-							const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
-							const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
-							const isPlainTradeEvolution =
-								evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
-							if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
-								evoTarget = evoData.id;
-								break;
-							}
-						}
-					}
+					evoTarget = getItemEvolution(mon.species, state.pendingItemName) || '';
 					if (!evoTarget) return this.errorReply("That Pokémon can't evolve with this item.");
 				} else if (state.pendingItemIsMega) {
-					const pendingItemId = toID(dexNewItem.name);
-					const dexItem = Dex.items.get(pendingItemId);
-					if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(mon.species)) {
-						evoTarget = dexItem.megaStone || '';
-					}
+					evoTarget = getMegaEvolution(mon.species, state.pendingItemName) || '';
 					if (!evoTarget) return this.errorReply("That Pokémon can't Mega Evolve with this stone.");
 				}
 
@@ -1453,14 +1408,7 @@ export const commands: Chat.ChatCommands = {
 					mon.exp = expForLevel(mon.level, mon.expType || getExpType(mon.species));
 					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 					
-					let evolved = false;
-					while (true) {
-						const evo = getLevelUpEvo(mon.species, mon.happiness);
-						if (!evo || mon.level < evo.evoLevel) break;
-						mon.expType = getExpType(evo.evoTo);
-						mon.species = evo.evoTo;
-						evolved = true;
-					}
+					const evolved = processLevelUpEvolutions(mon);
 					
 					const currentName = Dex.species.get(toID(mon.species)).name;
 					state.notification = `<b>${currentName}</b> leveled up by ${levelsToGain} (Lv. ${mon.level})!`;
@@ -1567,8 +1515,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
 
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("You must resolve your pending actions first.");
 			}
 
@@ -1720,8 +1667,7 @@ export const commands: Chat.ChatCommands = {
 
 			clearStaleBattleRoom(state, user.id);
 
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("Resolve all pending choices before starting a battle.");
 			}
 
@@ -1774,8 +1720,7 @@ export const commands: Chat.ChatCommands = {
 
 			clearStaleBattleRoom(state, user.id);
 
-			if (state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
-				state.moveToLearn || state.pendingItemName || state.itemOptions?.length || state.pendingConsumableType || state.pendingRewardDraft?.length) {
+			if (hasPendingActions(state)) {
 				return this.errorReply("Resolve all pending choices before starting a battle.");
 			}
 

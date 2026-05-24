@@ -66,6 +66,21 @@ function weightedPick(pool: BiomeEntry[]): string {
 	return pool[pool.length - 1].species;
 }
 
+export function getBaseSpecies(speciesId: string): string {
+	let currentId = toID(speciesId);
+	while (true) {
+		const sp = Dex.species.get(currentId);
+		if (sp.prevo) {
+			currentId = toID(sp.prevo);
+		} else if (sp.baseSpecies && toID(sp.baseSpecies) !== currentId) {
+			currentId = toID(sp.baseSpecies);
+		} else {
+			break;
+		}
+	}
+	return currentId;
+}
+
 export function getExpYield(speciesId: string): number {
 	const id = toID(speciesId);
 	if (BASE_EXP[id]) return BASE_EXP[id];
@@ -209,6 +224,46 @@ export function getLevelUpEvo(speciesId: string, currentHappiness = 70): { evoTo
 	return validEvos[Math.floor(Math.random() * validEvos.length)];
 }
 
+export function processLevelUpEvolutions(mon: PokemonEntry): boolean {
+	let evolved = false;
+	while (true) {
+		const evo = getLevelUpEvo(mon.species, mon.happiness ?? 70);
+		if (!evo || mon.level < evo.evoLevel) break;
+		mon.expType = getExpType(evo.evoTo);
+		mon.species = evo.evoTo;
+		evolved = true;
+	}
+	return evolved;
+}
+
+export function getItemEvolution(speciesId: string, itemId: string): string | null {
+	const dexSpecies = Dex.species.get(toID(speciesId));
+	if (!dexSpecies.evos) return null;
+	const pendingItemId = toID(itemId);
+
+	for (const newEvo of dexSpecies.evos) {
+		const evoData = Dex.species.get(newEvo);
+		const evoItemId = toID(evoData.evoItem);
+
+		const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
+		const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
+		const isPlainTradeEvolution = evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
+
+		if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
+			return evoData.id;
+		}
+	}
+	return null;
+}
+
+export function getMegaEvolution(speciesId: string, itemId: string): string | null {
+	const dexItem = Dex.items.get(toID(itemId));
+	if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(speciesId)) {
+		return dexItem.megaStone || null;
+	}
+	return null;
+}
+
 export function applyExpAndLevelUp(
 	mon: PokemonEntry,
 	expGained: number,
@@ -242,14 +297,8 @@ export function applyExpAndLevelUp(
 		mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 	}
 
-	let evolved = false;
-	while (true) {
-		const evo = getLevelUpEvo(mon.species, mon.happiness);
-		if (!evo || mon.level < evo.evoLevel) break;
-		mon.expType = getExpType(evo.evoTo);
-		mon.species = evo.evoTo;
-		evolved = true;
-	}
+	const evolved = processLevelUpEvolutions(mon);
+	
 	return { evolved, oldLevel };
 }
 
@@ -779,11 +828,7 @@ export function genPokemon(
 
 			finalSpeciesId = weightedPick(pool);
 
-			let sp = Dex.species.get(finalSpeciesId);
-			while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
-				finalSpeciesId = sp.prevo ? sp.prevo : toID(sp.baseSpecies);
-				sp = Dex.species.get(finalSpeciesId);
-			}
+			finalSpeciesId = getBaseSpecies(finalSpeciesId);
 		}
 
 		while (true) {
