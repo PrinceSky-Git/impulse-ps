@@ -760,12 +760,18 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 };
 
 function handleDraftAction(target: string, user: User, state: PokeRogueState, ctx: CommandContext): boolean {
+	if (target.trim() === 'skip') {
+		delete state.pendingRewardDraft;
+		delete state.rerollCount;
+		state.floor++;
+		(state as any).view = 'main';
+		return true;
+	}
+
 	const idx = parseInt(target.trim()) - 1;
 	if (isNaN(idx) || idx < 0 || idx >= state.pendingRewardDraft!.length) return false;
 
 	const itemKey = state.pendingRewardDraft![idx];
-	const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
-	const item = activeShop[itemKey];
 
 	if (item.type === 'pokeball') {
 		state.inventory = state.inventory || {};
