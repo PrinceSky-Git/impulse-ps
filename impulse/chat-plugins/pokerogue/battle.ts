@@ -779,8 +779,8 @@ function buildBotTeam(state: PokeRogueState): { packedTeam: string, isTrainer: b
 	const luck = state.luck ?? 0;
 	const trainerKey = state.pendingTrainerKey;
 	
-	const shinyCharms = state.keyItems?.['shinycharm'] || 0;
-	const abilityCharms = state.keyItems?.['abilitycharm'] || 0;
+	const shinyCharms = state.keyItems?.['Shiny Charm'] || 0;
+	const abilityCharms = state.keyItems?.['Ability Charm'] || 0;
 
 	const result = genAIPokemon(
 		size,
