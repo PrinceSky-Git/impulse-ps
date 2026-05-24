@@ -1071,6 +1071,39 @@ export const commands: Chat.ChatCommands = {
 					state.notification = `Lure active! Doubles chance increased for ${state.lureCharges} battles!`;
 					state.floor++;
 					(state as any).view = 'main';
+				} else if (itemKey === 'rarercandy') {
+					const candyJarStacks = state.keyItems?.['Candy Jar'] || 0;
+					const levelsToGain = 1 + candyJarStacks;
+					const notifs = [`The party gained ${levelsToGain} level(s)!`];
+					const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+					
+					for (let i = 0; i < state.team.length; i++) {
+						const mon = state.team[i];
+						if ((mon.currentHp ?? 100) <= 0) continue;
+						
+						const oldLevel = mon.level;
+						const oldSpecies = mon.species;
+						
+						mon.level += levelsToGain;
+						mon.exp = expForLevel(mon.level, mon.expType || getExpType(mon.species));
+						mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
+						
+						let evolved = false;
+						while (true) {
+							const evo = getLevelUpEvo(mon.species, mon.happiness);
+							if (!evo || mon.level < evo.evoLevel) break;
+							mon.expType = getExpType(evo.evoTo);
+							mon.species = evo.evoTo;
+							evolved = true;
+						}
+						
+						const msgs = processLevelUp(mon, oldLevel, oldSpecies, evolved, i, state, config.generation || 9);
+						if (msgs.length) notifs.push(...msgs);
+					}
+					
+					state.notification = notifs.join('<br>');
+					state.floor++;
+					(state as any).view = 'main';
 				} else {
 					const amuletCoinStacks = state.keyItems?.['Amulet Coin'] || 0;
 					let rewardMoney = getRewardMoney(state.floor, item.moneyMultiplier || 1);
@@ -1091,7 +1124,7 @@ export const commands: Chat.ChatCommands = {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
 				(state as any).view = 'main';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint'].includes(item.type)) {
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy'].includes(item.type)) {
 				delete state.pendingRewardDraft;
 				delete state.rerollCount;
 				state.purchasedItem = itemKey;
