@@ -599,4 +599,32 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		moneyMultiplier: 1.0, tier: "Ultra",
 		weight: 4, minWeight: 0, maxWeight: 4,
 	},
+	nugget: {
+		name: "Nugget", icon: "Nugget", type: "itemPack", category: "Money",
+		desc: "A nugget of purest gold. Gives a large amount of money.",
+		moneyMultiplier: 5, tier: "Great",
+		weight: 4, minWeight: 4, maxWeight: 4,
+	},
+	bignugget: {
+		name: "Big Nugget", icon: "Big Nugget", type: "itemPack", category: "Money",
+		desc: "A big nugget of purest gold. Gives a huge amount of money.",
+		moneyMultiplier: 10, tier: "Ultra",
+		weight: 4, minWeight: 4, maxWeight: 4,
+	},
+	relicgold: {
+		name: "Relic Gold", icon: "Relic Gold", type: "itemPack", category: "Money",
+		desc: "A gold coin used by an ancient civilization. Gives a massive amount of money.",
+		moneyMultiplier: 20, tier: "Master",
+		weight: 1, minWeight: 1, maxWeight: 1,
+	},
+	amuletcoin: {
+		name: "Amulet Coin", icon: "Amulet Coin", type: "key", category: "Key Items",
+		desc: "Increases the amount of money gained from battles by 20%. Stacks up to 5 times.",
+		moneyMultiplier: 1.0, tier: "Rogue",
+		maxStack: 5,
+		weight: 4, minWeight: 0, maxWeight: 4,
+		weightFunc: (state: PokeRogueState) => {
+			return (state.keyItems?.['Amulet Coin'] || 0) >= 5 ? 0 : 4;
+		},
+	},
 };
