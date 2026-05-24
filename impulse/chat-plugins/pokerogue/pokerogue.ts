@@ -1062,6 +1062,12 @@ export const commands: Chat.ChatCommands = {
 					state.notification = `You unlocked a new Starter!`;
 					state.floor++;
 					(state as any).view = 'main';
+				} else if (itemKey === 'lure' || itemKey === 'superlure' || itemKey === 'maxlure') {
+					const charges = itemKey === 'lure' ? 5 : itemKey === 'superlure' ? 10 : 25;
+					state.lureCharges = (state.lureCharges || 0) + charges;
+					state.notification = `Lure active! Doubles chance increased for ${state.lureCharges} battles!`;
+					state.floor++;
+					(state as any).view = 'main';
 				} else {
 					const amuletCoinStacks = state.keyItems?.['Amulet Coin'] || 0;
 					let rewardMoney = getRewardMoney(state.floor, item.moneyMultiplier || 1);
@@ -2173,6 +2179,15 @@ export const handlers: Chat.Handlers = {
 
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
+
+			if ((state.lureCharges ?? 0) > 0) {
+				state.lureCharges!--;
+				if (state.lureCharges === 0) {
+					battleLogMsgs.push(`<i>Your Lure effect has worn off.</i>`);
+				} else {
+					battleLogMsgs.push(`<i>Lure active for ${state.lureCharges} more battle(s).</i>`);
+				}
+			}
 
 			const rewardMultiplier = isBossFloor ? 1.0 : 0.2;
 			let moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
