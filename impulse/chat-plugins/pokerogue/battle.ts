@@ -40,12 +40,11 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 	// Items tracking maps
 	const itemSlotMap: Record<string, number> = {};
 	const itemAssigned = new Set<number>();
+	
+	// Track the fainted/alive state of each specific P1 slot
+	const p1SlotState = new Map<string, boolean>();
 
 	for (const line of logLines) {
-		// Track active P1 faint status for catch logic
-		if (/^\|faint\|p1[a-z]:/.test(line)) p1ActiveFainted = true;
-		else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) p1ActiveFainted = false;
-
 		// Handle Switches
 		const swMatch = /^\|(?:switch|drag)\|(p[12][a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 		if (swMatch) {
@@ -57,6 +56,8 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 			const status = swMatch[6] || '';
 
 			if (slot.startsWith('p1')) {
+				p1SlotState.set(slot, false); // Mark slot as alive
+				
 				// P1 team matching logic
 				const prev = p1SlotToTeamIdx[slot];
 				if (prev !== undefined) p1ActivelyAssigned.delete(prev);
@@ -153,6 +154,8 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 		if (faintMatch) {
 			const slot = faintMatch[1];
 			if (slot.startsWith('p1')) {
+				p1SlotState.set(slot, true); // Mark slot as fainted
+				
 				const idx = p1SlotToTeamIdx[slot];
 				if (idx !== undefined) {
 					p1TeamHp[idx] = 0;
@@ -183,6 +186,24 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 				consumedItems.push({ teamIdx, itemId });
 			}
 		}
+	}
+
+	// Safely determine if the player is actively blocked by a fainted Pokémon.
+	if (p1SlotState.size > 0) {
+		let totalAlive = 0;
+		for (let i = 0; i < playerTeam.length; i++) {
+			let hp = playerTeam[i].currentHp ?? 100;
+			if (p1TeamHp[i] !== undefined) hp = p1TeamHp[i]; // Use mid-battle HP if available
+			if (p1FaintedIndices.has(i)) hp = 0;
+			if (hp > 0) totalAlive++;
+		}
+
+		const activeAliveCount = Array.from(p1SlotState.values()).filter(isFainted => !isFainted).length;
+		const hasFaintedSlot = Array.from(p1SlotState.values()).includes(true);
+
+		// The player is "fainted" if they have 0 pokemon on the field, 
+		// OR they have an empty/fainted slot AND have a living pokemon on the bench to fill it.
+		p1ActiveFainted = activeAliveCount === 0 || (hasFaintedSlot && totalAlive > activeAliveCount);
 	}
 
 	return {
