@@ -1191,11 +1191,53 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
+			if (itemKey === 'rarercandy') {
+				const candyJarStacks = state.keyItems?.['Candy Jar'] || 0;
+				const levelsToGain = 1 + candyJarStacks;
+				const notifs = [`The party gained ${levelsToGain} level(s)!`];
+				const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+				
+				for (let i = 0; i < state.team.length; i++) {
+					const mon = state.team[i];
+					if ((mon.currentHp ?? 100) <= 0) continue;
+					
+					const oldLevel = mon.level;
+					const oldSpecies = mon.species;
+					
+					mon.level += levelsToGain;
+					mon.exp = expForLevel(mon.level, mon.expType || getExpType(mon.species));
+					mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
+					
+					let evolved = false;
+					while (true) {
+						const evo = getLevelUpEvo(mon.species, mon.happiness);
+						if (!evo || mon.level < evo.evoLevel) break;
+						mon.expType = getExpType(evo.evoTo);
+						mon.species = evo.evoTo;
+						evolved = true;
+					}
+					
+					const msgs = processLevelUp(mon, oldLevel, oldSpecies, evolved, i, state, config.generation || 9);
+					if (msgs.length) notifs.push(...msgs);
+				}
+				
+				state.notification = notifs.join('<br>');
+				if (state.pendingRewardDraft) {
+					(state as any).view = 'draft';
+				} else {
+					state.floor++;
+					(state as any).view = 'main';
+				}
+				setState(user.id, state);
+				refreshGamePage(user);
+				return;
+			}
+
 			state.purchasedItem = itemKey;
 			if (item.type === 'item' || item.type === 'evolveItem') {
 				state.pendingItemName = item.name;
 				state.pendingItemIsEvo = item.type === 'evolveItem';
-			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint'].includes(item.type)) {
+			} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy'].includes(item.type)) {
 				state.pendingConsumableType = item.type;
 			}
 			(state as any).view = 'main';
@@ -1203,7 +1245,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		choose(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
