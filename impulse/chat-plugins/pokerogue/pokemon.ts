@@ -893,7 +893,7 @@ export function genAIPokemon(
 	data?: ModeData,
 	shinyCharms = 0,
 	abilityCharms = 0
-): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string } {
+): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string, isDoubles?: boolean } {
 	const scale = getLevelScaling(floor, config);
 	const bossInterval = config?.bossInterval || 10;
 	const isBossFloor = floor % bossInterval === 0;
@@ -907,6 +907,7 @@ export function genAIPokemon(
 	let actualQuantity = quantity;
 	let isTrainerBattle = false;
 	let trainerName: string | undefined = undefined;
+	let isTrainerDoubles = false;
 	const lookupKey = trainerKey || floor.toString();
 
 	if (config?.hasTrainers && data?.trainers?.[lookupKey]?.[forcedTrainer!]) {
@@ -915,6 +916,7 @@ export function genAIPokemon(
 		const trainerData = data.trainers[lookupKey][forcedTrainer!];
 
 		actualQuantity = trainerData.teamSize;
+		isTrainerDoubles = !!trainerData.doubles;
 
 		if (!trainerData.random && trainerData.pool) {
 			const shuffledPool = [...trainerData.pool].sort(() => 0.5 - Math.random());
@@ -936,7 +938,7 @@ export function genAIPokemon(
 	const mons = genPokemon(actualQuantity, effectiveScale, false, floor, isBossFloor, luck, forcedTeam, currentBiome, config, data, shinyCharms, abilityCharms);
 
 	mons.sort((a, b) => a.level - b.level);
-	return { team: mons, isTrainer: isTrainerBattle, trainerName };
+	return { team: mons, isTrainer: isTrainerBattle, trainerName, isDoubles: isTrainerDoubles };
 }
 
 export function packPokemon(mon: PokemonEntry): string {
