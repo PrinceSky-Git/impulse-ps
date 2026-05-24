@@ -2168,6 +2168,7 @@ export const commands: Chat.ChatCommands = {
 				html += `<br><b>Staff Commands (Requires: Admin Only):</b><br>` +
 					`<code>/pokerogue givemoney [user], [amount]</code> - Gives Money to a user.<br>` +
 					`<code>/pokerogue removemoney [user], [amount]</code> - Removes Money from a user.<br>` +
+					`<code>/pokerogue giveitem [user], [item], [amount]</code> - Gives a Pokéball or Key Item to a user.<br>` +
 					`<code>/pokerogue setfloor [user], [floor]</code> - Sets the floor for a user's run.<br>` +
 					`<code>/pokerogue healteam [user]</code> - Fully heals a user's team.<br>` +
 					`<code>/pokerogue addmon [user], [pokemon], [level]</code> - Adds a Pokemon to a user's team.<br>` +
