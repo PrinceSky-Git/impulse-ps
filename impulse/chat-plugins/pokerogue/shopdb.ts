@@ -284,6 +284,12 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		moneyMultiplier: 1.0, tier: "Rogue", maxStack: 5, weight: 4, minWeight: 0, maxWeight: 4,
 		weightFunc: (state) => (state.keyItems?.['Amulet Coin'] || 0) >= 5 ? 0 : 4,
 	},
+	goldenball: {
+		name: "Golden Ball", icon: "Relic Gold", type: "key", category: "Key Items",
+		desc: "Increases the number of item choices in the reward draft by 1. Stacks up to 3 times.",
+		moneyMultiplier: 0, tier: "Rogue", maxStack: 3, weight: 3, minWeight: 0, maxWeight: 3,
+		weightFunc: (state) => (state.keyItems?.['Golden Ball'] || 0) >= 3 ? 0 : 3,
+	},
 
 	// Pokéballs
 	pokeball: {
