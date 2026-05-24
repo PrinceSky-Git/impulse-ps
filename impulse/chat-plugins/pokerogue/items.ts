@@ -175,6 +175,101 @@ export function weightedItemPick(items: [string, ShopItem][], state: PokeRogueSt
 	return items[items.length - 1];
 }
 
+// ============================================================================
+// Draft Validation Helpers
+// ============================================================================
+
+function hasCompatibleEvoTarget(partySpecies: Set<string>, itemKey: string): boolean {
+	for (const species of partySpecies) {
+		const evos = Dex.species.get(species).evos;
+		if (!evos) continue;
+
+		for (const evoTarget of evos) {
+			const evoData = Dex.species.get(evoTarget);
+			if (toID(evoData.evoItem) === itemKey || (itemKey === 'linkingcord' && evoData.evoType === 'trade' && !evoData.evoItem)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+function hasCompatibleMegaTarget(team: PokemonEntry[], itemKey: string): boolean {
+	for (const mon of team) {
+		const speciesId = toID(mon.species);
+		const dexItem = Dex.items.get(itemKey);
+		if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === speciesId) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function hasCompatibleTMTarget(team: PokemonEntry[], itemKey: string, item: ShopItem): boolean {
+	const moveId = itemKey.includes('_') ?
+		itemKey.substring(itemKey.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') :
+		toID(item.name.replace(/^TM\d+\s*/i, ''));
+	const moveData = Dex.moves.get(moveId);
+
+	if (!moveData.exists) return false;
+	for (const mon of team) {
+		if (mon.moves.includes(moveData.id)) continue;
+		if (canLearnTM(mon.species, moveData.id)) return true;
+	}
+	return false;
+}
+
+function isItemValidForDraft(
+	key: string,
+	item: ShopItem,
+	state: PokeRogueState,
+	targetTier: ItemRarityTier,
+	pickedKeys: Set<string>,
+	tmsInDraft: number,
+	needsHeal: boolean,
+	needsRevive: boolean,
+	needsCure: boolean,
+	partySpecies: Set<string>
+): boolean {
+	if (pickedKeys.has(key)) return false;
+	if (item.tier !== targetTier) return false;
+
+	if (item.type === 'key') {
+		const currentAmount = state.keyItems?.[item.name] || 0;
+		if (currentAmount >= (item.maxStack ?? 1)) return false;
+	}
+
+	if (item.type === 'pokeball') {
+		const currentAmount = state.inventory?.[key] || 0;
+		if (currentAmount >= (item.maxStack ?? 99)) return false;
+	}
+
+	if (item.type === 'healHP' && !needsHeal) return false;
+	if (item.type === 'revive' && !needsRevive) return false;
+	if (item.type === 'cureStatus' && !needsCure) return false;
+	if (key === 'sacredash' && !needsRevive) return false;
+
+	if (item.type === 'evolveItem') {
+		if (!hasCompatibleEvoTarget(partySpecies, key)) return false;
+	}
+
+	if (item.type === 'megaStone') {
+		if (!state.keyItems?.['Mega Bracelet']) return false;
+		if (!hasCompatibleMegaTarget(state.team, key)) return false;
+	}
+
+	if (item.type === 'tm') {
+		if (tmsInDraft >= 1) return false;
+		if (!hasCompatibleTMTarget(state.team, key, item)) return false;
+	}
+
+	return true;
+}
+
+// ============================================================================
+// Core Draft Generation
+// ============================================================================
+
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
 	const luck = calculatePartyLuck(state.team);
 	const draft: string[] = [];
@@ -202,80 +297,10 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 		const targetTier = rollRarity(luck, state);
 
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
-			if (pickedKeys.has(key)) return false;
-			if (item.tier !== targetTier) return false;
-
-			if (item.type === 'key') {
-				const currentAmount = state.keyItems?.[item.name] || 0;
-				if (currentAmount >= (item.maxStack ?? 1)) return false;
-			}
-
-			if (item.type === 'pokeball') {
-				const currentAmount = state.inventory?.[key] || 0;
-				if (currentAmount >= (item.maxStack ?? 99)) return false;
-			}
-
-			if (item.type === 'healHP' && !needsHeal) return false;
-			if (item.type === 'revive' && !needsRevive) return false;
-			if (item.type === 'cureStatus' && !needsCure) return false;
-			if (key === 'sacredash' && !needsRevive) return false;
-
-			if (item.type === 'evolveItem') {
-				let hasCompatibleTarget = false;
-				for (const species of partySpecies) {
-					const evos = Dex.species.get(species).evos;
-					if (!evos) continue;
-
-					for (const evoTarget of evos) {
-						const evoData = Dex.species.get(evoTarget);
-						if (toID(evoData.evoItem) === key || (key === 'linkingcord' && evoData.evoType === 'trade' && !evoData.evoItem)) {
-							hasCompatibleTarget = true;
-							break;
-						}
-					}
-					if (hasCompatibleTarget) break;
-				}
-				if (!hasCompatibleTarget) return false;
-			}
-
-			if (item.type === 'megaStone') {
-				if (!state.keyItems?.['Mega Bracelet']) return false;
-
-				let hasCompatibleTarget = false;
-				for (const mon of state.team) {
-					const speciesId = toID(mon.species);
-					const dexItem = Dex.items.get(key);
-					if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === speciesId) {
-						hasCompatibleTarget = true;
-						break;
-					}
-				}
-				if (!hasCompatibleTarget) return false;
-			}
-
-			if (item.type === 'tm') {
-				if (tmsInDraft >= 1) return false;
-
-				let anyoneCanLearn = false;
-				const moveId = key.includes('_') ?
-					key.substring(key.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') :
-					toID(item.name.replace(/^TM\d+\s*/i, ''));
-				const moveData = Dex.moves.get(moveId);
-
-				if (moveData.exists) {
-					for (const mon of state.team) {
-						if (mon.moves.includes(moveData.id)) continue;
-
-						if (canLearnTM(mon.species, moveData.id)) {
-							anyoneCanLearn = true;
-							break;
-						}
-					}
-				}
-				if (!anyoneCanLearn) return false;
-			}
-
-			return true;
+			return isItemValidForDraft(
+				key, item, state, targetTier, pickedKeys, tmsInDraft, 
+				needsHeal, needsRevive, needsCure, partySpecies
+			);
 		});
 
 		if (validItems.length === 0) {

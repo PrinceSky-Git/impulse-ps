@@ -718,6 +718,146 @@ export function pickStarterOptions(availableStarters: string[]): string[] {
 	return shuffled.slice(0, 5);
 }
 
+// ============================================================================
+// Generation Helpers
+// ============================================================================
+
+function determineLevel(minLevel: number, maxLevel: number, depth: number): number {
+	if (depth > 500) return Math.floor(Math.random() * (maxLevel - minLevel)) + minLevel;
+	for (let curLevel = minLevel; curLevel <= maxLevel; curLevel++) {
+		const gap = maxLevel - curLevel;
+		if (gap === 0 || Math.floor(Math.random() * gap) === 0) return curLevel;
+	}
+	return maxLevel;
+}
+
+function buildSpawnPool(
+	floor: number,
+	isBossFloor: boolean,
+	starter: boolean,
+	luck: number,
+	currentBiome: string | undefined,
+	config: ModeConfig | undefined,
+	data: ModeData | undefined
+): BiomeEntry[] {
+	const rarity = rollRaritySpawn(floor, isBossFloor, starter, luck);
+	let pool: BiomeEntry[] = [];
+	const activeBiomes = data?.biomes || {};
+	const resolveBiome = data?.resolveBiome ?? defaultResolveBiome;
+	const activeBiome = currentBiome || config?.startingBiome || 'Town';
+	const biomeName = resolveBiome(floor, activeBiome, config ?? {} as ModeConfig);
+
+	if (starter) {
+		for (const b of Object.values(activeBiomes)) {
+			const tierPool = (b as any)[rarity];
+			if (tierPool && tierPool.length > 0) pool.push(...tierPool);
+		}
+	} else {
+		pool = activeBiomes[biomeName]?.[rarity] || activeBiomes[activeBiome]?.[rarity] || [];
+	}
+
+	if (!pool || pool.length === 0) {
+		if (config?.emptyPoolFallbackFn) {
+			pool = config.emptyPoolFallbackFn(floor, rarity, isBossFloor, activeBiomes);
+		} else {
+			pool = [];
+			const excludedBiomes = new Set(data?.excludedBiomes ?? []);
+			for (const [bName, biomeData] of Object.entries(activeBiomes)) {
+				if (excludedBiomes.has(bName)) continue;
+				const tierPool = (biomeData as any)[rarity];
+				if (tierPool && tierPool.length > 0) pool.push(...tierPool);
+			}
+			if (pool.length === 0) {
+				const fallbackTier = isBossFloor ? 'Boss' : 'Common';
+				for (const biomeData of Object.values(activeBiomes)) {
+					const tierPool = (biomeData as any)[fallbackTier];
+					if (tierPool && tierPool.length > 0) {
+						pool = tierPool;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	if (config?.poolFilterFn) {
+		pool = config.poolFilterFn(pool, floor, isBossFloor);
+	} else if (floor < 100) {
+		pool = pool.filter(mon => {
+			let sp = Dex.species.get(mon.species);
+			while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
+				sp = sp.prevo ? Dex.species.get(sp.prevo) : Dex.species.get(sp.baseSpecies);
+			}
+			return sp.evos && sp.evos.length > 0;
+		});
+	}
+
+	if (!pool || pool.length === 0) pool = [{ species: 'eevee', weight: 100 }, { species: 'porygon', weight: 100 }];
+	return pool;
+}
+
+function applyBossEvolutions(speciesId: string, chosenLevel: number, floor: number, isBossFloor: boolean): string {
+	let finalSpeciesId = speciesId;
+	while (true) {
+		const evo = getLevelUpEvo(finalSpeciesId);
+		if (!evo || chosenLevel < evo.evoLevel) break;
+
+		if (isBossFloor) {
+			if (floor <= 20) break;
+			if (floor <= 40) {
+				const nextEvo = Dex.species.get(evo.evoTo);
+				if (!nextEvo.evos || nextEvo.evos.length === 0) break;
+			}
+		}
+		finalSpeciesId = evo.evoTo;
+	}
+	return finalSpeciesId;
+}
+
+function getValidGeneration(speciesName: string, baseGen: number): number {
+	let genNumber = baseGen;
+	const speciesIdForGen = toID(speciesName);
+	while (genNumber > 1) {
+		if (Dex.mod(`gen${genNumber}`).species.get(speciesIdForGen).isNonstandard) {
+			genNumber--;
+			continue;
+		}
+		break;
+	}
+	return genNumber;
+}
+
+function rollIVs(floor: number): any {
+	if (floor <= 10) {
+		return {
+			hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
+			def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
+			spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
+		};
+	} else if (floor <= 20) {
+		const rollIv = () => 15 + Math.floor(Math.random() * 17);
+		return { hp: rollIv(), atk: rollIv(), def: rollIv(), spa: rollIv(), spd: rollIv(), spe: rollIv() };
+	} else if (floor <= 30) {
+		const rollIv = () => 20 + Math.floor(Math.random() * 12);
+		return { hp: rollIv(), atk: rollIv(), def: rollIv(), spa: rollIv(), spd: rollIv(), spe: rollIv() };
+	} else {
+		return { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+	}
+}
+
+function rollShiny(shinyCharms: number): boolean {
+	let shinyRate = 2048;
+	if (shinyCharms === 1) shinyRate = 256;
+	else if (shinyCharms === 2) shinyRate = 128;
+	else if (shinyCharms === 3) shinyRate = 64;
+	else if (shinyCharms >= 4) shinyRate = 32;
+	return Math.floor(Math.random() * shinyRate) === 0;
+}
+
+// ============================================================================
+// Core Generation Implementation
+// ============================================================================
+
 export function genPokemon(
 	quantity: number,
 	level: number | number[],
@@ -746,23 +886,8 @@ export function genPokemon(
 	const gennedMons: AIPokemonSet[] = [];
 	let depth = 0;
 
-	const activeBiomes = data?.biomes || {};
-	const resolveBiome = data?.resolveBiome ?? defaultResolveBiome;
-
 	while (gennedMons.length < quantity) {
-		let chosenLevel: number;
-		if (depth > 500) {
-			chosenLevel = Math.floor(Math.random() * (maxLevel - minLevel)) + minLevel;
-		} else {
-			chosenLevel = maxLevel;
-			for (let curLevel = minLevel; curLevel <= maxLevel; curLevel++) {
-				const gap = maxLevel - curLevel;
-				if (gap === 0 || Math.floor(Math.random() * gap) === 0) {
-					chosenLevel = curLevel;
-					break;
-				}
-			}
-		}
+		const chosenLevel = determineLevel(minLevel, maxLevel, depth);
 
 		let finalSpeciesId = '';
 		let forcedMoves: string[] | undefined = undefined;
@@ -772,10 +897,10 @@ export function genPokemon(
 		let forcedTeraType: string | undefined = undefined;
 		let forcedItem: string | undefined = undefined;
 
-		const isForced = forcedSpeciesPool && forcedSpeciesPool.length > depth;
+		const isForced = !!(forcedSpeciesPool && forcedSpeciesPool.length > depth);
 
 		if (isForced) {
-			const forced = forcedSpeciesPool[depth];
+			const forced = forcedSpeciesPool![depth];
 			if (typeof forced === 'string') {
 				finalSpeciesId = toID(forced);
 			} else {
@@ -788,114 +913,16 @@ export function genPokemon(
 				if (forced.item) forcedItem = forced.item;
 			}
 		} else {
-			const rarity = rollRaritySpawn(floor, !!isBossFloor, !!starter, luck);
-			let pool: BiomeEntry[] = [];
-
-			const activeBiome = currentBiome || config?.startingBiome || 'Town';
-			const biomeName = resolveBiome(floor, activeBiome, config ?? {} as ModeConfig);
-
-			if (starter) {
-				for (const b of Object.values(activeBiomes)) {
-					const tierPool = (b as any)[rarity];
-					if (tierPool && tierPool.length > 0) pool.push(...tierPool);
-				}
-			} else {
-				pool = activeBiomes[biomeName]?.[rarity] || activeBiomes[activeBiome]?.[rarity] || [];
-			}
-
-			if (!pool || pool.length === 0) {
-				if (config?.emptyPoolFallbackFn) {
-					pool = config.emptyPoolFallbackFn(floor, rarity, !!isBossFloor, activeBiomes);
-				} else {
-					pool = [];
-					const excludedBiomes = new Set(data?.excludedBiomes ?? []);
-
-					for (const [bName, biomeData] of Object.entries(activeBiomes)) {
-						if (excludedBiomes.has(bName)) continue;
-						const tierPool = (biomeData as any)[rarity];
-						if (tierPool && tierPool.length > 0) pool.push(...tierPool);
-					}
-
-					if (pool.length === 0) {
-						const fallbackTier = isBossFloor ? 'Boss' : 'Common';
-						for (const biomeData of Object.values(activeBiomes)) {
-							const tierPool = (biomeData as any)[fallbackTier];
-							if (tierPool && tierPool.length > 0) {
-								pool = tierPool;
-								break;
-							}
-						}
-					}
-				}
-			}
-
-			if (config?.poolFilterFn) {
-				pool = config.poolFilterFn(pool, floor, !!isBossFloor);
-			} else if (floor < 100) {
-				pool = pool.filter(mon => {
-					let sp = Dex.species.get(mon.species);
-					while (sp.prevo || (sp.baseSpecies && toID(sp.baseSpecies) !== toID(sp.name))) {
-						sp = sp.prevo ? Dex.species.get(sp.prevo) : Dex.species.get(sp.baseSpecies);
-					}
-					return sp.evos && sp.evos.length > 0;
-				});
-			}
-
-			if (!pool || pool.length === 0) {
-				pool = [{ species: 'eevee', weight: 100 }, { species: 'porygon', weight: 100 }];
-			}
-
-			finalSpeciesId = weightedPick(pool);
-
-			finalSpeciesId = getBaseSpecies(finalSpeciesId);
+			const pool = buildSpawnPool(floor, isBossFloor, starter, luck, currentBiome, config, data);
+			finalSpeciesId = getBaseSpecies(weightedPick(pool));
 		}
 
-		while (true) {
-			const evo = getLevelUpEvo(finalSpeciesId);
-			if (!evo || chosenLevel < evo.evoLevel) break;
-
-			if (isBossFloor) {
-				if (floor <= 20) break;
-				if (floor <= 40) {
-					const nextEvo = Dex.species.get(evo.evoTo);
-					if (!nextEvo.evos || nextEvo.evos.length === 0) break;
-				}
-			}
-
-			finalSpeciesId = evo.evoTo;
-		}
-
+		finalSpeciesId = applyBossEvolutions(finalSpeciesId, chosenLevel, floor, isBossFloor);
 		const finalSpecie = Dex.species.get(finalSpeciesId);
 
-		let genNumber = config?.generation || 9;
-		const speciesIdForGen = toID(finalSpecie.name);
-		while (genNumber > 1) {
-			if (Dex.mod(`gen${genNumber}`).species.get(speciesIdForGen).isNonstandard) {
-				genNumber--;
-				continue;
-			}
-			break;
-		}
+		const genNumber = getValidGeneration(finalSpecie.name, config?.generation || 9);
 
-		let ivs: any;
-		if (floor <= 10) {
-			ivs = {
-				hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
-				def: Math.floor(Math.random() * 32), spa: Math.floor(Math.random() * 32),
-				spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
-			};
-		} else if (floor <= 20) {
-			const rollIv = () => 15 + Math.floor(Math.random() * 17);
-			ivs = { hp: rollIv(), atk: rollIv(), def: rollIv(), spa: rollIv(), spd: rollIv(), spe: rollIv() };
-		} else if (floor <= 30) {
-			const rollIv = () => 20 + Math.floor(Math.random() * 12);
-			ivs = { hp: rollIv(), atk: rollIv(), def: rollIv(), spa: rollIv(), spd: rollIv(), spe: rollIv() };
-		} else {
-			ivs = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
-		}
-
-		if (forcedIvs) ivs = { ...forcedIvs };
-
+		const ivs = forcedIvs ? { ...forcedIvs } : rollIVs(floor);
 		const evs = forcedEvs ? { ...forcedEvs } : calcEVSpread(finalSpecie, floor);
 		const nature = pickNatureForSpecies(finalSpecie, floor);
 
@@ -903,13 +930,7 @@ export function genPokemon(
 			pickBestAbility(finalSpecie, floor, config, abilityCharms) :
 			(forcedAbility ?? pickBestAbility(finalSpecie, floor, config, abilityCharms));
 
-		let shinyRate = 2048;
-		if (shinyCharms === 1) shinyRate = 256;
-		else if (shinyCharms === 2) shinyRate = 128;
-		else if (shinyCharms === 3) shinyRate = 64;
-		else if (shinyCharms >= 4) shinyRate = 32;
-
-		const shiny = Math.floor(Math.random() * shinyRate) === 0;
+		const shiny = rollShiny(shinyCharms);
 
 		const item = forcedItem ?? pickRandomHeldItem(finalSpecie.name);
 		const teraType = forcedTeraType ?? (Math.floor(Math.random() * 20) === 0 ?

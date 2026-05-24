@@ -1,9 +1,199 @@
 import { ObjectReadWriteStream } from '../../../lib/streams';
 import { StreamWorker } from '../../../lib/process-manager';
-import { type PokeRogueState } from './types';
+import { type PokeRogueState, type PokemonEntry } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { genAIPokemon, packAITeam, packTeam, type AIPokemonSet, botLevel } from './pokemon';
 import { setState, getState } from './state';
+
+export interface ParsedPokemonState {
+	species: string;
+	level: number;
+	hp: number;
+	maxHp: number;
+	status: string;
+	fainted: boolean;
+}
+
+export interface ParsedBattleState {
+	p1TeamHp: Record<number, number>;
+	p1TeamStatus: Record<number, string>;
+	p1FaintedIndices: Set<number>;
+	p2Active: Map<string, ParsedPokemonState>;
+	p1ActiveFainted: boolean;
+	consumedItems: { teamIdx: number, itemId: string }[];
+}
+
+export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[]): ParsedBattleState {
+	const p1TeamHp: Record<number, number> = {};
+	const p1TeamStatus: Record<number, string> = {};
+	const p1FaintedIndices = new Set<number>();
+	
+	const p2Active = new Map<string, ParsedPokemonState>();
+	let p1ActiveFainted = false;
+
+	const consumedItems: { teamIdx: number, itemId: string }[] = [];
+
+	// For tracking P1 mappings
+	const p1SlotToTeamIdx: Record<string, number> = {};
+	const p1ActivelyAssigned = new Set<number>();
+	
+	// Items tracking maps
+	const itemSlotMap: Record<string, number> = {};
+	const itemAssigned = new Set<number>();
+
+	for (const line of logLines) {
+		// Track active P1 faint status for catch logic
+		if (/^\|faint\|p1[a-z]:/.test(line)) p1ActiveFainted = true;
+		else if (/^\|(?:switch|drag)\|p1[a-z]:/.test(line)) p1ActiveFainted = false;
+
+		// Handle Switches
+		const swMatch = /^\|(?:switch|drag)\|(p[12][a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+		if (swMatch) {
+			const slot = swMatch[1];
+			const species = toID(swMatch[2].trim());
+			const level = swMatch[3] ? parseInt(swMatch[3]) : 0;
+			const hp = parseInt(swMatch[4]);
+			const maxHp = swMatch[5] ? parseInt(swMatch[5]) : 100;
+			const status = swMatch[6] || '';
+
+			if (slot.startsWith('p1')) {
+				// P1 team matching logic
+				const prev = p1SlotToTeamIdx[slot];
+				if (prev !== undefined) p1ActivelyAssigned.delete(prev);
+
+				let matched = -1;
+				for (let i = 0; i < playerTeam.length; i++) {
+					if (!p1ActivelyAssigned.has(i) && toID(playerTeam[i].species) === species && !p1FaintedIndices.has(i) && (playerTeam[i].currentHp ?? 100) > 0) {
+						matched = i;
+						break;
+					}
+				}
+				if (matched !== -1) {
+					p1SlotToTeamIdx[slot] = matched;
+					p1ActivelyAssigned.add(matched);
+					p1TeamHp[matched] = hp;
+					p1TeamStatus[matched] = status;
+				}
+
+				// Item tracking logic (requires checking base species too)
+				const prevItem = itemSlotMap[slot];
+				if (prevItem !== undefined) itemAssigned.delete(prevItem);
+				const logBase = toID(Dex.species.get(species).baseSpecies || species);
+				for (let i = 0; i < playerTeam.length; i++) {
+					const teamBase = toID(Dex.species.get(playerTeam[i].species).baseSpecies || playerTeam[i].species);
+					if (!itemAssigned.has(i) && teamBase === logBase && !p1FaintedIndices.has(i) && (playerTeam[i].currentHp ?? 100) > 0) {
+						itemSlotMap[slot] = i;
+						itemAssigned.add(i);
+						break;
+					}
+				}
+			} else {
+				// P2 active tracking (for catching)
+				p2Active.set(slot, { species, level, hp, maxHp, status, fainted: hp <= 0 });
+			}
+			continue;
+		}
+
+		// Damage / Heal
+		const dmgMatch = /^\|(?:-damage|-heal)\|(p[12][a-z]): [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
+		if (dmgMatch) {
+			const slot = dmgMatch[1];
+			const hp = parseInt(dmgMatch[2]);
+			const maxHp = dmgMatch[3] ? parseInt(dmgMatch[3]) : 100;
+			const status = dmgMatch[4] || '';
+
+			if (slot.startsWith('p1')) {
+				const idx = p1SlotToTeamIdx[slot];
+				if (idx !== undefined) {
+					p1TeamHp[idx] = hp;
+					if (status) p1TeamStatus[idx] = status;
+				}
+			} else {
+				const s = p2Active.get(slot);
+				if (s) {
+					s.hp = hp;
+					if (dmgMatch[3]) s.maxHp = maxHp;
+					if (status) s.status = status;
+				}
+			}
+			continue;
+		}
+
+		// Status apply
+		const stMatch = /^\|-status\|(p[12][a-z]): [^|]+\|(brn|psn|tox|par|slp|frz)/.exec(line);
+		if (stMatch) {
+			const slot = stMatch[1];
+			const status = stMatch[2];
+			if (slot.startsWith('p1')) {
+				const idx = p1SlotToTeamIdx[slot];
+				if (idx !== undefined) p1TeamStatus[idx] = status;
+			} else {
+				const s = p2Active.get(slot);
+				if (s) s.status = status;
+			}
+			continue;
+		}
+
+		// Cure status
+		const cureMatch = /^\|-curestatus\|(p[12][a-z]):/.exec(line);
+		if (cureMatch) {
+			const slot = cureMatch[1];
+			if (slot.startsWith('p1')) {
+				const idx = p1SlotToTeamIdx[slot];
+				if (idx !== undefined) p1TeamStatus[idx] = '';
+			} else {
+				const s = p2Active.get(slot);
+				if (s) s.status = '';
+			}
+			continue;
+		}
+
+		// Faint
+		const faintMatch = /^\|faint\|(p[12][a-z]):/.exec(line);
+		if (faintMatch) {
+			const slot = faintMatch[1];
+			if (slot.startsWith('p1')) {
+				const idx = p1SlotToTeamIdx[slot];
+				if (idx !== undefined) {
+					p1TeamHp[idx] = 0;
+					p1TeamStatus[idx] = '';
+					p1FaintedIndices.add(idx);
+					p1ActivelyAssigned.delete(idx);
+					delete p1SlotToTeamIdx[slot];
+				}
+			} else {
+				const s = p2Active.get(slot);
+				if (s) {
+					s.fainted = true;
+					s.hp = 0;
+					s.status = '';
+				}
+			}
+			continue;
+		}
+
+		// End item
+		const endItemMatch = /^\|-enditem\|p1([a-z]): [^|]+\|([^|]+)/.exec(line);
+		if (endItemMatch) {
+			if (line.includes('[from] move: Knock Off') || line.includes('[from] move: Thief') || line.includes('[from] move: Incinerate')) continue;
+			const slot = 'p1' + endItemMatch[1];
+			const itemId = toID(endItemMatch[2].trim());
+			const teamIdx = itemSlotMap[slot];
+			if (teamIdx !== undefined) {
+				consumedItems.push({ teamIdx, itemId });
+			}
+		}
+	}
+
+	return {
+		p1TeamHp,
+		p1TeamStatus,
+		p1FaintedIndices,
+		p2Active,
+		p1ActiveFainted,
+		consumedItems
+	};
+}
 
 interface MatchupContext {
 	gen: number;
