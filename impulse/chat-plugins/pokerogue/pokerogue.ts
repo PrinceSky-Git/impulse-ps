@@ -194,10 +194,13 @@ function applyExpShare(
 ): Map<number, number> {
 	const maxExpAllStacks = SHOP_ITEMS['expall']?.maxStack ?? 5;
 	const maxExpCharmStacks = SHOP_ITEMS['expcharm']?.maxStack ?? 99;
+	const maxSuperExpCharmStacks = SHOP_ITEMS['superexpcharm']?.maxStack ?? 30;
 
 	const expAllStacks = Math.min(maxExpAllStacks, (state.keyItems?.[EXP_SHARE_NAME] || 0));
 	const expCharmStacks = Math.min(maxExpCharmStacks, (state.keyItems?.['Exp. Charm'] || 0));
-	const charmMult = expCharmStacks > 0 ? (1 + 0.25 * expCharmStacks) : 1;
+	const superExpCharmStacks = Math.min(maxSuperExpCharmStacks, (state.keyItems?.['Super Exp. Charm'] || 0));
+	
+	const charmMult = 1 + (0.25 * expCharmStacks) + (0.60 * superExpCharmStacks);
 
 	const result = new Map<number, number>();
 
