@@ -126,6 +126,8 @@ export function getItemWeight(item: ShopItem, state: PokeRogueState): number {
 		w = item.weightFunc(state);
 	}
 
+	if (w <= 0) return 0;
+
 	if (item.type === 'tm' || item.type === 'item') {
 		w = Math.max(1, Math.floor(w * 0.5));
 	}
@@ -285,6 +287,7 @@ function isItemValidForDraft(
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
 	const luck = calculatePartyLuck(state.team);
 	state.luck = luck;
+
 	const draft: string[] = [];
 
 	const partySpecies = new Set(state.team.map(m => toID(m.species)));
@@ -326,6 +329,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				if (pickedKeys.has(key)) return false;
 				if (item.type === 'tm' && tmsInDraft >= 1) return false;
 				if (item.type === 'item' && heldItemsInDraft >= 1) return false;
+				if (getItemWeight(item, state) <= 0) return false;
 				return true;
 			});
 			
@@ -369,4 +373,4 @@ export function getItemPrice(wave: number, multiplier: number): number {
 export function getRerollCost(wave: number, rerollCount: number): number {
 	const base = 250 * Math.ceil(Math.max(1, wave) / 10);
 	return base * 2 ** rerollCount;
-}
+	}
