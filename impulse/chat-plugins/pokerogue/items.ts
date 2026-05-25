@@ -284,6 +284,7 @@ function isItemValidForDraft(
 
 export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig): string[] {
 	const luck = calculatePartyLuck(state.team);
+	state.luck = luck;
 	const draft: string[] = [];
 
 	const partySpecies = new Set(state.team.map(m => toID(m.species)));
