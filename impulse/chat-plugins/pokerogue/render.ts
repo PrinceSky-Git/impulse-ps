@@ -855,6 +855,7 @@ interface StatsViewModel {
 	spData: any;
 	showAbilityArrows: boolean;
 	showNatureArrows: boolean;
+	showTeraArrows: boolean;
 	natureName: string;
 	naturePlus: string | null;
 	natureMinus: string | null;
@@ -887,6 +888,7 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 
 	let showAbilityArrows = false;
 	let showNatureArrows = false;
+	let showTeraArrows = false;
 
 	if (state.isConfiguringStarter && slot === 0) {
 		const userData = getUserData(user.id);
@@ -900,6 +902,9 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 		if (starterData) {
 			if ((starterData.unlockedAbilities?.length || 0) > 1) showAbilityArrows = true;
 			if ((starterData.unlockedNatures?.length || 0) > 1) showNatureArrows = true;
+			
+			const hasTera = !!MODE_CONFIGS[state.gameMode]?.mechanicUnlocks?.terastallize;
+			if (hasTera && (starterData.unlockedTeraTypes?.length || 0) > 1) showTeraArrows = true;
 		}
 	}
 
@@ -973,7 +978,7 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 	const totalEvs = Object.values(evs as Record<string, number>).reduce((a, b) => a + b, 0);
 
 	return {
-		mon, spData, showAbilityArrows, showNatureArrows, natureName, naturePlus, natureMinus,
+		mon, spData, showAbilityArrows, showNatureArrows, showTeraArrows, natureName, naturePlus, natureMinus,
 		abilityName, abilityDesc, bs, ivs, evs: evs as any, stats, maxStats, totalEvs, hpPct, hpColor,
 		dateStr, heldItem, genderHtml, statusHtml, statKeys, statLabels, statColors,
 		tabNames, prevTab, nextTab, teamNav
@@ -1045,8 +1050,15 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		}
 		buf += `</div></div>`;
 
-		if (vm.mon.teraType) {
-			buf += `<div class="pr-sv-row"><span class="pr-sv-row-label">Tera</span><div class="pr-sv-row-val">${renderTypeBadge([vm.mon.teraType])}</div></div>`;
+		const hasTera = !!MODE_CONFIGS[state.gameMode]?.mechanicUnlocks?.terastallize;
+		if (vm.mon.teraType && hasTera) {
+			buf += `<div class="pr-sv-row"><span class="pr-sv-row-label">Tera</span><div class="pr-sv-row-val">`;
+			if (vm.showTeraArrows) {
+				buf += `${renderTypeBadge([vm.mon.teraType])}&nbsp;&nbsp;&nbsp;${renderBtn('/pokerogue cyclestarter tera next', 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
+			} else {
+				buf += `${renderTypeBadge([vm.mon.teraType])}`;
+			}
+			buf += `</div></div>`;
 		}
 
 		buf += `<div class="pr-sv-divider"></div>`;
@@ -1318,4 +1330,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'draft') return buf + renderDraftView(state) + `</div></div>`;
 
 	return buf + renderMainView(state, user) + `</div></div>`;
+}
+
+}
 }
