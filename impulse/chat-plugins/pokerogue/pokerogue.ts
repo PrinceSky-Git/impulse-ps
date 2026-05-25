@@ -301,6 +301,9 @@ function syncBattleOutcome(
 	state: PokeRogueState,
 ): { consumedItems: string[] } {
 	const consumedItems: string[] = [];
+	// GUARD CLAUSE: If the battle instance is already gone/cleared, return empty.
+	if (!battle.sides || !battle.sides[0]) return { consumedItems };
+	
 	const playerSide = battle.sides[0];
 
 	for (let i = 0; i < state.team.length; i++) {
