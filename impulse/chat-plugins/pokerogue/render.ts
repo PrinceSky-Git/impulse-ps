@@ -669,8 +669,10 @@ function renderGiveItem(state: PokeRogueState): string {
 		buf += `</tr>`;
 	}
 
-	buf += `</tbody></table>`;
-	buf += renderBtn('/pokerogue resolve giveitem skip', 'Cancel <small style="color:#888">(refund)</small>', 'pr-btn', 'width:100%;padding:8px;margin-top:2px');
+	buf += `</tbody></table><br>`;
+	buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+	buf += `${renderBtn('/pokerogue resolve giveitem skip', 'Skip', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
+	buf += `</div>`;
 	return buf;
 }
 
