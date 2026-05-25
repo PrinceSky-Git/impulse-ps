@@ -1188,9 +1188,6 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		if (caughtItem) caught.heldItem = caughtItem;
 		if (p2Status && p2Status !== 'none') caught.status = p2Status;
 
-		state.caughtPokemon = caught;
-		setState(user.id, state);
-
 		const userData = getUserData(user.id);
 
 		if (state.gameMode === 'classic') {
@@ -1212,19 +1209,23 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 			} : { ...caught.ivs };
 
 			const isShiny = existingStarter?.shiny || caught.shiny;
+			
 			const unlockedNatures = new Set(existingStarter?.unlockedNatures || []);
 			if (existingStarter?.nature) unlockedNatures.add(existingStarter.nature);
 			if (existingStarter?.selectedNature) unlockedNatures.add(existingStarter.selectedNature);
+			const oldNaturesSize = unlockedNatures.size;
 			if (caught.nature) unlockedNatures.add(caught.nature);
 
 			const unlockedAbilities = new Set(existingStarter?.unlockedAbilities || []);
 			if (existingStarter?.ability) unlockedAbilities.add(existingStarter.ability);
 			if (existingStarter?.selectedAbility) unlockedAbilities.add(existingStarter.selectedAbility);
+			const oldAbilitiesSize = unlockedAbilities.size;
 			if (caught.ability) unlockedAbilities.add(caught.ability);
 
 			const unlockedTeraTypes = new Set(existingStarter?.unlockedTeraTypes || []);
 			if (existingStarter?.teraType) unlockedTeraTypes.add(existingStarter.teraType);
 			if (existingStarter?.selectedTeraType) unlockedTeraTypes.add(existingStarter.selectedTeraType);
+			const oldTeraSize = unlockedTeraTypes.size;
 			if (caught.teraType) unlockedTeraTypes.add(caught.teraType);
 
 			const selectedNature = existingStarter?.selectedNature || caught.nature;
@@ -1251,13 +1252,29 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 			userData.starters[baseSpecies] = baseCaught;
 			saveUserData(user.id);
 
-			if (!existingStarter) room.add(`|c|~|${baseDex.name} has been permanently unlocked as a Starter!`).update();
-			else {
-				let upgradeMsg = " upgraded its Starter data!";
-				if (!existingStarter.shiny && caught.shiny) upgradeMsg = " unlocked its Shiny form!";
-				room.add(`|c|~|${baseDex.name}${upgradeMsg}`).update();
+			const starterUnlocks: string[] = [];
+			if (!existingStarter) {
+				starterUnlocks.push(`&nbsp;&nbsp;↳ ${baseDex.name} - Unlocked as a Starter!`);
+			} else {
+				if (!existingStarter.shiny && caught.shiny) {
+					starterUnlocks.push(`&nbsp;&nbsp;↳ ${baseDex.name} - Unlocked Shiny form!`);
+				}
+				if (unlockedNatures.size > oldNaturesSize) {
+					starterUnlocks.push(`&nbsp;&nbsp;↳ ${baseDex.name} - Unlocked ${caught.nature} Nature.`);
+				}
+				if (unlockedAbilities.size > oldAbilitiesSize) {
+					const abilityName = Dex.abilities.get(caught.ability).name || caught.ability;
+					starterUnlocks.push(`&nbsp;&nbsp;↳ ${baseDex.name} - Unlocked ${abilityName} Ability.`);
+				}
+				if (unlockedTeraTypes.size > oldTeraSize) {
+					starterUnlocks.push(`&nbsp;&nbsp;↳ ${baseDex.name} - Unlocked ${caught.teraType} Tera Type.`);
+				}
 			}
+			caught.starterUnlocks = starterUnlocks;
 		}
+
+		state.caughtPokemon = caught;
+		setState(user.id, state);
 
 		const match = activeMatches.get(room.roomid);
 		if (match) {
@@ -2062,6 +2079,11 @@ export const handlers: Chat.Handlers = {
 					state.pendingSwap = caughtMon;
 					battleLogMsgs.push(`<b>Gotcha! ${spName} was caught! (Team full, swap pending)</b>`);
 				}
+
+				if (caughtMon.starterUnlocks && caughtMon.starterUnlocks.length > 0) {
+					battleLogMsgs.push(...caughtMon.starterUnlocks);
+				}
+
 				delete state.caughtPokemon;
 			}
 
@@ -2112,5 +2134,5 @@ export const handlers: Chat.Handlers = {
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
-	},
+	}
 };
