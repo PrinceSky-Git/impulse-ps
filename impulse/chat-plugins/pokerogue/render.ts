@@ -811,8 +811,6 @@ function renderWelcomeView(): string {
 	const MODE_LABELS: Record<string, string> = {
 		classic: 'Classic',
 		random: 'Random',
-		endless: 'Endless',
-		gen1: 'Gen 1',
 	};
 
 	let actionsHtml = '';
@@ -822,9 +820,9 @@ function renderWelcomeView(): string {
 	}
 
 	return renderCharacterDialogView({
-		title: 'Drunk Professor Oak',
+		title: 'Professor Oak',
 		spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/oak.png',
-		dialog: 'PokèRogue is currently in Beta. Features may change, bugs may occur, and balancing updates will happen frequently. Your feedback helps shape the future of the game!',
+		dialog: 'PokèRogue is currently in Beta. Inspired by Hizo Roguelike and PokèRogue.net, this project is subject to frequent feature changes, balancing updates, and potential bugs. Your feedback helps shape the future of the game!',
 		actionsHtml,
 	});
 }
