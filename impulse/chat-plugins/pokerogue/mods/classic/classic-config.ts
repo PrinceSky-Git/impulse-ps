@@ -48,13 +48,11 @@ export const classicConfig: ModeConfig = {
 	},
 
 	milestoneRewards: [
-		{ floor: 50, interval: true, itemType: 'inventory', itemName: 'masterball', amount: 1 },
-		{ floor: 5, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
+		{ floor: 8, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
+		{ floor: 8, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
 		{ floor: 10, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
-		{ floor: 10, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
-		{ floor: 20, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
-	
-	
+		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
+		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },	
 	],
 
 	maxFloor: 200,
