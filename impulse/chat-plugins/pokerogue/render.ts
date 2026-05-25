@@ -30,7 +30,7 @@ const SPRITE_ID_OVERRIDES: { [id: string]: string } = {
 	ursalunabloodmoon: 'ursaluna',
 };
 
-const CUSTOM_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/';
+const CUSTOM_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/lure';
 const CUSTOM_ICON_MAP: Record<string, string> = {
 	'Lure': 'lure.png',
 	'Super Lure': 'super-lure.png',
