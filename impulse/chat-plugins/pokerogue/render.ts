@@ -40,6 +40,28 @@ const MINT_ICON_MAP: Record<string, string> = {
 	'Neutral Mint': 'Serious-Mint.png',
 };
 
+const TM_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/tms/';
+const TM_ICON_MAP: Record<string, string> = {
+	'TM Normal': 'normal-tm.png',
+	'TM Fire': 'fire-tm.png',
+	'TM Water': 'water-tm.png',
+	'TM Grass': 'grass-tm.png',
+	'TM Electric': 'eletric-tm.png',
+	'TM Ice': 'ice-tm.png',
+	'TM Fighting': 'fighting-tm.png',
+	'TM Poison': 'poison-tm.png',
+	'TM Ground': 'ground-tm.png',
+	'TM Flying': 'flying-tm.png',
+	'TM Psychic': 'psychic-tm.png',
+	'TM Bug': 'bug-tm.png',
+	'TM Rock': 'rock-tm.png',
+	'TM Ghost': 'ghost-tm.png',
+	'TM Dragon': 'dragon-tm.png',
+	'TM Dark': 'dark-tm.png',
+	'TM Steel': 'steel-tm.png',
+	'TM Fairy': 'fairy-tm.png',
+};
+
 interface DialogConfig {
 	title: string;
 	spriteUrl?: string;
@@ -98,9 +120,14 @@ function getSprite(species: string, size = 80, shiny = false, className = 'pr-mo
 
 function getShopItemIcon(icon: string, size = 20): string {
 	const mintFile = MINT_ICON_MAP[icon];
-	const url = mintFile
-		? `${MINT_SPRITE_BASE}${mintFile}`
-		: `https://www.smogon.com/forums/media/minisprites/${itemURLFormat(icon)}.png`;
+	if (mintFile) {
+		return `<img src="${Utils.escapeHTML(MINT_SPRITE_BASE + mintFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
+	}
+	const tmFile = TM_ICON_MAP[icon];
+	if (tmFile) {
+		return `<img src="${Utils.escapeHTML(TM_SPRITE_BASE + tmFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
+	}
+	const url = `https://www.smogon.com/forums/media/minisprites/${itemURLFormat(icon)}.png`;
 	return `<img src="${Utils.escapeHTML(url)}" width="${size}" height="${size}" class="pr-shop-icon">`;
 }
 
