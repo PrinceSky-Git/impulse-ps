@@ -143,6 +143,8 @@ export interface PokemonEntry {
 	selectedNature?: string;
 	selectedAbility?: string;
 	selectedTeraType?: string;
+	
+	activeBuffs?: Record<string, number>;
 }
 
 export interface PokeRogueState {
@@ -169,7 +171,7 @@ export interface PokeRogueState {
 	pendingSwap?: PokemonEntry;
 	pendingMoves?: { pokemonIndex: number, move: string, speciesName: string }[];
 	purchasedItem?: string;
-	pendingConsumableType?: 'healHP' | 'revive' | 'cureStatus' | 'vitamin' | 'tm' | 'evolveItem' | 'mint' | 'rareCandy';
+	pendingConsumableType?: 'healHP' | 'revive' | 'cureStatus' | 'vitamin' | 'tm' | 'evolveItem' | 'mint' | 'rareCandy' | 'xItem';
 	pendingItemName?: string;
 	pendingItemIsEvo?: boolean;
 	pendingItemIsMega?: boolean;
