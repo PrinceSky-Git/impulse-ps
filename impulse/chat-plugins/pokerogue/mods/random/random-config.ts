@@ -18,26 +18,34 @@ export const randomConfig: ModeConfig = {
 	doublesFormat: '[Gen 9] PokeRogue Doubles',
 	economy: {
 		startingMoney: 1000,
-		startingKeyItems: { 'Exp. All': 3 },
+		startingKeyItems: { 'Exp. All': 1},
 		startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 	},
+	
 	storyRouting: {
 		fixedTrainerWaves: [5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200],
 		gymLeaderInterval: 30,
 		maxGymLeaderTier: 5,
 		firstGymLeaderWaves: [20, 30],
 	},
+	
 	mechanicUnlocks: {
 		terastallize: 25,
 	},
+	
 	milestoneRewards: [
-		{ floor: 50, interval: true, itemType: 'inventory', itemName: 'masterball', amount: 1 },
+		{ floor: 8, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
+		{ floor: 8, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
 		{ floor: 10, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
+		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
+		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },	
 	],
+	
 	lastBiome: {
 		biome: 'End',
 		floor: '191-200',
 	},
+	
 	victoryConfig: {
 		name: 'Champion',
 		dialog: 'You have conquered all 200 floors of the Random run! A true master of chaos!',
