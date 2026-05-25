@@ -600,58 +600,77 @@ function renderGiveItem(state: PokeRogueState): string {
 	if (state.pendingItemIsMega) actionVerb = 'Mega Evolve';
 
 	let buf = `<h2 class="pr-choice-heading">${actionVerb} ${Utils.escapeHTML(dexItem.name || state.pendingItemName!)}?</h2>`;
-	buf += `<div style="font-size:12px;color:#aaa;margin-bottom:8px">Choose a Pokémon:</div><div class="pr-choice-grid">`;
 
-	for (let i = 0; i < state.team.length; i++) {
-		const mon = state.team[i];
-		const dexSpecies = Dex.species.get(toID(mon.species));
-		const spName = dexSpecies.name;
+	buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><tbody>`;
 
-		let isCompatible = true;
-		let reason = '';
+	const COLS = 3;
+	for (let i = 0; i < state.team.length; i += COLS) {
+		buf += `<tr>`;
+		for (let j = i; j < i + COLS; j++) {
+			buf += `<td style="width:33.33%;text-align:center;padding:6px 4px;vertical-align:top;">`;
+			if (j < state.team.length) {
+				const mon = state.team[j];
+				const dexSpecies = Dex.species.get(toID(mon.species));
+				const spName = dexSpecies.name;
 
-		if (state.pendingItemIsEvo) {
-			isCompatible = false;
-			const evoList = dexSpecies.evos;
+				let isCompatible = true;
+				let reason = '';
 
-			if (evoList) {
-				for (const newEvo of evoList) {
-					const evoData = Dex.species.get(newEvo);
-					const evoItemId = toID(evoData.evoItem);
-
-					const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
-					const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
-					const isPlainTradeEvolution = evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
-
-					if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
-						isCompatible = true;
-						break;
+				if (state.pendingItemIsEvo) {
+					isCompatible = false;
+					const evoList = dexSpecies.evos;
+					if (evoList) {
+						for (const newEvo of evoList) {
+							const evoData = Dex.species.get(newEvo);
+							const evoItemId = toID(evoData.evoItem);
+							const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
+							const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
+							const isPlainTradeEvolution = evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
+							if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
+								isCompatible = true;
+								break;
+							}
+						}
 					}
+					if (!isCompatible) reason = 'Incompatible';
+				} else if (state.pendingItemIsMega) {
+					isCompatible = false;
+					if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(mon.species)) {
+						isCompatible = true;
+					}
+					if (!isCompatible) reason = 'Incompatible';
+				}
+
+				buf += `<div style="font-size:11px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
+				buf += Utils.escapeHTML(spName);
+				if (mon.shiny) buf += ` <span style="color:#fda085">★</span>`;
+				buf += `</div>`;
+				buf += `<div style="${!isCompatible ? 'opacity:.4;filter:grayscale(80%);' : ''}">`;
+				buf += getSprite(mon.species, 56, mon.shiny);
+				buf += `</div>`;
+				buf += `<div style="font-size:11px;color:#888;margin:2px 0;">Lv. ${mon.level}</div>`;
+				if (reason) {
+					buf += `<div style="font-size:10px;color:#f87171;margin-bottom:3px;">${reason}</div>`;
+				} else if ((state.pendingItemIsEvo || state.pendingItemIsMega) && isCompatible) {
+					buf += `<div style="font-size:10px;color:#4caf50;font-weight:bold;margin-bottom:3px;">ABLE!</div>`;
+				}
+				if (mon.heldItem) {
+					buf += `<div style="font-size:10px;color:#8ab4f8;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">` +
+						Utils.escapeHTML(Dex.items.get(mon.heldItem).name || mon.heldItem) + `</div>`;
+				}
+				if (isCompatible) {
+					buf += `<button name="send" value="/pokerogue resolve giveitem ${j + 1}" class="pr-btn" style="width:90%;padding:3px 0;font-size:11px;">${actionVerb}</button>`;
+				} else {
+					buf += `<button class="pr-btn" style="width:90%;padding:3px 0;font-size:11px;opacity:0.4;" disabled>—</button>`;
 				}
 			}
-			if (!isCompatible) reason = 'Incompatible';
-		} else if (state.pendingItemIsMega) {
-			isCompatible = false;
-			if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(mon.species)) {
-				isCompatible = true;
-			}
-			if (!isCompatible) reason = 'Incompatible';
+			buf += `</td>`;
 		}
-
-		let flexHtml = `<span style="font-size:12px;font-weight:500">${spName}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` <span style="color:#f87171">(${reason})</span>` : ''}</span>`;
-
-		if (mon.heldItem) flexHtml += `<div style="font-size:9px;color:#8ab4f8">Holds: ${Utils.escapeHTML(Dex.items.get(mon.heldItem).name || mon.heldItem)}</div>`;
-
-		if ((state.pendingItemIsEvo || state.pendingItemIsMega) && isCompatible) {
-			flexHtml += `<div style="font-size:10px;color:#4caf50;font-weight:bold;margin-top:2px;letter-spacing:0.5px;">ABLE!</div>`;
-		}
-
-		const btnHtml = isCompatible ? renderBtn(`/pokerogue resolve giveitem ${i + 1}`, actionVerb, 'pr-pick-btn') : '';
-
-		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, isCompatible ? '' : 'opacity:.4;filter:grayscale(80%);');
+		buf += `</tr>`;
 	}
 
-	buf += renderBtn('/pokerogue resolve giveitem skip', 'Cancel <small style="color:#888">(refund)</small>', 'pr-btn', 'width:100%;padding:8px;margin-top:2px') + `</div>`;
+	buf += `</tbody></table>`;
+	buf += renderBtn('/pokerogue resolve giveitem skip', 'Cancel <small style="color:#888">(refund)</small>', 'pr-btn', 'width:100%;padding:8px;margin-top:2px');
 	return buf;
 }
 
