@@ -942,7 +942,7 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 	const shiny = savedStarter ? !!savedStarter.shiny : (Math.floor(Math.random() * 4096) === 0);
 	const gender = savedStarter?.gender || Dex.species.get(finalSpecies).gender || (Math.random() < 0.5 ? 'M' : 'F');
 	const allTypes = Dex.types.all().map(t => t.name);
-	const teraType = savedStarter?.teraType || (Math.floor(Math.random() * 20) === 0 ?
+	const teraType = savedStarter?.selectedTeraType || savedStarter?.teraType || (Math.floor(Math.random() * 20) === 0 ?
 		allTypes[Math.floor(Math.random() * allTypes.length)] :
 		Dex.species.get(finalSpecies).types[Math.floor(Math.random() * Dex.species.get(finalSpecies).types.length)]);
 
@@ -981,8 +981,13 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 		const sid = toID(finalSpecies);
 		if (!userData.starters[sid]) {
 			userData.starters[sid] = {
-				...newMon, unlockedNatures: [newMon.nature!], unlockedAbilities: [newMon.ability!],
-				selectedNature: newMon.nature, selectedAbility: newMon.ability,
+				...newMon, 
+				unlockedNatures: [newMon.nature!], 
+				unlockedAbilities: [newMon.ability!],
+				unlockedTeraTypes: [newMon.teraType!],
+				selectedNature: newMon.nature, 
+				selectedAbility: newMon.ability,
+				selectedTeraType: newMon.teraType,
 			};
 			saveUserData(user.id);
 		}
@@ -1217,8 +1222,14 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 			if (existingStarter?.selectedAbility) unlockedAbilities.add(existingStarter.selectedAbility);
 			if (caught.ability) unlockedAbilities.add(caught.ability);
 
+			const unlockedTeraTypes = new Set(existingStarter?.unlockedTeraTypes || []);
+			if (existingStarter?.teraType) unlockedTeraTypes.add(existingStarter.teraType);
+			if (existingStarter?.selectedTeraType) unlockedTeraTypes.add(existingStarter.selectedTeraType);
+			if (caught.teraType) unlockedTeraTypes.add(caught.teraType);
+
 			const selectedNature = existingStarter?.selectedNature || caught.nature;
 			const selectedAbility = existingStarter?.selectedAbility || caught.ability;
+			const selectedTeraType = existingStarter?.selectedTeraType || caught.teraType;
 
 			const baseCaught = {
 				...caught, species: baseSpecies, level: 5, exp: expForLevel(5, getExpType(baseSpecies)), expType: getExpType(baseSpecies),
@@ -1226,8 +1237,12 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 				shiny: !!isShiny, ivs: bestIvs, evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
 				metLevel: 5, metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`, currentHp: 100,
 				ball: caught.ball, gender: caught.gender, teraType: caught.teraType, marks: caught.marks ? [...caught.marks] : [],
-				unlockedNatures: Array.from(unlockedNatures), unlockedAbilities: Array.from(unlockedAbilities),
-				selectedNature, selectedAbility,
+				unlockedNatures: Array.from(unlockedNatures), 
+				unlockedAbilities: Array.from(unlockedAbilities),
+				unlockedTeraTypes: Array.from(unlockedTeraTypes),
+				selectedNature, 
+				selectedAbility,
+				selectedTeraType,
 			};
 
 			delete baseCaught.status;
@@ -1522,7 +1537,14 @@ export const commands: Chat.ChatCommands = {
 
 			let starterData = userData.starters[baseSpecies];
 			if (!starterData) {
-				starterData = { unlockedNatures: [mon.nature!], unlockedAbilities: [mon.ability!], selectedNature: mon.nature!, selectedAbility: mon.ability! } as PokemonEntry;
+				starterData = { 
+					unlockedNatures: [mon.nature!], 
+					unlockedAbilities: [mon.ability!], 
+					unlockedTeraTypes: [mon.teraType!],
+					selectedNature: mon.nature!, 
+					selectedAbility: mon.ability!,
+					selectedTeraType: mon.teraType!
+				} as PokemonEntry;
 				userData.starters[baseSpecies] = starterData;
 			}
 
@@ -1553,6 +1575,20 @@ export const commands: Chat.ChatCommands = {
 					mon.ability = pool[idx];
 					starterData.selectedAbility = pool[idx];
 					starterData.ability = pool[idx];
+				}
+			} else if (trait === 'tera') {
+				const pool = starterData.unlockedTeraTypes?.length ? starterData.unlockedTeraTypes : [mon.teraType!];
+				if (!pool.includes(mon.teraType!)) pool.push(mon.teraType!);
+
+				if (pool.length <= 1) state.notification = `You haven't unlocked any other Tera Types for this Pokémon yet! Catch duplicates in the wild to expand your options.`;
+				else {
+					let idx = pool.indexOf(mon.teraType!);
+					if (direction === 'next') idx = (idx + 1) % pool.length;
+					if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+
+					mon.teraType = pool[idx];
+					starterData.selectedTeraType = pool[idx];
+					starterData.teraType = pool[idx];
 				}
 			}
 
