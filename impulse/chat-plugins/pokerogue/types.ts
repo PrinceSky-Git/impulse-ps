@@ -136,6 +136,7 @@ export interface PokemonEntry {
 	metDate?: number;
 	marks?: string[];
 
+	starterUnlocks?: string[];
 	unlockedNatures?: string[];
 	unlockedAbilities?: string[];
 	unlockedTeraTypes?: string[];
