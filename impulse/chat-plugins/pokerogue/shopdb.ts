@@ -254,19 +254,19 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	expall: {
 		name: "Exp. All", icon: "Exp Share", type: "key", category: "Key Items",
 		desc: "Gives 20% Exp. to all non-fainted Pokemon not in the battle. Stacks up to 5 times.",
-		moneyMultiplier: 2.0, tier: "Rogue", maxStack: 5, weight: 4, minWeight: 0, maxWeight: 4,
+		moneyMultiplier: 2.0, tier: "Ultra", maxStack: 5, weight: 4, minWeight: 0, maxWeight: 4,
 		weightFunc: (state) => (state.keyItems?.['Exp. All'] || 0) >= 5 ? 0 : 4,
 	},
 	expcharm: {
 		name: "Exp. Charm", icon: "Exp. Share", type: "key", category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 25%. Stacks up to 99 times.",
-		moneyMultiplier: 1.5, tier: "Ultra", maxStack: 99, weight: 8, minWeight: 0, maxWeight: 8,
+		moneyMultiplier: 1.5, tier: "Great", maxStack: 99, weight: 8, minWeight: 0, maxWeight: 8,
 		weightFunc: (state) => (state.keyItems?.['Exp. Charm'] || 0) >= 99 ? 0 : 8,
 	},
 	superexpcharm: {
 		name: "Super Exp. Charm", icon: "Exp. Charm", type: "key", category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 60%. Stacks up to 30 times.",
-		moneyMultiplier: 2.5, tier: "Rogue", maxStack: 30, weight: 8, minWeight: 8, maxWeight: 8,
+		moneyMultiplier: 2.5, tier: "Ultra", maxStack: 30, weight: 8, minWeight: 8, maxWeight: 8,
 	},
 	shinycharm: {
 		name: "Shiny Charm", icon: "Shiny Charm", type: "key", category: "Key Items",
@@ -281,7 +281,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	amuletcoin: {
 		name: "Amulet Coin", icon: "Amulet Coin", type: "key", category: "Key Items",
 		desc: "Increases the amount of money gained from battles by 20%. Stacks up to 5 times.",
-		moneyMultiplier: 1.0, tier: "Rogue", maxStack: 5, weight: 4, minWeight: 0, maxWeight: 4,
+		moneyMultiplier: 1.0, tier: "Great", maxStack: 5, weight: 4, minWeight: 0, maxWeight: 4,
 		weightFunc: (state) => (state.keyItems?.['Amulet Coin'] || 0) >= 5 ? 0 : 4,
 	},
 	goldenball: {
@@ -307,7 +307,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	ultraball: {
 		name: "Ultra Ball", icon: "Ultra Ball", type: "pokeball", category: "Pokéballs",
 		desc: "An excellent ball with a very high catch rate.",
-		moneyMultiplier: 1.5, tier: "Ultra", maxStack: 99, weight: 20, minWeight: 5, maxWeight: 20,
+		moneyMultiplier: 1.5, tier: "Rogue", maxStack: 99, weight: 20, minWeight: 5, maxWeight: 20,
 	},
 	masterball: {
 		name: "Master Ball", icon: "Master Ball", type: "pokeball", category: "Pokéballs",
