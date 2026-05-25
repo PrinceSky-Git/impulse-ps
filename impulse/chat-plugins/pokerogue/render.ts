@@ -353,17 +353,15 @@ function renderDraftView(state: PokeRogueState): string {
 
 	const tierColors: Record<string, string> = {
 		'Common': '#b0b0b0',
-		'Great': '#3b82f6', // Blue
-		'Ultra': '#eab308', // Yellow
-		'Rogue': '#ef4444', // Red
-		'Master': '#a855f7', // Purple
+		'Great': '#3b82f6',
+		'Ultra': '#eab308',
+		'Rogue': '#ef4444',
+		'Master': '#a855f7',
 	};
 
-	let buf = `<div style="text-align:center; padding: 10px;">`;
-	buf += `<h2 style="color:#fac000; margin-bottom: 4px;">Wave Cleared!</h2>`;
-	buf += `<div style="font-size:14px; font-weight:bold; margin-bottom: 16px;">Current Money: <span style="color:#4caf50">$${currentMoney}</span></div>`;
+	let buf = `<div style="padding: 10px;">`;
+	buf += renderStatBar(state, false, 'draft');
 
-	// --- Reward Draft Table ---
 	buf += `<div class="pr-section-title" style="text-align:left;">Reward Draft</div>`;
 	buf += `<div class="pr-table-container" style="margin-bottom: 16px;"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
 	buf += `<tbody>`;
@@ -384,14 +382,12 @@ function renderDraftView(state: PokeRogueState): string {
 
 	buf += `</tbody></table></div>`;
 
-	// --- Reroll & Skip Actions ---
 	buf += `<div style="text-align:center; margin-bottom:20px;">`;
 	buf += renderBtn(canReroll ? '/pokerogue reroll' : null, `Reroll ($${rerollCost})`, `pr-btn ${canReroll ? 'primary' : ''}`, 'font-size:11px;padding:5px 10px', !canReroll);
 	buf += `&nbsp;&nbsp;`;
 	buf += renderBtn('/pokerogue draft skip', 'Skip', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	buf += `</div>`;
 
-	// --- Rotational Shop Table ---
 	buf += `<div class="pr-section-title" style="text-align:left;">Shop</div>`;
 	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%; border-collapse:collapse; font-size:11px; line-height:1.2;">`;
 	buf += `<tbody>`;
