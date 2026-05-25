@@ -229,11 +229,14 @@ function renderNotification(state: PokeRogueState): string {
 		`</div>`;
 }
 
-function renderStatBar(state: PokeRogueState, cols2 = false): string {
+function renderStatBar(state: PokeRogueState, cols2 = false, variant: 'main' | 'draft' = 'main'): string {
 	const floorStat = cols2 ? '' : `<div class="pr-stat"><div class="pr-stat-label">Floor</div><div class="pr-stat-val">${state.floor}</div></div>`;
+	const thirdStat = variant === 'draft'
+		? `<div class="pr-stat"><div class="pr-stat-label">Luck</div><div class="pr-stat-val">${state.luck ?? 0}</div></div>`
+		: `<div class="pr-stat"><div class="pr-stat-label">Record</div><div class="pr-stat-val">Floor ${state.highestFloor ?? 1}</div></div>`;
 	return `<div class="pr-statbar${cols2 ? ' cols2' : ''}">` + floorStat +
 		`<div class="pr-stat"><div class="pr-stat-label">Money</div><div class="pr-stat-val">$${state.money ?? 0}</div></div>` +
-		`<div class="pr-stat"><div class="pr-stat-label">Record</div><div class="pr-stat-val">Floor ${state.highestFloor ?? 1}</div></div>` +
+		thirdStat +
 		`</div>`;
 }
 
