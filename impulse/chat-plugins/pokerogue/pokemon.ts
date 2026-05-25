@@ -1040,20 +1040,31 @@ export function packPokemon(mon: PokemonEntry): string {
 	const item = mon.heldItem ?? '';
 	const moves = mon.moves.join(',');
 
-	const base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
+	let base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
 
-	if ((mon.currentHp ?? 100) <= 0) {
-		return base;
+	// Map strictly to the simulator's misc array format:
+	// [Happiness, HPType, Pokeball, Gigantamax, DynamaxLevel, TeraType, HP%, Status, BSTBoosts, HPMult]
+	const misc = [
+		mon.happiness !== undefined && mon.happiness !== 255 ? mon.happiness.toString() : '',
+		'', // HP Type
+		mon.ball || '', // Pokeball
+		'', // Gigantamax
+		'', // Dynamax Level
+		mon.teraType || '', // Tera Type
+		mon.currentHp !== undefined && mon.currentHp !== 100 ? mon.currentHp.toString() : '', // Starting HP %
+		mon.status || '', // Status condition
+	];
+
+	// Pop off trailing empty strings to match Showdown's clean packed format
+	while (misc.length > 0 && misc[misc.length - 1] === '') {
+		misc.pop();
 	}
 
-	const hp = mon.currentHp ?? 100;
-	const status = mon.status ?? '';
-	let tail = '';
-	if (hp !== 100 || status) {
-		tail = `,,,,,,${hp !== 100 ? hp : ''},${status}`;
-		if (!status) tail = tail.replace(/,$/, '');
+	if (misc.length > 0) {
+		base += misc.join(',');
 	}
-	return base + tail;
+
+	return base;
 }
 
 export function packAIPokemon(set: AIPokemonSet): string {
@@ -1063,7 +1074,29 @@ export function packAIPokemon(set: AIPokemonSet): string {
 	const evStr = `${set.evs.hp},${set.evs.atk},${set.evs.def},${set.evs.spa},${set.evs.spd},${set.evs.spe}`;
 	const movesStr = set.moves.map(m => Dex.moves.get(m).name || m).join(',');
 	const shinyStr = set.shiny ? 'S' : '';
-	return `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|,,,${set.teraType}`;
+	
+	let base = `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|`;
+
+	// Map strictly to the simulator's misc array format
+	const misc = [
+		'', // Happiness
+		'', // HP Type
+		'', // Pokeball
+		'', // Gigantamax
+		'', // Dynamax Level
+		set.teraType || '', // Tera Type
+	];
+
+	// Pop off trailing empty strings
+	while (misc.length > 0 && misc[misc.length - 1] === '') {
+		misc.pop();
+	}
+
+	if (misc.length > 0) {
+		base += misc.join(',');
+	}
+
+	return base;
 }
 
 export function packTeam(mons: PokemonEntry[]): string {
