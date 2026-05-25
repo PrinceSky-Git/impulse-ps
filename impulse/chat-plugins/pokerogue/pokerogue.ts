@@ -749,6 +749,14 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 					}
 				}
 			}
+		} else if (item.type === 'xItem') {
+			if (hp <= 0) { ctx.errorReply("Can't use on a fainted Pokémon."); return false; }
+			const stat = item.buffStat!;
+			if (!mon.activeBuffs) mon.activeBuffs = {};
+			if (mon.activeBuffs[stat]) { ctx.errorReply(`This Pokémon already has an active ${item.name} buff!`); return false; }
+
+			mon.activeBuffs[stat] = 5;
+			state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> used ${item.name}! Its stat is boosted for 5 battles!`;
 		}
 
 		delete state.purchasedItem;
@@ -848,7 +856,7 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 		state.pendingItemIsEvo = item.type === 'evolveItem';
 		state.pendingItemIsMega = item.type === 'megaStone';
 		(state as any).view = 'main';
-	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy'].includes(item.type)) {
+	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
 		delete state.pendingRewardDraft;
 		delete state.rerollCount;
 		state.purchasedItem = itemKey;
@@ -895,7 +903,7 @@ function handleBuyShopAction(target: string, user: User, state: PokeRogueState, 
 		state.pendingItemName = item.name;
 		state.pendingItemIsEvo = item.type === 'evolveItem';
 		state.pendingItemIsMega = item.type === 'megaStone';
-	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy'].includes(item.type)) {
+	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
 		state.pendingConsumableType = item.type;
 	}
 	(state as any).view = 'main';
@@ -2089,6 +2097,18 @@ export const handlers: Chat.Handlers = {
 
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
+
+			// Decrement X Item buffs
+			for (const mon of state.team) {
+				if (mon.activeBuffs) {
+					for (const stat in mon.activeBuffs) {
+						mon.activeBuffs[stat]--;
+						if (mon.activeBuffs[stat] <= 0) {
+							delete mon.activeBuffs[stat];
+						}
+					}
+				}
+			}
 
 			if ((state.lureCharges ?? 0) > 0) {
 				state.lureCharges!--;
