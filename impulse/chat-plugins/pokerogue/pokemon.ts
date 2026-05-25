@@ -1042,6 +1042,16 @@ export function packPokemon(mon: PokemonEntry): string {
 
 	let base = `${name}||${item}|${ability}|${moves}|${nature}|${evs}|${gender}|${ivs}|${shiny}|${mon.level}|`;
 
+	const atkBoost = mon.activeBuffs?.atk ? 10 : 0;
+	const defBoost = mon.activeBuffs?.def ? 10 : 0;
+	const spaBoost = mon.activeBuffs?.spa ? 10 : 0;
+	const spdBoost = mon.activeBuffs?.spd ? 10 : 0;
+	const speBoost = mon.activeBuffs?.spe ? 10 : 0;
+
+	const bstBoostsStr = (atkBoost || defBoost || spaBoost || spdBoost || speBoost)
+		? `${atkBoost}:${defBoost}:${spaBoost}:${spdBoost}:${speBoost}`
+		: '';
+
 	// Map strictly to the simulator's misc array format:
 	// [Happiness, HPType, Pokeball, Gigantamax, DynamaxLevel, TeraType, HP%, Status, BSTBoosts, HPMult]
 	const misc = [
@@ -1053,6 +1063,7 @@ export function packPokemon(mon: PokemonEntry): string {
 		mon.teraType || '', // Tera Type
 		mon.currentHp !== undefined && mon.currentHp !== 100 ? mon.currentHp.toString() : '', // Starting HP %
 		mon.status || '', // Status condition
+		bstBoostsStr, // BST Boosts
 	];
 
 	// Pop off trailing empty strings to match Showdown's clean packed format
