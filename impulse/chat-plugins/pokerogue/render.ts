@@ -731,8 +731,7 @@ function renderConsumable(state: PokeRogueState): string {
 			if (hp <= 0) { disabled = true; reason = 'fainted'; break; }
 			const buffStat = consumableItem?.buffStat;
 			if (buffStat && mon.activeBuffs && mon.activeBuffs[buffStat]) {
-				disabled = true;
-				reason = 'already active';
+				reason = `active: ${mon.activeBuffs[buffStat]} left`;
 			}
 			break;
 		}
