@@ -1225,7 +1225,7 @@ function renderSlotsView(user: User, action: 'save' | 'load'): string {
 	buf += `<div style="text-align:center;color:#aaa;font-size:12px;margin-bottom:14px;">`;
 	buf += action === 'save' ?
 		`Choose a slot to save your current progress.` :
-		`Choose a saved game to load. This will overwrite your current active run. <b style="color:#f87171">Loading a save slot permanently removes it.</b>`;
+		`Choose a saved game to load. This will overwrite your current active run. <br><b style="color:#f87171">Loading a save slot permanently removes it.</b>`;
 	buf += `</div>`;
 
 	buf += `<div class="pr-table-container"><table class="pr-table" style="width:100%;border-collapse:collapse;">`;
