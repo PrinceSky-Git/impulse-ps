@@ -296,11 +296,46 @@ function processBattleExperience(
 	return detailMsgs;
 }
 
-function syncBattleOutcome(
+/*function syncBattleOutcome(
 	logLines: string[],
 	state: PokeRogueState,
 ): { consumedItems: string[] } {
 	const parsed = parseBattleState(logLines, state.team);
+
+	for (const [idxStr, hp] of Object.entries(parsed.p1TeamHp)) {
+		const idx = Number(idxStr);
+		state.team[idx].currentHp = parsed.p1FaintedIndices.has(idx) ? 0 : hp;
+	}
+	for (const idx of parsed.p1FaintedIndices) {
+		state.team[idx].currentHp = 0;
+	}
+
+	for (const [idxStr, status] of Object.entries(parsed.p1TeamStatus)) {
+		const idx = Number(idxStr);
+		if (status) {
+			state.team[idx].status = status as StatusCondition;
+		} else {
+			delete state.team[idx].status;
+		}
+	}
+
+	const consumedItems: string[] = [];
+	for (const { teamIdx, itemId } of parsed.consumedItems) {
+		if (state.team[teamIdx].heldItem === itemId) {
+			delete state.team[teamIdx].heldItem;
+			const dexItem = Dex.items.get(itemId);
+			consumedItems.push(dexItem.name || itemId);
+		}
+	}
+
+	return { consumedItems };
+}*/
+
+function syncBattleOutcome(
+	battle: any,
+	state: PokeRogueState,
+): { consumedItems: string[] } {
+	const parsed = parseBattleState(battle, state.team);
 
 	for (const [idxStr, hp] of Object.entries(parsed.p1TeamHp)) {
 		const idx = Number(idxStr);
@@ -1039,8 +1074,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 	}
 	(state as any).lastThrowTime = now;
 
-	const log = room.log?.log || [];
-	const parsed = parseBattleState(log, state.team);
+	const parsed = parseBattleState(room.battle, state.team);
 	const p1Fainted = parsed.p1ActiveFainted;
 	const p2State = parsed.p2Active;
 	
@@ -1117,6 +1151,8 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 			else break;
 		}
 	}
+
+	const log = room.log?.log || [];
 
 	if (shakes === 3) {
 		const dexSp = Dex.species.get(p2Species);
@@ -1262,6 +1298,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		room.add(escapeMsg).update();
 	}
 }
+
 
 // ============================================================================
 // Core Commands Router
@@ -1955,7 +1992,7 @@ export const handlers: Chat.Handlers = {
 		const room = Rooms.get(battle.roomid);
 		const logLines: string[] = room?.log?.log ?? [];
 
-		const { consumedItems } = syncBattleOutcome(logLines, state);
+		const { consumedItems } = syncBattleOutcome(battle, state);
 
 		const battleLogMsgs: string[] = [];
 
@@ -2076,5 +2113,5 @@ export const handlers: Chat.Handlers = {
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
-	},
+	}
 };
