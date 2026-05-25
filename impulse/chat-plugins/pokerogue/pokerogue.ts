@@ -753,10 +753,14 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			if (hp <= 0) { ctx.errorReply("Can't use on a fainted Pokémon."); return false; }
 			const stat = item.buffStat!;
 			if (!mon.activeBuffs) mon.activeBuffs = {};
-			if (mon.activeBuffs[stat]) { ctx.errorReply(`This Pokémon already has an active ${item.name} buff!`); return false; }
-
+			
+			if (mon.activeBuffs[stat]) {
+				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> used ${item.name}! Its stat boost duration was refreshed!`;
+			} else {
+				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> used ${item.name}! Its stat is boosted for 5 battles!`;
+			}
+			
 			mon.activeBuffs[stat] = 5;
-			state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> used ${item.name}! Its stat is boosted for 5 battles!`;
 		}
 
 		delete state.purchasedItem;
