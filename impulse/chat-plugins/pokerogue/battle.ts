@@ -23,7 +23,7 @@ export interface ParsedBattleState {
 	consumedItems: { teamIdx: number, itemId: string }[];
 }
 
-/*export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[]): ParsedBattleState {
+export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[]): ParsedBattleState {
 	const p1TeamHp: Record<number, number> = {};
 	const p1TeamStatus: Record<number, string> = {};
 	const p1FaintedIndices = new Set<number>();
@@ -213,65 +213,6 @@ export interface ParsedBattleState {
 		p2Active,
 		p1ActiveFainted,
 		consumedItems
-	};
-}*/
-
-export function parseBattleState(battle: Battle, stateTeam: PokemonEntry[]) {
-	const p1 = battle.sides[0];
-	const p2 = battle.sides[1];
-
-	const p1TeamHp: Record<number, number> = {};
-	const p1TeamStatus: Record<number, string> = {};
-	const p1FaintedIndices = new Set<number>();
-	const consumedItems: { teamIdx: number, itemId: string }[] = [];
-
-	for (let i = 0; i < p1.pokemon.length; i++) {
-		const mon = p1.pokemon[i];
-		const stateMon = stateTeam[i];
-
-		if (mon.fainted || mon.hp <= 0) {
-			p1FaintedIndices.add(i);
-			p1TeamHp[i] = 0;
-		} else {
-			p1TeamHp[i] = Math.max(1, Math.round((mon.hp / mon.maxhp) * 100));
-		}
-
-		if (mon.status) {
-			p1TeamStatus[i] = mon.status;
-		}
-
-		if (stateMon?.heldItem && !mon.item) {
-			consumedItems.push({ teamIdx: i, itemId: stateMon.heldItem });
-		}
-	}
-
-	const p1ActiveFainted = p1.active.every(mon => !mon || mon.fainted || mon.hp <= 0);
-
-	const p2Active = new Map<string, any>();
-	const slotLetters = ['a', 'b', 'c'];
-	
-	for (let i = 0; i < p2.active.length; i++) {
-		const foe = p2.active[i];
-		if (foe) {
-			const reqSlot = slotLetters[i] || 'a';
-			p2Active.set(reqSlot, {
-				species: toID(foe.species.name),
-				level: foe.level,
-				hp: foe.hp,
-				maxHp: foe.maxhp,
-				status: foe.status || 'none',
-				fainted: foe.fainted || foe.hp <= 0,
-			});
-		}
-	}
-
-	return {
-		p1TeamHp,
-		p1FaintedIndices,
-		p1TeamStatus,
-		consumedItems,
-		p1ActiveFainted,
-		p2Active,
 	};
 }
 
