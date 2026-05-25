@@ -30,6 +30,13 @@ const SPRITE_ID_OVERRIDES: { [id: string]: string } = {
 	ursalunabloodmoon: 'ursaluna',
 };
 
+const CUSTOM_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/';
+const CUSTOM_ICON_MAP: Record<string, string> = {
+	'Lure': 'lure.png',
+	'Super Lure': 'super-lure.png',
+	'Max Lure': 'max-lure.png',
+};
+
 const MINT_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/mints/';
 const MINT_ICON_MAP: Record<string, string> = {
 	'Atk Mint': 'Lonely-Mint.png',
@@ -126,6 +133,10 @@ function getShopItemIcon(icon: string, size = 20): string {
 	const tmFile = TM_ICON_MAP[icon];
 	if (tmFile) {
 		return `<img src="${Utils.escapeHTML(TM_SPRITE_BASE + tmFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
+	}
+	const customFile = CUSTOM_ICON_MAP[icon];
+	if (customFile) {
+		return `<img src="${Utils.escapeHTML(CUSTOM_SPRITE_BASE + customFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
 	}
 	const url = `https://www.smogon.com/forums/media/minisprites/${itemURLFormat(icon)}.png`;
 	return `<img src="${Utils.escapeHTML(url)}" width="${size}" height="${size}" class="pr-shop-icon">`;
