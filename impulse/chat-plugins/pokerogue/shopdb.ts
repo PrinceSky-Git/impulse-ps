@@ -16,6 +16,23 @@ const getFullRestoreWeight = (state: PokeRogueState) => {
 	return Math.min(16, 8 + (needsHelpCount * 4));
 };
 
+const X_ITEMS_DATA: [string, string, string, string, ItemRarityTier][] = [
+	['xattack', "X Attack", "atk", "Raises Attack by 10% for 5 battles.", "Common"],
+	['xdefense', "X Defense", "def", "Raises Defense by 10% for 5 battles.", "Common"],
+	['xspatk', "X Sp. Atk", "spa", "Raises Sp. Atk by 10% for 5 battles.", "Common"],
+	['xspdef', "X Sp. Def", "spd", "Raises Sp. Def by 10% for 5 battles.", "Common"],
+	['xspeed', "X Speed", "spe", "Raises Speed by 10% for 5 battles.", "Common"],
+];
+
+const generatedXItems: Record<string, ShopItem> = {};
+for (const [id, name, stat, desc, tier] of X_ITEMS_DATA) {
+	generatedXItems[id] = {
+		name, icon: name, type: "xItem", category: "Buffs",
+		desc, moneyMultiplier: 1.0, tier, buffStat: stat, maxStack: 1,
+		weight: 4, minWeight: 4, maxWeight: 4,
+	};
+}
+
 const NATURES = [
 	{ name: "Lonely", stat: "Atk Mint" }, { name: "Adamant", stat: "Atk Mint" }, { name: "Naughty", stat: "Atk Mint" }, { name: "Brave", stat: "Atk Mint" },
 	{ name: "Bold", stat: "Def Mint" }, { name: "Impish", stat: "Def Mint" }, { name: "Lax", stat: "Def Mint" }, { name: "Relaxed", stat: "Def Mint" },
@@ -201,6 +218,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	...generatedVitamins,
 	...generatedEvoItems,
 	...generatedHeldItems,
+	...generatedXItems,
 	
 	megabracelet: {
 		name: "Mega Bracelet", icon: "Mega Bracelet", type: "key", category: "Key Items",
