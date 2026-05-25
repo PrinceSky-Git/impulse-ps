@@ -1,15 +1,14 @@
 import { type ShopItem, type ItemRarityTier } from './items';
 import { type PokeRogueState } from './types';
 
-// Weight & State Helper Functions
-
 const getEvoItemWeight = (state: PokeRogueState) => Math.min(8, Math.max(1, Math.floor(state.floor / 15)));
 
 const getDamagedCount = (state: PokeRogueState) => state.team.filter(m => (m.currentHp ?? 100) > 0 && (m.currentHp ?? 100) < 100).length;
 const getFaintedCount = (state: PokeRogueState) => state.team.filter(m => (m.currentHp ?? 100) <= 0).length;
 const getStatusCount = (state: PokeRogueState) => state.team.filter(m => m.status).length;
 
-const getPotionWeight = (state: PokeRogueState) => Math.min(24, 12 + (getDamagedCount(state) * 4));
+const getPotionWeight = (state: PokeRogueState) => state.floor > 50 ? 0 : Math.min(24, 12 + (getDamagedCount(state) * 4));
+const getSuperPotionWeight = (state: PokeRogueState) => state.floor > 100 ? 0 : Math.min(24, 12 + (getDamagedCount(state) * 4));
 const getReviveWeight = (state: PokeRogueState) => Math.min(16, 4 + (getFaintedCount(state) * 4));
 const getFullHealWeight = (state: PokeRogueState) => Math.min(16, 8 + (getStatusCount(state) * 4));
 const getFullRestoreWeight = (state: PokeRogueState) => {
@@ -17,7 +16,6 @@ const getFullRestoreWeight = (state: PokeRogueState) => {
 	return Math.min(16, 8 + (needsHelpCount * 4));
 };
 
-// Factory Generators
 const NATURES = [
 	{ name: "Lonely", stat: "Atk Mint" }, { name: "Adamant", stat: "Atk Mint" }, { name: "Naughty", stat: "Atk Mint" }, { name: "Brave", stat: "Atk Mint" },
 	{ name: "Bold", stat: "Def Mint" }, { name: "Impish", stat: "Def Mint" }, { name: "Lax", stat: "Def Mint" }, { name: "Relaxed", stat: "Def Mint" },
@@ -136,7 +134,6 @@ for (const [id, name, desc] of EVO_ITEMS_DATA) {
 }
 
 const HELD_ITEMS_DATA: [string, string, ItemRarityTier, number, number, string][] = [
-	// Common (15)
 	['oranberry', 'Oran Berry', 'Common', 4, 0.5, 'Restores 10 HP when at 1/2 max HP or less. Single use.'],
 	['sitrusberry', 'Sitrus Berry', 'Common', 4, 1.0, 'Restores 1/4 max HP when at 1/2 max HP or less. Single use.'],
 	['lumberry', 'Lum Berry', 'Common', 4, 1.0, 'Cures any status condition. Single use.'],
@@ -152,8 +149,6 @@ const HELD_ITEMS_DATA: [string, string, ItemRarityTier, number, number, string][
 	['mysticwater', 'Mystic Water', 'Common', 2, 1.0, 'Boosts power of Water-type moves by 20%.'],
 	['miracleseed', 'Miracle Seed', 'Common', 2, 1.0, 'Boosts power of Grass-type moves by 20%.'],
 	['magnet', 'Magnet', 'Common', 2, 1.0, 'Boosts power of Electric-type moves by 20%.'],
-
-	// Great (15)
 	['sharpbeak', 'Sharp Beak', 'Great', 4, 1.5, 'Boosts power of Flying-type moves by 20%.'],
 	['poisonbarb', 'Poison Barb', 'Great', 4, 1.5, 'Boosts power of Poison-type moves by 20%.'],
 	['hardstone', 'Hard Stone', 'Great', 4, 1.5, 'Boosts power of Rock-type moves by 20%.'],
@@ -169,8 +164,6 @@ const HELD_ITEMS_DATA: [string, string, ItemRarityTier, number, number, string][
 	['focusband', 'Focus Band', 'Great', 4, 2.0, 'Holder has a 10% chance to survive an attack that would knock it out.'],
 	['quickclaw', 'Quick Claw', 'Great', 4, 2.0, 'Holder has a 20% chance to move first in its priority bracket.'],
 	['rockyhelmet', 'Rocky Helmet', 'Great', 4, 2.0, 'If holder is hit by a contact move, the attacker loses 1/6 of its max HP.'],
-
-	// Ultra (15)
 	['leftovers', 'Leftovers', 'Ultra', 4, 3.0, 'Restores 1/16 of max HP at the end of each turn.'],
 	['blacksludge', 'Black Sludge', 'Ultra', 4, 3.0, 'Restores 1/16 max HP per turn if held by a Poison type; loses 1/8 if not.'],
 	['expertbelt', 'Expert Belt', 'Ultra', 4, 3.0, 'Super-effective attacks are 20% stronger.'],
@@ -186,8 +179,6 @@ const HELD_ITEMS_DATA: [string, string, ItemRarityTier, number, number, string][
 	['heavydutyboots', 'Heavy-Duty Boots', 'Ultra', 4, 3.0, 'Protects the holder from all entry hazards.'],
 	['whiteherb', 'White Herb', 'Ultra', 4, 3.0, 'Restores lowered stat stages to normal. Single use.'],
 	['mentalherb', 'Mental Herb', 'Ultra', 4, 3.0, 'Cures infatuation, Taunt, Encore, Torment, Disable, Cursed Body. Single use.'],
-
-	// Rogue (15)
 	['lifeorb', 'Life Orb', 'Rogue', 4, 5.0, 'Boosts move power by 30%, but holder takes 10% max HP damage each attack.'],
 	['choiceband', 'Choice Band', 'Rogue', 4, 5.0, 'Boosts Attack by 50%, but locks the holder into the first move used.'],
 	['choicespecs', 'Choice Specs', 'Rogue', 4, 5.0, 'Boosts Sp. Atk by 50%, but locks the holder into the first move used.'],
@@ -203,8 +194,6 @@ const HELD_ITEMS_DATA: [string, string, ItemRarityTier, number, number, string][
 	['punchingglove', 'Punching Glove', 'Rogue', 4, 5.0, 'Boosts punching moves by 10% and prevents contact effects.'],
 	['covertcloak', 'Covert Cloak', 'Rogue', 4, 5.0, 'Protects the holder from the secondary effects of attacks.'],
 	['loadeddice', 'Loaded Dice', 'Rogue', 4, 5.0, 'Multi-hit moves always hit at least 4 times.'],
-
-	// Master (15)
 	['souldew', 'Soul Dew', 'Master', 2, 10.0, 'Boosts the power of Psychic and Dragon-type moves by 20% for Latias and Latios.'],
 	['lightball', 'Light Ball', 'Master', 2, 10.0, 'Doubles the Attack and Sp. Atk of Pikachu.'],
 	['thickclub', 'Thick Club', 'Master', 2, 10.0, 'Doubles the Attack of Cubone and Marowak.'],
@@ -230,8 +219,6 @@ for (const [id, name, tier, weight, moneyMult, desc] of HELD_ITEMS_DATA) {
 	};
 }
 
-// Main Shop Database
-
 export const SHOP_DB: Record<string, ShopItem> = {
 	...generatedMegaStones,
 	...generatedMints,
@@ -239,17 +226,23 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	...generatedEvoItems,
 	...generatedHeldItems,
 	
-	// Key Items
 	megabracelet: {
 		name: "Mega Bracelet", icon: "Mega Bracelet", type: "key", category: "Key Items",
 		desc: "A cuff that enables Pokémon to Mega Evolve. Unlocks Mega Stones in the item pool.",
 		moneyMultiplier: 0, tier: "Rogue", maxStack: 1, weight: 4, minWeight: 4, maxWeight: 4,
-		weightFunc: (state) => (state.keyItems?.['Mega Bracelet'] || 0) >= 1 ? 0 : 4,
+		weightFunc: (state) => {
+			if ((state.keyItems?.['Mega Bracelet'] || 0) >= 1) return 0;
+			if (state.floor <= 50) return 4;
+			if (state.floor <= 100) return 8;
+			if (state.floor <= 150) return 12;
+			return 16;
+		},
 	},
 	candyjar: {
 		name: "Candy Jar", icon: "Candy Jar", type: "key", category: "Key Items",
 		desc: "Increases the number of levels added by Rare Candy and Rarer Candy items by 1. Stacks up to 99 times.",
 		moneyMultiplier: 2.0, tier: "Ultra", maxStack: 99, weight: 5, minWeight: 5, maxWeight: 5,
+		weightFunc: (state) => (state.keyItems?.['Candy Jar'] || 0) >= 99 ? 0 : 5,
 	},
 	expall: {
 		name: "Exp. All", icon: "Exp Share", type: "key", category: "Key Items",
@@ -267,16 +260,19 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Super Exp. Charm", icon: "Exp. Charm", type: "key", category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 60%. Stacks up to 30 times.",
 		moneyMultiplier: 2.5, tier: "Ultra", maxStack: 30, weight: 8, minWeight: 8, maxWeight: 8,
+		weightFunc: (state) => (state.keyItems?.['Super Exp. Charm'] || 0) >= 30 ? 0 : 8,
 	},
 	shinycharm: {
 		name: "Shiny Charm", icon: "Shiny Charm", type: "key", category: "Key Items",
 		desc: "Greatly increases the chance of finding Shiny Pokémon. (Max 4)",
 		moneyMultiplier: 0, tier: "Master", maxStack: 4, weight: 2, minWeight: 2, maxWeight: 2,
+		weightFunc: (state) => (state.keyItems?.['Shiny Charm'] || 0) >= 4 ? 0 : 2,
 	},
 	abilitycharm: {
 		name: "Ability Charm", icon: "Ability Charm", type: "key", category: "Key Items",
 		desc: "Increases the chance of wild Pokémon having their Hidden Ability. (Max 4)",
 		moneyMultiplier: 0, tier: "Rogue", maxStack: 4, weight: 4, minWeight: 4, maxWeight: 4,
+		weightFunc: (state) => (state.keyItems?.['Ability Charm'] || 0) >= 4 ? 0 : 4,
 	},
 	amuletcoin: {
 		name: "Amulet Coin", icon: "Amulet Coin", type: "key", category: "Key Items",
@@ -291,7 +287,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: (state) => (state.keyItems?.['Golden Ball'] || 0) >= 3 ? 0 : 3,
 	},
 
-	// Pokéballs
 	pokeball: {
 		name: "Poke Ball", icon: "Poke Ball", type: "pokeball", category: "Pokéballs",
 		desc: "A standard ball for catching wild Pokemon.",
@@ -308,6 +303,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Ultra Ball", icon: "Ultra Ball", type: "pokeball", category: "Pokéballs",
 		desc: "An excellent ball with a very high catch rate.",
 		moneyMultiplier: 1.5, tier: "Rogue", maxStack: 99, weight: 20, minWeight: 5, maxWeight: 20,
+		weightFunc: (state) => Math.min(40, 20 + Math.floor(state.floor / 10)),
 	},
 	masterball: {
 		name: "Master Ball", icon: "Master Ball", type: "pokeball", category: "Pokéballs",
@@ -315,7 +311,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		moneyMultiplier: 10.0, tier: "Master", maxStack: 99, weight: 1, minWeight: 1, maxWeight: 1,
 	},
 
-	// Medicines
 	potion: {
 		name: "Potion", icon: "Potion", type: "healHP", category: "Medicine", desc: "Restores 20 HP or 10% HP, whichever is higher.",
 		moneyMultiplier: 0.2, tier: "Common", isShopItem: true, minFloor: 1, healAmount: 20, healPercent: 10,
@@ -324,7 +319,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	superpotion: {
 		name: "Super Potion", icon: "Super Potion", type: "healHP", category: "Medicine", desc: "Restores 50 HP or 25% HP, whichever is higher.",
 		moneyMultiplier: 0.45, tier: "Great", isShopItem: true, minFloor: 21, healAmount: 50, healPercent: 25,
-		weight: 12, minWeight: 0, maxWeight: 24, weightFunc: getPotionWeight,
+		weight: 12, minWeight: 0, maxWeight: 24, weightFunc: getSuperPotionWeight,
 	},
 	hyperpotion: {
 		name: "Hyper Potion", icon: "Hyper Potion", type: "healHP", category: "Medicine", desc: "Restores 200 HP or 50% HP, whichever is higher.",
@@ -365,7 +360,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		moneyMultiplier: 4.0, tier: "Ultra", isShopItem: true, minFloor: 1, weight: 4, minWeight: 0, maxWeight: 8,
 	},
 
-	// Level Up & Buffs
 	rarecandy: {
 		name: "Rare Candy", icon: "Rare Candy", type: "rareCandy", category: "Level Up",
 		desc: "Increases a Pokémon's level by 1. Bypasses the level cap. Stacks with Candy Jar.",
@@ -392,7 +386,6 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		moneyMultiplier: 0, tier: "Rogue", weight: 1, minWeight: 1, maxWeight: 1,
 	},
 
-	// Money
 	nugget: {
 		name: "Nugget", icon: "Nugget", type: "itemPack", category: "Money",
 		desc: "A nugget of purest gold. Gives a large amount of money.",
