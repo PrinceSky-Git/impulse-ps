@@ -12,7 +12,7 @@ import {
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
 	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution
 } from './pokemon';
-import { activeMatches, startBattle, destroyBotUser } from './battle';
+import { activeMatches, startBattle, destroyBotUser, parseBattleState } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
 import { devCommands } from './dev-tools';
 
@@ -297,45 +297,34 @@ function processBattleExperience(
 }
 
 function syncBattleOutcome(
-	battle: Battle,
+	logLines: string[],
 	state: PokeRogueState,
 ): { consumedItems: string[] } {
+	const parsed = parseBattleState(logLines, state.team);
+
+	for (const [idxStr, hp] of Object.entries(parsed.p1TeamHp)) {
+		const idx = Number(idxStr);
+		state.team[idx].currentHp = parsed.p1FaintedIndices.has(idx) ? 0 : hp;
+	}
+	for (const idx of parsed.p1FaintedIndices) {
+		state.team[idx].currentHp = 0;
+	}
+
+	for (const [idxStr, status] of Object.entries(parsed.p1TeamStatus)) {
+		const idx = Number(idxStr);
+		if (status) {
+			state.team[idx].status = status as StatusCondition;
+		} else {
+			delete state.team[idx].status;
+		}
+	}
+
 	const consumedItems: string[] = [];
-	// GUARD CLAUSE: If the battle instance is already gone/cleared, return empty.
-	if (!battle.sides || !battle.sides[0]) return { consumedItems };
-	
-	const playerSide = battle.sides[0];
-
-	for (let i = 0; i < state.team.length; i++) {
-		const rpgMon = state.team[i];
-		const simMon = playerSide.pokemon[i];
-		
-		if (!simMon) continue;
-
-		// 1. Calculate HP Percentage for Impulse Mod [H:XX]
-		if (simMon.fainted || simMon.hp <= 0) {
-			rpgMon.currentHp = 0;
-		} else {
-			rpgMon.currentHp = Math.round((simMon.hp / simMon.maxhp) * 100);
-			// Prevent rounding down to 0% if they survived with 1 HP
-			if (rpgMon.currentHp === 0 && simMon.hp > 0) rpgMon.currentHp = 1;
-		}
-
-		// 2. Sync Status
-		if (simMon.status) {
-			rpgMon.status = simMon.status as StatusCondition;
-		} else {
-			delete rpgMon.status;
-		}
-
-		// 3. Sync Consumed / Stolen Items
-		if (rpgMon.heldItem && !simMon.item) {
-			const dexItem = Dex.items.get(rpgMon.heldItem);
-			consumedItems.push(dexItem.name || rpgMon.heldItem);
-			delete rpgMon.heldItem;
-		} else if (simMon.item && rpgMon.heldItem !== simMon.item) {
-			// They used Trick/Thief to gain a new item, let them keep it!
-			rpgMon.heldItem = simMon.item;
+	for (const { teamIdx, itemId } of parsed.consumedItems) {
+		if (state.team[teamIdx].heldItem === itemId) {
+			delete state.team[teamIdx].heldItem;
+			const dexItem = Dex.items.get(itemId);
+			consumedItems.push(dexItem.name || itemId);
 		}
 	}
 
@@ -1020,7 +1009,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		return;
 	}
 
-	if (!room.battle.turn) { ctx.errorReply("The battle hasn't started yet!"); return; }
+	if (!room.battle.turn) { ctx.errorReply("The battle hasnt started yet!"); return; }
 	if (state.caughtPokemon) { ctx.errorReply("You already caught this Pokémon!"); return; }
 
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
@@ -1050,41 +1039,45 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 	}
 	(state as any).lastThrowTime = now;
 
-	// --- DIRECT MEMORY INSPECTION ---
-	const battle = room.battle as Battle;
-	const playerSide = battle.sides[0];
-	const botSide = battle.sides[1];
+	const log = room.log?.log || [];
+	const parsed = parseBattleState(log, state.team);
+	const p1Fainted = parsed.p1ActiveFainted;
+	const p2State = parsed.p2Active;
 	
-	const p1Fainted = playerSide.active.every(mon => !mon || mon.fainted || mon.hp <= 0);
+	for (const data of p2State.values()) if (!data.level) data.level = botLevel(floor, config);
+
+	let aliveOpponents = 0;
+	for (const [, data] of p2State.entries()) if (!data.fainted && data.hp > 0) aliveOpponents++;
+
+	if (aliveOpponents > 1) {
+		ctx.errorReply("It's no good! It's impossible to aim when there are multiple Pokémon!");
+		return;
+	}
 	if (p1Fainted) {
 		ctx.errorReply("You cannot throw a Poké Ball while your Pokémon is fainted! Please send out a new Pokémon first.");
 		return;
 	}
 
-	const aliveOpponents = botSide.active.filter(mon => mon && !mon.fainted && mon.hp > 0);
-	if (aliveOpponents.length > 1) {
-		ctx.errorReply("It's no good! It's impossible to aim when there are multiple Pokémon!");
-		return;
-	}
-
 	let targetMon = null;
 	if (reqSlot) {
-		const slotIndex = reqSlot.charCodeAt(0) - 97; 
-		targetMon = botSide.active[slotIndex];
-		if (!targetMon || targetMon.fainted || targetMon.hp <= 0) { ctx.errorReply("That target is not available to catch."); return; }
+		targetMon = p2State.get(reqSlot);
+		if (!targetMon || targetMon.fainted) { ctx.errorReply("That target is not available to catch."); return; }
 	} else {
-		targetMon = aliveOpponents[0];
+		for (const [, data] of p2State.entries()) {
+			if (!data.fainted && data.hp > 0) { targetMon = data; break; }
+		}
 	}
 
-	if (!targetMon) { ctx.errorReply("There is no active Pokémon to catch."); return; }
+	if (!targetMon || targetMon.fainted) { ctx.errorReply("There is no active Pokémon to catch."); return; }
 
-	const p2Species = targetMon.species.id;
+	const p2Species = targetMon.species;
 	const p2Level = targetMon.level;
-	const p2Hp = targetMon.hp;
-	const p2MaxHp = targetMon.maxhp;
+	let p2Hp = targetMon.hp;
+	const p2MaxHp = targetMon.maxHp;
 	let p2Status = targetMon.status;
 
 	if (p2Status === 'none') p2Status = '';
+	if (p2Hp === -1) p2Hp = 100;
 
 	state.inventory[ballType]--;
 	setState(user.id, state);
@@ -1129,15 +1122,21 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		const dexSp = Dex.species.get(p2Species);
 		room.add(`|c|~|Gotcha! ${dexSp.name} was caught!`).update();
 
-		// --- DIRECT MEMORY EXP DISTRIBUTION ---
 		const p1Participants = new Set<string>();
-		for (const activeMon of playerSide.active) {
-			if (activeMon && !activeMon.fainted && activeMon.hp > 0) {
-				p1Participants.add(activeMon.species.id);
-			}
+		let p2SwitchIdx = 0;
+
+		for (let i = log.length - 1; i >= 0; i--) {
+			if (/^\|(?:switch|drag)\|p2[a-z]:/.test(log[i])) { p2SwitchIdx = i; break; }
 		}
-		if (p1Participants.size === 0 && playerSide.pokemon[0]) {
-			p1Participants.add(playerSide.pokemon[0].species.id);
+
+		for (let i = p2SwitchIdx; i >= 0; i--) {
+			const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
+			if (match) { p1Participants.add(toID(match[1])); break; }
+		}
+
+		for (let i = p2SwitchIdx; i < log.length; i++) {
+			const match = /^\|(?:switch|drag)\|p1[a-z]: [^|]+\|([^|,]+)/.exec(log[i]);
+			if (match) p1Participants.add(toID(match[1]));
 		}
 
 		const participantsStr = Array.from(p1Participants).join(',');
@@ -1160,7 +1159,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		let caughtTera = Dex.species.get(p2Species).types[0];
 
 		if (catchMatch.botTeam) {
-			const botMon = catchMatch.botTeam.find((m: any) => toID(m.species) === p2Species || toID(m.name) === p2Species);
+			const botMon = catchMatch.botTeam.find(m => toID(m.species) === p2Species || toID(m.name) === p2Species);
 			if (botMon) {
 				if (botMon.moves && botMon.moves.length > 0) caughtMoves = botMon.moves;
 				if (botMon.ability) caughtAbility = botMon.ability;
@@ -1956,7 +1955,7 @@ export const handlers: Chat.Handlers = {
 		const room = Rooms.get(battle.roomid);
 		const logLines: string[] = room?.log?.log ?? [];
 
-		const { consumedItems } = syncBattleOutcome(battle, state);
+		const { consumedItems } = syncBattleOutcome(logLines, state);
 
 		const battleLogMsgs: string[] = [];
 
@@ -2077,5 +2076,5 @@ export const handlers: Chat.Handlers = {
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
-	}
+	},
 };
