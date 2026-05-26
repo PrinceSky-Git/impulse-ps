@@ -108,7 +108,6 @@ const EVO_ITEMS_DATA: [string, string, string][] = [
 	['shinystone', "Shiny Stone", DESC_STONE], ['duskstone', "Dusk Stone", DESC_STONE],
 	['dawnstone', "Dawn Stone", DESC_STONE], ['icestone', "Ice Stone", DESC_STONE],
 	['ovalstone', "Oval Stone", DESC_STONE],
-	['metalcoat', "Metal Coat", "A special metallic film. Evolves certain Pokémon."],
 	['kingsrock', "King's Rock", "A rock that may make a Pokémon flinch. Evolves certain Pokémon."],
 	['dragonscale', "Dragon Scale", "A very tough and inflexible scale. Evolves certain Pokémon."],
 	['upgrade', "Up-Grade", "A transparent device filled with all sorts of data. Evolves certain Pokémon."],
@@ -150,34 +149,35 @@ for (const [id, name, desc] of EVO_ITEMS_DATA) {
 	};
 }
 
+const STACKABLE_ITEMS_DATA: [string, string, string][] = [
+	['silkscarf', "Silk Scarf", "Normal"], ['blackbelt', "Black Belt", "Fighting"],
+	['sharpbeak', "Sharp Beak", "Flying"], ['poisonbarb', "Poison Barb", "Poison"],
+	['softsand', "Soft Sand", "Ground"], ['hardstone', "Hard Stone", "Rock"],
+	['silverpowder', "Silver Powder", "Bug"], ['spelltag', "Spell Tag", "Ghost"],
+	['metalcoat', "Metal Coat", "Steel"], ['charcoal', "Charcoal", "Fire"],
+	['mysticwater', "Mystic Water", "Water"], ['miracleseed', "Miracle Seed", "Grass"],
+	['magnet', "Magnet", "Electric"], ['twistedspoon', "Twisted Spoon", "Psychic"],
+	['nevermeltice', "Never-Melt Ice", "Ice"], ['dragonfang', "Dragon Fang", "Dragon"],
+	['blackglasses', "Black Glasses", "Dark"], ['fairyfeather', "Fairy Feather", "Fairy"],
+];
+
+const generatedStackableItems: Record<string, ShopItem> = {};
+for (const [id, name, type] of STACKABLE_ITEMS_DATA) {
+	generatedStackableItems[id] = {
+		name, icon: name, type: "stackableItem", category: "Held Items",
+		desc: `Boosts the power of ${type}-type moves by 20%. Stacks additively.`,
+		moneyMultiplier: 3.0, tier: "Ultra", maxStack: 99, weight: 4, minWeight: 4, maxWeight: 4,
+	};
+}
+
 const HELD_ITEMS_DATA: [string, string, ItemRarityTier, number, number, string][] = [
-	// Common (7)
 	['sitrusberry', 'Sitrus Berry', 'Common', 4, 1.0, 'Restores 1/4 max HP when at 1/2 max HP or less. Single use.'],
 	['lumberry', 'Lum Berry', 'Common', 4, 1.0, 'Cures any status condition. Single use.'],
 	['oranberry', 'Oran Berry', 'Common', 4, 0.5, 'Restores 10 HP when at 1/2 max HP or less. Single use.'],
 	['leppaberry', 'Leppa Berry', 'Common', 4, 1.0, 'Restores 10 PP to a depleted move. Single use.'],
-	['charcoal', 'Charcoal', 'Great', 2, 1.5, 'Boosts power of Fire-type moves by 20%.'],
-	['mysticwater', 'Mystic Water', 'Great', 2, 1.5, 'Boosts power of Water-type moves by 20%.'],
-	['miracleseed', 'Miracle Seed', 'Great', 2, 1.5, 'Boosts power of Grass-type moves by 20%.'],
-	// Great (14)
-	['silkscarf', 'Silk Scarf', 'Great', 2, 1.5, 'Boosts power of Normal-type moves by 20%.'],
-	['magnet', 'Magnet', 'Great', 2, 1.5, 'Boosts power of Electric-type moves by 20%.'],
-	['twistedspoon', 'Twisted Spoon', 'Great', 2, 1.5, 'Boosts power of Psychic-type moves by 20%.'],
-	['sharpbeak', 'Sharp Beak', 'Great', 2, 1.5, 'Boosts power of Flying-type moves by 20%.'],
-	['poisonbarb', 'Poison Barb', 'Great', 2, 1.5, 'Boosts power of Poison-type moves by 20%.'],
-	['hardstone', 'Hard Stone', 'Great', 2, 1.5, 'Boosts power of Rock-type moves by 20%.'],
-	['softsand', 'Soft Sand', 'Great', 2, 1.5, 'Boosts power of Ground-type moves by 20%.'],
-	['silverpowder', 'Silver Powder', 'Great', 2, 1.5, 'Boosts power of Bug-type moves by 20%.'],
-	['spelltag', 'Spell Tag', 'Great', 2, 1.5, 'Boosts power of Ghost-type moves by 20%.'],
-	['blackglasses', 'Black Glasses', 'Great', 2, 1.5, 'Boosts power of Dark-type moves by 20%.'],
-	['blackbelt', 'Black Belt', 'Great', 2, 1.5, 'Boosts power of Fighting-type moves by 20%.'],
-	['dragonfang', 'Dragon Fang', 'Great', 2, 1.5, 'Boosts power of Dragon-type moves by 20%.'],
-	['nevermeltice', 'Never-Melt Ice', 'Great', 2, 1.5, 'Boosts power of Ice-type moves by 20%.'],
-	['pixieplate', 'Pixie Plate', 'Great', 2, 1.5, 'Boosts power of Fairy-type moves by 20%.'],
 	['rockyhelmet', 'Rocky Helmet', 'Great', 4, 2.0, 'If holder is hit by a contact move, the attacker loses 1/6 of its max HP.'],
 	['focusband', 'Focus Band', 'Great', 4, 2.0, 'Holder has a 10% chance to survive an attack that would knock it out.'],
 	['quickclaw', 'Quick Claw', 'Great', 4, 2.0, 'Holder has a 20% chance to move first in its priority bracket.'],
-	// Ultra (10)
 	['leftovers', 'Leftovers', 'Ultra', 4, 3.0, 'Restores 1/16 of max HP at the end of each turn.'],
 	['blacksludge', 'Black Sludge', 'Ultra', 4, 3.0, 'Restores 1/16 max HP per turn if held by a Poison type; loses 1/8 if not.'],
 	['shellbell', 'Shell Bell', 'Ultra', 4, 3.0, 'Restores HP equal to 1/8 of the damage dealt to an opponent.'],
@@ -188,7 +188,6 @@ const HELD_ITEMS_DATA: [string, string, ItemRarityTier, number, number, string][
 	['wiseglasses', 'Wise Glasses', 'Ultra', 4, 3.0, 'Special attacks have 10% more power.'],
 	['lightclay', 'Light Clay', 'Ultra', 4, 3.0, 'Reflect and Light Screen last for 8 turns instead of 5.'],
 	['whiteherb', 'White Herb', 'Ultra', 4, 3.0, 'Restores lowered stat stages to normal. Single use.'],
-	// Rogue (7)
 	['lifeorb', 'Life Orb', 'Rogue', 4, 5.0, 'Boosts move power by 30%, but holder takes 10% max HP damage each attack.'],
 	['choiceband', 'Choice Band', 'Rogue', 4, 5.0, 'Boosts Attack by 50%, but locks the holder into the first move used.'],
 	['choicespecs', 'Choice Specs', 'Rogue', 4, 5.0, 'Boosts Sp. Atk by 50%, but locks the holder into the first move used.'],
@@ -196,7 +195,6 @@ const HELD_ITEMS_DATA: [string, string, ItemRarityTier, number, number, string][
 	['assaultvest', 'Assault Vest', 'Rogue', 4, 5.0, 'Boosts Sp. Def by 50%, but prevents the use of status moves.'],
 	['focussash', 'Focus Sash', 'Rogue', 4, 5.0, 'Survives a fatal hit from full HP with 1 HP. Single use.'],
 	['weaknesspolicy', 'Weakness Policy', 'Rogue', 4, 5.0, 'Attack and Sp. Atk sharply increase if hit by a super-effective move. Single use.'],
-	// Master (5)
 	['souldew', 'Soul Dew', 'Master', 2, 10.0, 'Boosts the power of Psychic and Dragon-type moves by 20% for Latias and Latios.'],
 	['lightball', 'Light Ball', 'Master', 2, 10.0, 'Doubles the Attack and Sp. Atk of Pikachu.'],
 	['thickclub', 'Thick Club', 'Master', 2, 10.0, 'Doubles the Attack of Cubone and Marowak.'],
@@ -217,6 +215,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	...generatedMints,
 	...generatedVitamins,
 	...generatedEvoItems,
+	...generatedStackableItems,
 	...generatedHeldItems,
 	...generatedXItems,
 	
