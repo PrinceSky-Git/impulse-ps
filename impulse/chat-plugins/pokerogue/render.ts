@@ -361,7 +361,12 @@ function renderHatchedEggsView(state: PokeRogueState): string {
 				const sp = Dex.species.get(mon.species);
 				const isShiny = mon.shiny;
 
-				buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
+				let tierColor = '#9d93c8';
+				if (mon.eggTier === 'Rare') tierColor = '#93c5fd';
+				else if (mon.eggTier === 'Epic') tierColor = '#c4b8ff';
+				else if (mon.eggTier === 'Legendary') tierColor = '#fca5a5';
+
+				buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${tierColor};font-weight:bold;">`;
 				buf += Utils.escapeHTML(sp.name);
 				if (isShiny) buf += ` <span style="color:#fda085">★</span>`;
 				buf += `</div>`;
