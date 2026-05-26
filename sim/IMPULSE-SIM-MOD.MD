@@ -1,6 +1,6 @@
 # Impulse Server: Custom HP, Status & Base Stats Mod
 
-Welcome to the Impulse Server! This server features a custom mechanics mod that allows Pokémon to optionally start battles with a specific HP percentage, a major status condition, and/or custom Base Stat (BST) percentage boosts.
+Welcome to the Impulse Server! This server features a custom mechanics mod that allows Pokémon to optionally start battles with a specific HP percentage, a major status condition, custom Base Stat (BST) percentage boosts, HP scaling, and Stacked Type-Boosting items.
 
 This is perfect for creating custom scenarios, testing specific mechanics (like Guts or Blaze), or building unique challenge modes and Raid Bosses.
 
@@ -10,15 +10,15 @@ Because we use the official public Pokémon Showdown client (`play.pokemonshowdo
 
 To get around this, we use the **Nickname Hack**. You can encode your custom HP, Status conditions, and Stat Boosts directly into your Pokémon's nickname using special bracket tags. When the battle starts, our server intercepts these tags, applies the stats, and magically cleans up the nickname so your opponent never sees the brackets.
 
-* (Note: Nicknames can now be up to 100 characters long to accommodate multiple tags!)*
+*(Note: Nicknames can now be up to 100 characters long to accommodate multiple tags!)*
 
-- --
+---
 
 ## TEAMBUILDER LIMIT WARNING
 The standard "Nickname" box in the Showdown teambuilder limits you to 18 characters. **You cannot type long tags directly into the nickname box.**
-To use multiple tags (like `[BST: 50,50,50,50,50] [HPX: 10]`), you **MUST** click the **"Import/Export"** button at the top of your team and paste your sets in as text!
+To use multiple tags (like `[BST: 50,50,50,50,50] [HPX: 10] [STACK: blackbelt:4]`), you **MUST** click the **"Import/Export"** button at the top of your team and paste your sets in as text!
 
-- --
+---
 
 ## Formatting Syntax
 
@@ -30,6 +30,7 @@ Add the following tags to your Pokémon's nickname in the Teambuilder:
 | `[S:xxx]` | Sets starting Status Condition. Replace `xxx` with a valid 3-letter code (see below). |
 | `[BST: a,b,c,d,e]` | Increases Base Stats by a percentage. Formatted as `Atk, Def, SpA, SpD, Spe`. Example: `[BST: 10,0,-10,50,0]` increases Atk by 10%, lowers SpA by 10%, increases SpD by 50%, and leaves others untouched. |
 | `[HPX: XX]` | Multiplies the Pokémon's calculated Max HP by this integer. Example: `[HPX: 10]` gives the Pokémon 10x normal HP. |
+| `[STACK: item:XX]` | Holds a stack of Type-Boosting items. `XX` maxes out at 99. Each stack adds **+20% Base Power** additively to moves of that type. Valid items include: `silkscarf`, `blackbelt`, `sharpbeak`, `poisonbarb`, `softsand`, `hardstone`, `silverpowder`, `spelltag`, `metalcoat`, `charcoal`, `mysticwater`, `miracleseed`, `magnet`, `twistedspoon`, `nevermeltice`, `dragonfang`, `blackglasses`, `fairyfeather`. |
 
 ### Status Codes
 
@@ -43,12 +44,12 @@ Add the following tags to your Pokémon's nickname in the Teambuilder:
 | `tox` | Badly Poisoned |
 
 > **Important:** To use these tags in the public teambuilder, you *must* use the Parentheses format so the client knows it's a nickname:
+> ```text
+> Nickname [H:XX] [S:xxx] [BST: a,b,c,d,e] [HPX: XX] [STACK: item:XX] (Species) @ Item
 > ```
-> Nickname [H:XX] [S:xxx] [BST: a,b,c,d,e] [HPX: XX] (Species) @ Item
-> ```
-> Alternatively, if you are importing a text file directly, you can use the standard export format by adding `HP: XX%`, `Status: xxx`, `BST: a, b, c, d, e` and `HPX: XX` on their own individual lines within the Pokémon's set.
+> Alternatively, if you are importing a text file directly, you can use the standard export format by adding `HP: XX%`, `Status: xxx`, `BST: a, b, c, d, e`, `HPX: XX`, and `Stacked Item: Name xCount` on their own individual lines within the Pokémon's set.
 
-- --
+---
 
 ## Examples
 
@@ -56,6 +57,7 @@ Add the following tags to your Pokémon's nickname in the Teambuilder:
 
 Name your Charizard "Smaug", start at 20% HP, and be Burned:
 
+```text
 ```text
 Smaug [H:20] [S:brn] (Charizard) @ Heavy-Duty Boots
 Ability: Blaze
@@ -72,7 +74,23 @@ Timid Nature
 
 - --
 
-### 2. Custom HP Only (No Nickname)
+### 2. Stacked Items
+Turn Machamp into an unstoppable wallbreaker with 4 Black Belts (+80% power to Fighting moves):
+
+```text
+Machamp [STACK: blackbelt:4] (Machamp) @ Leftovers
+Ability: No Guard
+EVs: 252 HP / 252 Atk / 4 SpD
+Adamant Nature
+- Dynamic Punch
+- Knock Off
+- Bullet Punch
+- Facade
+```
+
+> In-battle result: Sent out as Machamp. Dynamic Punch will deal 80% more damage, but Fixed Damage moves like Seismic Toss are safely ignored.
+
+### 3. Custom HP Only (No Nickname)
 
 Start a standard Gholdengo at 1% HP without a custom nickname:
 
@@ -92,7 +110,7 @@ Timid Nature
 
 - --
 
-### 3. Starting Fainted (0% HP)
+### 4. Starting Fainted (0% HP)
 
 A Pokémon at 0% HP starts the battle completely fainted. It will be pushed to the back of your party and cannot be selected as your active lead during Team Preview.
 
@@ -112,7 +130,7 @@ Jolly Nature
 
 - --
 
-### 4. The Raid Boss (Custom Base Stats)
+### 5. The Raid Boss (Custom Base Stats)
 
 Give a standard Snorlax +50% Base Attack and Defense, making it a terrifying physical wall:
 
@@ -132,7 +150,7 @@ Impish Nature
 
 - --
 
-### 5. The Raid Boss (HPX)
+### 6. The Raid Boss (HPX)
 
 ```text
 Raid Boss [HPX: 10] (Snorlax) @ Figy Berry
@@ -163,5 +181,5 @@ This mod is fully integrated into the core battle engine:
 
 ## Known Limitations
 
-* You cannot legitimately nickname a Pokémon `[H:50]`, `[S:brn]`, `[BST: 10,10,10,10,10]` or `[HPX: 10]` without triggering the hack — the server will always intercept those tags.
+* You cannot legitimately nickname a Pokémon `[H:50]`, `[S:brn]`, `[BST: 10,10,10,10,10]` or `[HPX: 10]`, or `[STACK: item:count]` without triggering the hack — the server will always intercept those tags.
 * **Volatile statuses** (Confusion, Taunt, Leech Seed, etc.) are **not supported**. Only the major status conditions listed above will work.
