@@ -197,6 +197,8 @@ export interface PokeRogueState {
 	firstGymLeaderWave?: number;
 	pendingTrainerKey?: string;
 
+	pendingDraftPick?: boolean;
+
 	pendingStatsSlot?: number;
 	statsTab?: number;
 	lastThrowTime?: number;

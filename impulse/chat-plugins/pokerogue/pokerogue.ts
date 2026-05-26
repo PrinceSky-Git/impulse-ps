@@ -40,10 +40,6 @@ const SELF_KO_MOVES = new Set([
 	'healingwish', 'lunardance', 'finalgambit',
 ]);
 
-// ============================================================================
-// Core Game Logic Helpers
-// ============================================================================
-
 function hasPendingActions(state: PokeRogueState, ignoreDraft = false): boolean {
 	return !!(
 		state.pendingChoice?.length || state.pendingMoves?.length || state.pendingSwap ||
@@ -442,10 +438,6 @@ function handleBattleLoss(state: PokeRogueState, floor: number, userId: string):
 	}
 }
 
-// ============================================================================
-// Command Handlers & Resolvers (Controllers)
-// ============================================================================
-
 interface CommandContext {
 	errorReply(msg: string): void;
 	sendReplyBox(html: string): void;
@@ -528,6 +520,14 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			delete state.pendingItemIsEvo;
 			delete state.pendingItemIsMega;
 
+			if (state.pendingDraftPick) {
+				delete state.pendingDraftPick;
+			} else if (itemKey) {
+				const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+				const item = activeShop[itemKey];
+				if (item) state.money = (state.money || 0) + getItemPrice(state.floor, item.moneyMultiplier);
+			}
+
 			if (state.pendingRewardDraft) (state as any).view = 'draft';
 			else { state.floor++; (state as any).view = 'main'; }
 			return true;
@@ -552,6 +552,13 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			state.pendingMoves = [{ pokemonIndex: slot, move: allMoves[Math.floor(Math.random() * allMoves.length)], speciesName: mon.species }];
 			delete state.purchasedItem;
 			delete state.pendingItemName;
+			
+			if (state.pendingDraftPick) {
+				delete state.pendingRewardDraft;
+				delete state.rerollCount;
+				delete state.pendingDraftPick;
+			}
+
 			if (state.pendingRewardDraft) (state as any).view = 'draft';
 			else { state.floor++; (state as any).view = 'main'; }
 			return true;
@@ -612,6 +619,12 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 		delete state.pendingItemIsEvo;
 		delete state.pendingItemIsMega;
 
+		if (state.pendingDraftPick) {
+			delete state.pendingRewardDraft;
+			delete state.rerollCount;
+			delete state.pendingDraftPick;
+		}
+
 		if (state.pendingRewardDraft) (state as any).view = 'draft';
 		else { state.floor++; (state as any).view = 'main'; }
 		return true;
@@ -627,6 +640,15 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 		if (rest === 'skip') {
 			delete state.purchasedItem;
 			delete state.pendingConsumableType;
+			
+			if (state.pendingDraftPick) {
+				delete state.pendingDraftPick;
+			} else if (itemKey) {
+				const activeShop = MODE_REGISTRY[state.gameMode]?.shop || SHOP_ITEMS;
+				const item = activeShop[itemKey];
+				if (item) state.money = (state.money || 0) + getItemPrice(state.floor, item.moneyMultiplier);
+			}
+
 			if (state.pendingRewardDraft) (state as any).view = 'draft';
 			else { state.floor++; (state as any).view = 'main'; }
 			return true;
@@ -699,13 +721,13 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			if (!evStat) { ctx.errorReply("Invalid vitamin."); return false; }
 			if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 			const totalEvs = Object.values(mon.evs).reduce((a, b) => a + b, 0);
-			if (totalEvs >= MAX_EV_TOTAL) { ctx.errorReply("This Pokémon's EVs are maxed out (508 total)."); return false; }
-			if (mon.evs[evStat] >= MAX_EV_STAT) { ctx.errorReply(`This Pokémon's ${EV_STAT_LABELS[evStat] ?? evStat} EVs are already at max (252).`); return false; }
+			if (totalEvs >= 508) { ctx.errorReply("This Pokémon's EVs are maxed out (508 total)."); return false; }
+			if (mon.evs[evStat] >= 252) { ctx.errorReply(`This Pokémon's EV in this stat is already at max (252).`); return false; }
 			
-			const gain = Math.min(item.evGain ?? EV_VITAMIN_GAIN, MAX_EV_STAT - mon.evs[evStat], MAX_EV_TOTAL - totalEvs);
+			const gain = Math.min(item.evGain ?? 10, 252 - mon.evs[evStat], 508 - totalEvs);
 			mon.evs[evStat] += gain;
 			mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
-			state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s ${EV_STAT_LABELS[evStat] ?? evStat} EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/${MAX_EV_STAT})`;
+			state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s EVs raised by ${gain}! (Now: ${mon.evs[evStat]}/252)`;
 		} else if (item.type === 'tm') {
 			if (hp <= 0) { ctx.errorReply("Can't use on a fainted Pokémon."); return false; }
 			const moveId = itemKey.includes('_') ? itemKey.substring(itemKey.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') : toID(item.name.replace(/^TM\d+\s*/i, ''));
@@ -765,6 +787,13 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 
 		delete state.purchasedItem;
 		delete state.pendingConsumableType;
+		
+		if (state.pendingDraftPick) {
+			delete state.pendingRewardDraft;
+			delete state.rerollCount;
+			delete state.pendingDraftPick;
+		}
+
 		if (state.pendingRewardDraft) (state as any).view = 'draft';
 		else { state.floor++; (state as any).view = 'main'; }
 		return true;
@@ -853,16 +882,14 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 			(state as any).view = 'main';
 		}
 	} else if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone') {
-		delete state.pendingRewardDraft;
-		delete state.rerollCount;
+		state.pendingDraftPick = true;
 		state.purchasedItem = itemKey;
 		state.pendingItemName = item.name;
 		state.pendingItemIsEvo = item.type === 'evolveItem';
 		state.pendingItemIsMega = item.type === 'megaStone';
 		(state as any).view = 'main';
 	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
-		delete state.pendingRewardDraft;
-		delete state.rerollCount;
+		state.pendingDraftPick = true;
 		state.purchasedItem = itemKey;
 		state.pendingConsumableType = item.type;
 		(state as any).view = 'main';
@@ -1307,10 +1334,6 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 	}
 }
 
-// ============================================================================
-// Core Commands Router
-// ============================================================================
-
 export const commands: Chat.ChatCommands = {
 	pokerogue: {
 		start(target, room, user) {
@@ -1666,7 +1689,6 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
-			// Only check for pending actions if we are initiating a NEW move
 			if (hasPendingActions(state)) return this.errorReply("Resolve pending choices first.");
 
 			const fromSlot = parseInt(args[0]) - 1;
@@ -1708,7 +1730,6 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
-			// Only check for pending actions if we are initiating a NEW release
 			if (hasPendingActions(state)) return this.errorReply("Resolve pending choices first.");
 
 			const slot = parseInt(args[0]) - 1;
@@ -1737,7 +1758,6 @@ export const commands: Chat.ChatCommands = {
 			const fromDexSpecies = Dex.species.get(toID(fromMon.species));
 			const toDexSpecies = Dex.species.get(toID(toMon.species));
 			
-			// Revert old forms before un-equipping
 			if (fromMon.heldItem) {
 				const dexOldItem = Dex.items.get(fromMon.heldItem);
 				if (dexOldItem.forcedForme && fromDexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
@@ -1751,13 +1771,11 @@ export const commands: Chat.ChatCommands = {
 				}
 			}
 			
-			// Swap items
 			const temp = toMon.heldItem;
 			toMon.heldItem = fromMon.heldItem;
 			if (temp) fromMon.heldItem = temp;
 			else delete fromMon.heldItem;
 
-			// Apply new forms after re-equipping
 			if (fromMon.heldItem) {
 				const dexNewItem = Dex.items.get(fromMon.heldItem);
 				if (dexNewItem.forcedForme && fromDexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
@@ -1793,7 +1811,6 @@ export const commands: Chat.ChatCommands = {
 			const dexOldItem = Dex.items.get(mon.heldItem);
 			const dexSpecies = Dex.species.get(toID(mon.species));
 			
-			// Revert form if discarding a form-changing item
 			if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
 				mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
 			}
@@ -1821,10 +1838,6 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
-		// ------------------------------------------------------------------------
-		// Routing to Action Controllers
-		// ------------------------------------------------------------------------
 
 		draft(target, room, user) {
 			const state = getState(user.id);
@@ -1884,10 +1897,6 @@ export const commands: Chat.ChatCommands = {
 			handleCatchAction(target, room, user, state, this as any);
 		},
 
-		// ------------------------------------------------------------------------
-		// Battle Instantiation Routing
-		// ------------------------------------------------------------------------
-
 		prebattle(target, room, user) {
 			if (!user.named) return this.errorReply("Login required.");
 			const state = getState(user.id);
@@ -1945,10 +1954,6 @@ export const commands: Chat.ChatCommands = {
 			}
 		},
 
-		// ------------------------------------------------------------------------
-		// Utility Commands
-		// ------------------------------------------------------------------------
-
 		help(target, room, user) {
 			if (!this.runBroadcast()) return;
 			const isStaff = user.can('lock');
@@ -1977,10 +1982,6 @@ export const commands: Chat.ChatCommands = {
 		'': 'help',
 	},
 };
-
-// ============================================================================
-// UI Pages & Battle Handlers
-// ============================================================================
 
 export const pages: Chat.PageTable = {
 	pokerogue(args, user) {
@@ -2102,7 +2103,6 @@ export const handlers: Chat.Handlers = {
 			if (detailMsgs.length) battleLogMsgs.push(...detailMsgs);
 			if (extraNotifs.length) battleLogMsgs.push(...extraNotifs);
 
-			// Decrement X Item buffs
 			for (const mon of state.team) {
 				if (mon.activeBuffs) {
 					for (const stat in mon.activeBuffs) {
