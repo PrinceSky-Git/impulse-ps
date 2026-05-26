@@ -39,13 +39,13 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			teamSize: 2,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/youngster-gen4.png',
 			dialog: "My Rattata is in the top percentage of Rattatas!",
-			pool: ['rattata', 'pidgey', 'sentret'],
+			pool: ['rattata', 'pidgey'],
 		},
 		'Lass Sally': {
 			teamSize: 2,
+			random: true,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lass-gen4.png',
 			dialog: "Are you looking at my cute Pokémon?",
-			pool: ['jigglypuff', 'clefairy', 'marill'],
 		},
 	},
 	'Floor_8': {
@@ -53,7 +53,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			teamSize: 2,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
 			dialog: "Let's see how much stronger you've gotten!",
-			pool: ['charmander', 'squirtle', 'bulbasaur', 'pidgey', 'starly', 'fletchling'],
+			pool: ['charmander', 'starly'],
 		},
 	},
 	'Floor_25': {
@@ -61,7 +61,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
 			dialog: "I've been catching new Pokémon too!",
-			pool: ['charmeleon', 'wartortle', 'ivysaur', 'pidgeotto', 'staravia', 'fletchinder', 'pikachu', 'eevee'],
+			pool: ['charmeleon', 'ivysaur', 'staravia'],
 		},
 	},
 	'Floor_35': {
@@ -86,10 +86,10 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	},
 	'Floor_55': {
 		'Rival Finn': {
-			teamSize: 4,
+			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
 			dialog: "My team is really coming together!",
-			pool: ['charizard', 'blastoise', 'venusaur', 'pidgeot', 'staraptor', 'talonflame', 'raichu', 'snorlax'],
+			pool: ['charizard', 'venusaur', 'staraptor'],
 		},
 	},
 	'Floor_62': {
@@ -108,25 +108,25 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	},
 	'Floor_66': {
 		'Team Rocket Admin Archer': {
-			teamSize: 4,
+			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/archer.png',
 			dialog: "I will not let a child ruin our plans!",
 			pool: ['crobat', 'weezing', 'houndoom', 'muk', 'rhydon', 'persian'],
 		},
 		'Team Magma Admin Tabitha': {
-			teamSize: 4,
+			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tabitha.png',
 			dialog: "Hehehe! You're in for a scorched-earth battle!",
 			pool: ['camerupt', 'mightyena', 'weezing', 'golbat'],
 		},
 		'Team Aqua Admin Shelly': {
-			teamSize: 4,
+			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/shelly.png',
 			dialog: "You're just a little ripple in our ocean!",
 			pool: ['sharpedo', 'mightyena', 'muk', 'crobat'],
 		},
 		'Team Flare Admin': {
-			teamSize: 4,
+			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/flareadmin.png',
 			dialog: "Only the beautiful shall survive!",
 			pool: ['manectric', 'houndoom', 'pyroar', 'weavile'],
@@ -134,7 +134,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 	},
 	'Floor_95': {
 		'Rival Finn': {
-			teamSize: 5,
+			teamSize: 4,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
 			dialog: "Get ready to see my partner's true power!",
 			pool: [
@@ -144,22 +144,17 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 					moves: ['flamethrower', 'air-slash', 'dragon-pulse', 'roost'],
 				},
 				{
-					species: 'blastoise', teraType: 'Water', ability: 'Torrent', item: 'mysticwater',
-					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
-					moves: ['surf', 'ice-beam', 'dark-pulse', 'rapid-spin'],
-				},
-				{
 					species: 'venusaur', teraType: 'Grass', ability: 'Overgrow', item: 'black-sludge',
 					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
 					moves: ['giga-drain', 'sludge-bomb', 'synthesis', 'sleep-powder'],
 				},
-				'pidgeot', 'staraptor', 'talonflame', 'raichu', 'snorlax', 'lucario', 'garchomp',
+				'staraptor', 'garchomp',
 			],
 		},
 	},
 	'Floor_115': {
 		'Boss Giovanni': {
-			teamSize: 6,
+			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/giovanni.png',
 			dialog: "You dare stand in the way of Team Rocket?",
 			pool: [
@@ -196,7 +191,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 		'Boss Maxie': {
-			teamSize: 6,
+			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/maxie.png',
 			dialog: "The land shall expand! Witness the primal power!",
 			pool: [
@@ -233,7 +228,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 		'Boss Archie': {
-			teamSize: 6,
+			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/archie.png',
 			dialog: "The sea will swallow all! Scuttle your hopes!",
 			pool: [
@@ -270,7 +265,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 		'Boss Cyrus': {
-			teamSize: 6,
+			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/cyrus.png',
 			dialog: "I will remake this world into a silent, perfect void.",
 			pool: [
@@ -307,7 +302,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 		'Boss Ghetsis': {
-			teamSize: 6,
+			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/ghetsis.png',
 			dialog: "I alone shall rule this world as its savior!",
 			pool: [
@@ -344,7 +339,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 		'Boss Lysandre': {
-			teamSize: 6,
+			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lysandre.png',
 			dialog: "To make the world beautiful again, it must be purged!",
 			pool: [
@@ -383,16 +378,11 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 					moves: ['flamethrower', 'air-slash', 'dragon-pulse', 'roost'],
 				},
 				{
-					species: 'blastoise', teraType: 'Water', ability: 'Torrent', item: 'mysticwater',
-					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
-					moves: ['surf', 'ice-beam', 'dark-pulse', 'rapid-spin'],
-				},
-				{
 					species: 'venusaur', teraType: 'Grass', ability: 'Chlorophyll', item: 'black-sludge',
 					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
 					moves: ['giga-drain', 'sludge-bomb', 'synthesis', 'sleep-powder'],
 				},
-				'pidgeot', 'staraptor', 'snorlax', 'lucario', 'garchomp', 'rayquaza',
+				'staraptor', 'lucario', 'garchomp', 'rayquaza',
 			],
 		},
 	},
@@ -1218,29 +1208,14 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 					moves: ['fire-blast', 'air-slash', 'dragon-pulse', 'nasty-plot'],
 				},
 				{
-					species: 'blastoise', teraType: 'Water', ability: 'Torrent', item: 'mysticwater',
-					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
-					moves: ['surf', 'ice-beam', 'dark-pulse', 'rapid-spin'],
-				},
-				{
 					species: 'venusaur', teraType: 'Grass', ability: 'Chlorophyll', item: 'black-sludge',
 					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
 					moves: ['giga-drain', 'sludge-bomb', 'synthesis', 'sleep-powder'],
 				},
 				{
-					species: 'pidgeot', ability: 'No Guard', item: 'choice-specs', teraType: 'Normal',
-					ivs: IVS_NO_ATK, evs: EVS_SPEC_SWEEPER,
-					moves: ['hurricane', 'heat-wave', 'u-turn', 'roost'],
-				},
-				{
 					species: 'staraptor', ability: 'Reckless', item: 'choice-band', teraType: 'Flying',
 					ivs: IVS_PERFECT, evs: EVS_PHYS_SWEEPER,
 					moves: ['brave-bird', 'close-combat', 'double-edge', 'u-turn'],
-				},
-				{
-					species: 'snorlax', ability: 'Thick Fat', item: 'leftovers', teraType: 'Normal',
-					ivs: IVS_PERFECT, evs: EVS_BULKY_PHYS_ATK,
-					moves: ['return', 'earthquake', 'crunch', 'curse'],
 				},
 				{
 					species: 'lucario', ability: 'Justified', item: 'life-orb', teraType: 'Fighting',
