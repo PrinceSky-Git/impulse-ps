@@ -22,7 +22,6 @@ export interface TrainerMon {
 }
 
 export interface TrainerData {
-	biome?: string | string[];
 	teamSize: number;
 	pool?: (string | TrainerMon)[];
 	random?: boolean;
@@ -30,6 +29,7 @@ export interface TrainerData {
 	spriteUrl?: string;
 	dialog?: string;
 	doubles?: boolean;
+	biome?: string | string[];
 }
 
 export type BiomePool = Partial<Record<RarityTier, BiomeEntry[]>>;
@@ -60,13 +60,6 @@ export interface ModeConfig {
 		draftChoicesCount?: number,
 		maxDraftChoicesCount?: number,
 
-	};
-
-	storyRouting?: {
-		fixedTrainerWaves?: number[],
-		gymLeaderInterval?: number,
-		maxGymLeaderTier?: number,
-		firstGymLeaderWaves?: number[],
 	};
 
 	mechanicUnlocks?: {
