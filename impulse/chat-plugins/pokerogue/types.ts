@@ -207,10 +207,20 @@ export interface GlobalStatEntry {
 	recordTeam: PokemonEntry[];
 }
 
+export interface EggData {
+	species: string;
+	wavesRemaining: number;
+	tier: 'Common' | 'Rare' | 'Epic' | 'Legendary';
+	shiny: boolean;
+	hiddenAbility: boolean;
+}
+
 export interface UserSaveData {
 	displayName: string;
 	activeMode: GameMode;
 	starters: Record<string, PokemonEntry>;
 	runs: Partial<Record<GameMode, PokeRogueState>>;
 	saveSlots: Partial<Record<number, PokeRogueState>>;
+	vouchers?: Record<string, number>;
+	eggs?: EggData[];
 }
