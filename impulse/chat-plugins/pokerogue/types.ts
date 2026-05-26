@@ -22,6 +22,7 @@ export interface TrainerMon {
 }
 
 export interface TrainerData {
+	biome?: string | string[];
 	teamSize: number;
 	pool?: (string | TrainerMon)[];
 	random?: boolean;
