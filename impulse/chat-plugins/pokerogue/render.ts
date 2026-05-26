@@ -347,7 +347,7 @@ function renderGachaView(user: User): string {
 
 function renderHatchedEggsView(state: PokeRogueState): string {
 	const hatched = state.hatchedEggs || [];
-	let buf = `<h2 class="pr-choice-heading" style="text-align:center; margin-bottom:12px;">Eggs Hatched!</h2>`;
+	let buf = `<h2 class="pr-choice-heading" style="text-align:center; margin-bottom:12px;">EGGS HATCHED</h2>`;
 
 	buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:16px;"><tbody>`;
 
