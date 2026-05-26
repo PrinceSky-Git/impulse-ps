@@ -17,8 +17,8 @@ export const randomConfig: ModeConfig = {
 	baseFormat: '[Gen 9] PokeRogue',
 	doublesFormat: '[Gen 9] PokeRogue Doubles',
 	economy: {
-		startingMoney: 1000,
-		startingKeyItems: { 'Exp. All': 1},
+		startingMoney: 1500,
+		startingKeyItems: { 'Exp. All': 2},
 		startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 	},
 	
