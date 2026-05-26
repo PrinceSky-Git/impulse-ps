@@ -519,6 +519,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			delete state.purchasedItem;
 			delete state.pendingItemIsEvo;
 			delete state.pendingItemIsMega;
+			delete state.pendingItemIsStackable;
 
 			if (state.pendingDraftPick) {
 				delete state.pendingDraftPick;
@@ -567,7 +568,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 		let evoTarget = '';
 		if (state.pendingItemIsEvo) {
 			evoTarget = getItemEvolution(mon.species, state.pendingItemName) || '';
-			if (!evoTarget) {
+			if (!evoTarget && !state.pendingItemIsStackable) {
 				ctx.errorReply("That Pokémon can't evolve with this item.");
 				return false;
 			}
@@ -579,7 +580,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			}
 		}
 
-		if (state.pendingItemIsEvo || state.pendingItemIsMega) {
+		if (evoTarget && (state.pendingItemIsEvo || state.pendingItemIsMega)) {
 			mon.species = toID(evoTarget);
 			mon.expType = getExpType(evoTarget);
 			const evoName = Dex.species.get(evoTarget).name;
@@ -602,22 +603,30 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 				}
 			}
 		} else {
-			if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
-				mon.species = toID(dexNewItem.forcedForme);
-			} else if (mon.heldItem) {
-				const dexOldItem = Dex.items.get(mon.heldItem);
-				if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
-					mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
+			if (state.pendingItemIsStackable) {
+				if (!mon.stackedItems) mon.stackedItems = {};
+				const validItemKey = itemKey || toID(state.pendingItemName);
+				mon.stackedItems[validItemKey] = Math.min(99, (mon.stackedItems[validItemKey] || 0) + 1);
+				state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>! (x${mon.stackedItems[validItemKey]})`;
+			} else {
+				if (dexNewItem.forcedForme && dexSpecies.otherFormes?.includes(dexNewItem.forcedForme)) {
+					mon.species = toID(dexNewItem.forcedForme);
+				} else if (mon.heldItem) {
+					const dexOldItem = Dex.items.get(mon.heldItem);
+					if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
+						mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
+					}
 				}
+				mon.heldItem = toID(state.pendingItemName);
+				state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
 			}
-			mon.heldItem = toID(state.pendingItemName);
-			state.notification = `Gave <b>${Utils.escapeHTML(dexNewItem.name)}</b> to <b>${dexSpecies.name}</b>!`;
 		}
 
 		delete state.pendingItemName;
 		delete state.purchasedItem;
 		delete state.pendingItemIsEvo;
 		delete state.pendingItemIsMega;
+		delete state.pendingItemIsStackable;
 
 		if (state.pendingDraftPick) {
 			delete state.pendingRewardDraft;
@@ -881,12 +890,13 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 			state.floor++;
 			(state as any).view = 'main';
 		}
-	} else if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone') {
+	} else if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone' || item.type === 'stackableItem') {
 		state.pendingDraftPick = true;
 		state.purchasedItem = itemKey;
 		state.pendingItemName = item.name;
-		state.pendingItemIsEvo = item.type === 'evolveItem';
+		state.pendingItemIsEvo = item.type === 'evolveItem' || itemKey === 'metalcoat';
 		state.pendingItemIsMega = item.type === 'megaStone';
+		state.pendingItemIsStackable = item.type === 'stackableItem' || itemKey === 'metalcoat';
 		(state as any).view = 'main';
 	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
 		state.pendingDraftPick = true;
@@ -930,10 +940,11 @@ function handleBuyShopAction(target: string, user: User, state: PokeRogueState, 
 	}
 
 	state.purchasedItem = itemKey;
-	if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone') {
+	if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone' || item.type === 'stackableItem') {
 		state.pendingItemName = item.name;
-		state.pendingItemIsEvo = item.type === 'evolveItem';
+		state.pendingItemIsEvo = item.type === 'evolveItem' || itemKey === 'metalcoat';
 		state.pendingItemIsMega = item.type === 'megaStone';
+		state.pendingItemIsStackable = item.type === 'stackableItem' || itemKey === 'metalcoat';
 	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
 		state.pendingConsumableType = item.type;
 	}
@@ -1490,6 +1501,7 @@ export const commands: Chat.ChatCommands = {
 				delete s.pendingMoves; delete s.pendingSwap; delete s.pendingChoice; delete s.moveToLearn;
 				delete s.pendingItemName; delete s.itemOptions; delete s.purchasedItem; delete s.pendingConsumableType;
 				delete s.pendingTrainer; delete s.pendingTrainerKey; delete s.pendingRewardDraft; delete s.rerollCount;
+				delete s.pendingItemIsEvo; delete s.pendingItemIsMega; delete s.pendingItemIsStackable;
 				setState(user.id, s);
 			}
 			refreshGamePage(user);
