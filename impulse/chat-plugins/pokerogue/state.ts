@@ -22,12 +22,18 @@ export function saveGlobalStats(): void {
 }
 
 export function getUserData(userid: string): UserSaveData {
-	if (userCache[userid]) return userCache[userid];
+	if (userCache[userid]) {
+		if (!userCache[userid].vouchers) userCache[userid].vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
+		if (!userCache[userid].eggs) userCache[userid].eggs = [];
+		return userCache[userid];
+	}
 
 	try {
 		const raw = FS(`${USERS_DIR}${userid}.json`).readIfExistsSync();
 		if (raw) {
 			userCache[userid] = JSON.parse(raw);
+			if (!userCache[userid].vouchers) userCache[userid].vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
+			if (!userCache[userid].eggs) userCache[userid].eggs = [];
 			return userCache[userid];
 		}
 	} catch {}
@@ -38,6 +44,8 @@ export function getUserData(userid: string): UserSaveData {
 		starters: {},
 		runs: {},
 		saveSlots: {},
+		vouchers: { regular: 0, plus: 0, premium: 0, gold: 0 },
+		eggs: [],
 	};
 	userCache[userid] = newData;
 	return newData;
