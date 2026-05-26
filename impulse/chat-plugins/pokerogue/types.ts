@@ -140,6 +140,8 @@ export interface PokemonEntry {
 
 	activeBuffs?: Record<string, number>;
 	stackedItems?: Record<string, number>;
+
+	eggTier?: 'Common' | 'Rare' | 'Epic' | 'Legendary';
 }
 
 export interface PokeRogueState {
