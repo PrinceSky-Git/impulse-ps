@@ -337,7 +337,6 @@ function processFloorRewards(
 	const userData = getUserData(userId);
 	const newlyHatched: PokemonEntry[] = [];
 
-	// Process Egg Hatching
 	if (userData.eggs && userData.eggs.length > 0) {
 		for (let i = userData.eggs.length - 1; i >= 0; i--) {
 			const egg = userData.eggs[i];
@@ -363,7 +362,6 @@ function processFloorRewards(
 					haName = dexSpecies.abilities['H'];
 				}
 
-				// Create the entity strictly for the Hatch UI
 				const hatchedMon: PokemonEntry = {
 					species: sid, level: 5, exp: 0,
 					moves: [], nature: randomNature, ability: haName || dexSpecies.abilities['0'] || '',
@@ -374,14 +372,13 @@ function processFloorRewards(
 				if (!userData.starters[sid]) {
 					userData.starters[sid] = {
 						...hatchedMon,
-						unlockedNatures: [randomNature],
-						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''],
+						unlockedNatures: [randomNature], 
+						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''], 
 						unlockedTeraTypes: [generatedTeraType],
-						selectedNature: randomNature,
-						selectedAbility: haName || dexSpecies.abilities['0'] || '',
-						selectedTeraType: generatedTeraType,
+						selectedNature: randomNature, 
+						selectedAbility: haName || dexSpecies.abilities['0'] || '', 
+						selectedTeraType: generatedTeraType
 					} as PokemonEntry;
-					extraNotifs.push(`<div style="text-align: center; color: #4caf50;"><b>Unlocked New Starter: ${dexSpecies.name}!</b></div>`);
 				} else {
 					const starter = userData.starters[sid];
 					const unlockedFeatures: string[] = [];
@@ -408,9 +405,6 @@ function processFloorRewards(
 
 					if (isShiny && !starter.shiny) {
 						starter.shiny = true;
-						extraNotifs.push(`<div style="text-align: center; color: #fda085;"><b>Unlocked Shiny form for ${dexSpecies.name}!</b></div>`);
-					} else if (unlockedFeatures.length > 0) {
-						extraNotifs.push(`<div style="text-align: center; color: #8ab4f8;"><b>Unlocked ${unlockedFeatures.join(', ')} for ${dexSpecies.name}!</b></div>`);
 					}
 				}
 				userData.eggs.splice(i, 1);
