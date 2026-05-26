@@ -1612,30 +1612,44 @@ export const commands: Chat.ChatCommands = {
 			if (!userData.vouchers) userData.vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
 			if (!userData.eggs) userData.eggs = [];
 
-			if ((userData.vouchers[type] || 0) <= 0) return this.errorReply(`You don't have any ${type} vouchers!`);
-
-			userData.vouchers[type]--;
-
 			const pulls = validTypes[type];
+
+			// Limit the incubator to a maximum of 100 eggs using native game notifications
+			if (userData.eggs.length + pulls > 100) {
+				const state = getState(user.id);
+				if (state) {
+					state.notification = `Your incubator is too full to pull ${pulls} egg(s)! You can only hold a maximum of 100 eggs. (Currently holding: ${userData.eggs.length})`;
+					setState(user.id, state);
+				}
+				refreshGamePage(user);
+				return;
+			}
+
+			const currentVouchers = userData.vouchers[type as keyof typeof userData.vouchers] || 0;
+			if (currentVouchers <= 0) return this.errorReply(`You don't have any ${type} vouchers!`);
+
+			// Deduct the voucher safely
+			userData.vouchers[type as keyof typeof userData.vouchers] = currentVouchers - 1;
+
 			const newEggs = [];
 			const allSpecies = Dex.species.all().filter(s => s.exists && !s.isNonstandard && !s.isMega && !s.isPrimal && (!s.prevo || s.prevo === ''));
 
 			for (let i = 0; i < pulls; i++) {
-				const roll = Math.random();
+				const roll = Math.floor(Math.random() * 256);
 				let tier: 'Common' | 'Rare' | 'Epic' | 'Legendary' = 'Common';
 				let waves = 10;
 				
-				if (roll < 0.01) { tier = 'Legendary'; waves = 100; }
-				else if (roll < 0.05) { tier = 'Epic'; waves = 50; }
-				else if (roll < 0.25) { tier = 'Rare'; waves = 25; }
+				if (roll < 1) { tier = 'Legendary'; waves = 100; }
+				else if (roll < 8) { tier = 'Epic'; waves = 50; }
+				else if (roll < 52) { tier = 'Rare'; waves = 25; }
 
-				const shinyRoll = Math.random() < 0.03; 
-				const haRoll = Math.random() < 0.10; 
+				const shinyRoll = Math.floor(Math.random() * 128) === 0; 
+				const haRoll = Math.floor(Math.random() * 32) === 0; 
 				const species = allSpecies[Math.floor(Math.random() * allSpecies.length)].id;
 
-				const egg: EggData = { species, wavesRemaining: waves, tier, shiny: shinyRoll, hiddenAbility: haRoll };
-				userData.eggs.push(egg);
-				newEggs.push(egg.tier);
+				// Push raw object to avoid explicit EggData import errors
+				userData.eggs.push({ species, wavesRemaining: waves, tier, shiny: shinyRoll, hiddenAbility: haRoll });
+				newEggs.push(tier);
 			}
 
 			saveUserData(user.id);
@@ -2071,6 +2085,7 @@ export const commands: Chat.ChatCommands = {
 					`<code>/pokerogue givemoney [user], [amount]</code> - Gives Money to a user.<br>` +
 					`<code>/pokerogue removemoney [user], [amount]</code> - Removes Money from a user.<br>` +
 					`<code>/pokerogue giveitem [user], [item], [amount]</code> - Gives a Pokéball or Key Item to a user.<br>` +
+					`<code>/pokerogue givevoucher [user], [type], [amount]</code> - Gives Egg Vouchers to a user. Valid types: regular, plus, premium, gold.<br>` +
 					`<code>/pokerogue setfloor [user], [floor]</code> - Sets the floor for a user's run.<br>` +
 					`<code>/pokerogue healteam [user]</code> - Fully heals a user's team.<br>` +
 					`<code>/pokerogue addmon [user], [pokemon], [level]</code> - Adds a Pokemon to a user's team.<br>` +
