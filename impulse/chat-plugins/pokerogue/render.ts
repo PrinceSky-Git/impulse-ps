@@ -596,7 +596,7 @@ function renderGiveItem(state: PokeRogueState): string {
 	const pendingItemId = toID(state.pendingItemName);
 
 	let actionVerb = 'Give';
-	if (state.pendingItemIsEvo) actionVerb = 'Evolve';
+	if (state.pendingItemIsEvo && !state.pendingItemIsStackable) actionVerb = 'Evolve';
 	if (state.pendingItemIsMega) actionVerb = 'Mega Evolve';
 
 	let buf = `<h2 class="pr-choice-heading">${actionVerb} ${Utils.escapeHTML(dexItem.name || state.pendingItemName!)}?</h2>`;
@@ -609,9 +609,9 @@ function renderGiveItem(state: PokeRogueState): string {
 
 		let isCompatible = true;
 		let reason = '';
+		let isEvoAble = false;
 
 		if (state.pendingItemIsEvo) {
-			isCompatible = false;
 			const evoList = dexSpecies.evos;
 
 			if (evoList) {
@@ -624,12 +624,15 @@ function renderGiveItem(state: PokeRogueState): string {
 					const isPlainTradeEvolution = evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
 
 					if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
-						isCompatible = true;
+						isEvoAble = true;
 						break;
 					}
 				}
 			}
-			if (!isCompatible) reason = 'Incompatible';
+			if (!isEvoAble && !state.pendingItemIsStackable) {
+				isCompatible = false;
+				reason = 'Incompatible';
+			}
 		} else if (state.pendingItemIsMega) {
 			isCompatible = false;
 			if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(mon.species)) {
@@ -642,7 +645,7 @@ function renderGiveItem(state: PokeRogueState): string {
 
 		if (mon.heldItem) flexHtml += `<div style="font-size:9px;color:#8ab4f8">Holds: ${Utils.escapeHTML(Dex.items.get(mon.heldItem).name || mon.heldItem)}</div>`;
 
-		if ((state.pendingItemIsEvo || state.pendingItemIsMega) && isCompatible) {
+		if (isEvoAble || (state.pendingItemIsMega && isCompatible)) {
 			flexHtml += `<div style="font-size:10px;color:#4caf50;font-weight:bold;margin-top:2px;letter-spacing:0.5px;">ABLE!</div>`;
 		}
 
