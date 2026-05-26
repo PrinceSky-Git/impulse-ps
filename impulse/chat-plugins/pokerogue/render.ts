@@ -245,6 +245,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		main: 'PokéRogue', top: 'Ladder',
 		resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome',
 		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game', draft: 'Reward Draft',
+		gacha: 'Egg Gacha'
 	};
 
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
@@ -258,6 +259,10 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += `${renderBtn('/pokerogue view top', 'Ladder', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
 		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
+		buf += `</div>`;
+	} else if (view === 'welcome') {
+		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+		buf += `${renderBtn('/pokerogue view gacha', 'Egg Gacha', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome' && !hasGameOver) {
 		buf += renderBtn('/pokerogue view main', '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
@@ -285,6 +290,56 @@ function renderHpBar(mon: PokemonEntry): string {
 		renderProgressBarInner(hpPct, 'pr-bar-fill', `background:${color}`) +
 		`<span class="pr-bar-label">${hpPct}% HP</span>` +
 		`</div>`;
+}
+
+function renderGachaView(user: User): string {
+	const userData = getUserData(user.id);
+	const v = userData.vouchers || { regular: 0, plus: 0, premium: 0, gold: 0 };
+	const eggs = userData.eggs || [];
+
+	let buf = `<div style="padding: 10px;">`;
+	
+	buf += `<div class="pr-section-title">Your Vouchers</div>`;
+	
+	buf += `<div class="pr-statbar cols2">`;
+	buf += `<div class="pr-stat"><div class="pr-stat-label">Regular (1x)</div><div class="pr-stat-val">${v.regular || 0}</div></div>`;
+	buf += `<div class="pr-stat"><div class="pr-stat-label">Plus (5x)</div><div class="pr-stat-val">${v.plus || 0}</div></div>`;
+	buf += `</div>`;
+	
+	buf += `<div class="pr-statbar cols2">`;
+	buf += `<div class="pr-stat"><div class="pr-stat-label">Premium (10x)</div><div class="pr-stat-val">${v.premium || 0}</div></div>`;
+	buf += `<div class="pr-stat"><div class="pr-stat-label">Gold (25x)</div><div class="pr-stat-val">${v.gold || 0}</div></div>`;
+	buf += `</div>`;
+
+	buf += `<div style="text-align:center; margin-bottom: 20px; margin-top: 10px;">`;
+	buf += renderBtn(v.regular > 0 ? '/pokerogue pull regular' : null, 'Pull 1x', `pr-btn ${v.regular > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.regular > 0));
+	buf += renderBtn(v.plus > 0 ? '/pokerogue pull plus' : null, 'Pull 5x', `pr-btn ${v.plus > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.plus > 0));
+	buf += renderBtn(v.premium > 0 ? '/pokerogue pull premium' : null, 'Pull 10x', `pr-btn ${v.premium > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.premium > 0));
+	buf += renderBtn(v.gold > 0 ? '/pokerogue pull gold' : null, 'Pull 25x', `pr-btn ${v.gold > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.gold > 0));
+	buf += `</div>`;
+
+	buf += `<div class="pr-section-title">Your Incubator (${eggs.length} Eggs)</div>`;
+	
+	if (eggs.length === 0) {
+		buf += `<div class="pr-card" style="text-align:center; color:#9d93c8; font-size:12px;">No eggs currently in the incubator. Keep playing to earn Vouchers!</div>`;
+	} else {
+		buf += `<div style="text-align:center;">`;
+		for (const egg of eggs) {
+			let tierColor = '#9d93c8'; 
+			if (egg.tier === 'Rare') tierColor = '#93c5fd'; 
+			else if (egg.tier === 'Epic') tierColor = '#c4b8ff'; 
+			else if (egg.tier === 'Legendary') tierColor = '#fca5a5'; 
+			
+			buf += `<div class="pr-card" style="display:inline-block; width:100px; margin:4px; border-color:${tierColor}60; vertical-align:top;">`;
+			buf += `<b style="color:${tierColor}; font-size:13px;">${egg.tier} Egg</b><br>`;
+			buf += `<div class="pr-sv-subdesc" style="margin-top:6px;">${egg.wavesRemaining} waves left</div>`;
+			buf += `</div>`;
+		}
+		buf += `</div>`;
+	}
+
+	buf += `</div>`;
+	return buf;
 }
 
 function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber = 9, statsButton?: string): string {
@@ -1318,6 +1373,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStatsView(state, user)}</div></div>`;
 	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'save')}</div></div>`;
 	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'load')}</div></div>`;
+	if (view === 'gacha') return buf + renderHeader('gacha', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGachaView(user)}</div></div>`;
 
 	let displayView = view;
 	if (view === 'draft' && (state.pendingChoice?.length || state.pendingSwap || state.pendingMoves?.length || state.itemOptions?.length || state.pendingItemName || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined)) {
