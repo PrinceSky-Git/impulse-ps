@@ -34,7 +34,7 @@ export const IVS_TRICK_ROOM_SPEC = { hp: 31, atk: 0, def: 31, spa: 31, spd: 31, 
 
 export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 
-	'fixed_5': {
+	'Floor_5': {
 		'Youngster Joey': {
 			teamSize: 2,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/youngster-gen4.png',
@@ -48,7 +48,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			pool: ['jigglypuff', 'clefairy', 'marill'],
 		},
 	},
-	'fixed_8': {
+	'Floor_8': {
 		'Rival Finn': {
 			teamSize: 2,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
@@ -56,7 +56,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			pool: ['charmander', 'squirtle', 'bulbasaur', 'pidgey', 'starly', 'fletchling'],
 		},
 	},
-	'fixed_25': {
+	'Floor_25': {
 		'Rival Finn': {
 			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
@@ -64,7 +64,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			pool: ['charmeleon', 'wartortle', 'ivysaur', 'pidgeotto', 'staravia', 'fletchinder', 'pikachu', 'eevee'],
 		},
 	},
-	'fixed_35': {
+	'Floor_35': {
 		'Team Rocket Grunt': {
 			teamSize: 2,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/rocketgrunt.png',
@@ -84,7 +84,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			pool: ['poochyena', 'carvanha', 'wailmer'],
 		},
 	},
-	'fixed_55': {
+	'Floor_55': {
 		'Rival Finn': {
 			teamSize: 4,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
@@ -92,7 +92,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			pool: ['charizard', 'blastoise', 'venusaur', 'pidgeot', 'staraptor', 'talonflame', 'raichu', 'snorlax'],
 		},
 	},
-	'fixed_62': {
+	'Floor_62': {
 		'Team Galactic Grunt': {
 			teamSize: 3,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/galacticgrunt.png',
@@ -106,7 +106,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			pool: ['patrat', 'purrloin', 'trubbish', 'sandile'],
 		},
 	},
-	'fixed_66': {
+	'Floor_66': {
 		'Team Rocket Admin Archer': {
 			teamSize: 4,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/archer.png',
@@ -132,7 +132,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			pool: ['manectric', 'houndoom', 'pyroar', 'weavile'],
 		},
 	},
-	'fixed_95': {
+	'Floor_95': {
 		'Rival Finn': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
@@ -157,7 +157,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_115': {
+	'Floor_115': {
 		'Boss Giovanni': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/giovanni.png',
@@ -371,7 +371,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_145': {
+	'Floor_145': {
 		'Rival Finn': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
@@ -396,7 +396,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_165': {
+	'Floor_165': {
 		'Boss Giovanni (Rematch)': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/giovanni.png',
@@ -435,7 +435,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_182': {
+	'Floor_182': {
 		'Elite Four Lorelei': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lorelei.png',
@@ -597,7 +597,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_184': {
+	'Floor_184': {
 		'Elite Four Bruno': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bruno.png',
@@ -759,7 +759,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_186': {
+	'Floor_186': {
 		'Elite Four Agatha': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/agatha.png',
@@ -889,7 +889,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_188': {
+	'Floor_188': {
 		'Elite Four Lance': {
 			teamSize: 5,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lance.png',
@@ -1019,7 +1019,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_190': {
+	'Floor_190': {
 		'Champion Blue': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blue.png',
@@ -1206,7 +1206,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_195': {
+	'Floor_195': {
 		'Rival Finn (Final)': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lucas.png',
@@ -1260,7 +1260,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 			],
 		},
 	},
-	'fixed_200': {
+	'Floor_200': {
 		'Eternatus': {
 			teamSize: 1,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/unknown.png',
@@ -1275,7 +1275,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 	},
 
-	'gym_leader_tier_1': {
+	'GYM_tier_1': {
 
 		'Gym Leader Brock': { teamSize: 3, pool: ['geodude', 'onix'] },
 		'Gym Leader Misty': { teamSize: 3, pool: ['staryu', 'starmie', 'psyduck'] },
@@ -1358,7 +1358,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Tulip': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/tulip.png', dialog: "My Pokémon will make you beautiful — beautifully defeated!", pool: ['girafarig', 'farigiraf', 'gardevoir'] },
 	},
 
-	'gym_leader_tier_3': {
+	'GYM_tier_3': {
 
 		'Gym Leader Brock': { teamSize: 4, pool: ['geodude', 'graveler', 'onix', 'rhyhorn'] },
 		'Gym Leader Misty': { teamSize: 4, pool: ['staryu', 'starmie', 'psyduck', 'golduck'] },
@@ -1437,7 +1437,7 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Gym Leader Grusha': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/grusha.png', dialog: "My ice-type Pokémon are as cool as I am. Let's see if you can keep up!", pool: ['cetitan', 'weavile', 'froslass', 'glaceon'] },
 	},
 
-	'gym_leader_tier_5': {
+	'GYM_tier_5': {
 		'Gym Leader Giovanni': {
 			teamSize: 6,
 			spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/giovanni.png',
@@ -1699,22 +1699,28 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		},
 	},
 
-	'random_early': {
-		'Bug Catcher Rick': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bugcatcher.png', dialog: "My bug Pokémon are gonna wrap you up tight!", pool: ['caterpie', 'weedle', 'venonat', 'paras', 'spinarak', 'ledyba', 'wurmple', 'silcoon', 'cascoon', 'surskit', 'kricketot', 'burmy', 'sewaddle', 'venipede', 'scatterbug'] },
-		'Hiker David': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hiker.png', dialog: "I've climbed every mountain — now I'll climb over you!", pool: ['geodude', 'machop', 'zubat', 'makuhita', 'aron', 'nosepass', 'roggenrola', 'timburr', 'drilbur', 'bunnelby', 'rockruff', 'rolycoly', 'nacli'] },
-		'Lass Sally': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lass.png', dialog: "Hehe, don't underestimate me just because I look cute!", pool: ['jigglypuff', 'clefairy', 'marill', 'skitty', 'snubbull', 'igglybuff', 'togepi', 'munchlax', 'happiny', 'cottonee', 'flabebe', 'sylveon', 'fidough'] },
+	'STANDARD_early': {
+		'Bug Catcher Rick': {
+			biome: ['Forest', 'Meadow', 'Tall Grass', 'Grass'],
+			chance: 30, teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/bugcatcher.png', dialog: "My bug Pokémon are gonna wrap you up tight!", pool: ['caterpie', 'weedle', 'venonat', 'paras', 'spinarak', 'ledyba', 'wurmple', 'silcoon', 'cascoon', 'surskit', 'kricketot', 'burmy', 'sewaddle', 'venipede', 'scatterbug'] },
+		'Hiker David': {
+			biome: ['Cave', 'Mountain', 'Volcano', 'Badlands'],
+			chance: 20, teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/hiker.png', dialog: "I've climbed every mountain — now I'll climb over you!", pool: ['geodude', 'machop', 'zubat', 'makuhita', 'aron', 'nosepass', 'roggenrola', 'timburr', 'drilbur', 'bunnelby', 'rockruff', 'rolycoly', 'nacli'] },
+		'Lass Sally': {
+			chance: 15, teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lass.png', dialog: "Hehe, don't underestimate me just because I look cute!", pool: ['jigglypuff', 'clefairy', 'marill', 'skitty', 'snubbull', 'igglybuff', 'togepi', 'munchlax', 'happiny', 'cottonee', 'flabebe', 'sylveon', 'fidough'] },
 		'Youngster Jake': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/youngster.png', dialog: "I just got my first Pokémon and I'm ready to battle!", pool: ['rattata', 'pidgey', 'sentret', 'zigzagoon', 'poochyena', 'bidoof', 'patrat', 'bunnelby', 'yungoos', 'skwovet'] },
 		'Camper Tom': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/camper.png', dialog: "Nothing like a good battle in the great outdoors!", pool: ['nidoran-m', 'ekans', 'sandshrew', 'growlithe', 'psyduck', 'horsea', 'staryu', 'krabby', 'barboach', 'buizel'] },
 		'Picnicker Lisa': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/picnicker.png', dialog: "We're taking a break from our picnic to battle you!", pool: ['nidoran-f', 'oddish', 'bellsprout', 'vulpix', 'meowth', 'happiny', 'pachirisu', 'cherubi', 'buneary', 'minccino'] },
 		'Fisherman Wade': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/fisherman.png', dialog: "I hooked myself a challenger! You won't get away!", pool: ['magikarp', 'poliwag', 'tentacool', 'horsea', 'goldeen', 'shellder', 'remoraid', 'barboach', 'finneon', 'basculin', 'wishiwashi', 'arrokuda', 'bruxish'] },
 		'Bird Keeper Rudy': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/birdkeeper.png', dialog: "My birds will swoop down and take you out!", pool: ['pidgey', 'spearow', 'hoothoot', 'taillow', 'starly', 'pidove', 'fletchling', 'rookidee', 'squawkabilly'] },
-		'Twins Amy & May': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/twins.png', dialog: "Two against one? No, two Trainers, one battle!", pool: ['plusle', 'minun', 'volbeat', 'illumise', 'pachirisu', 'marill', 'pikachu', 'dedenne', 'togedemaru'] },
+		'Twins Amy & May': {
+			chance: 10, teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/twins.png', dialog: "Two against one? No, two Trainers, one battle!", pool: ['plusle', 'minun', 'volbeat', 'illumise', 'pachirisu', 'marill', 'pikachu', 'dedenne', 'togedemaru'] },
 		'Preschooler Mia': { teamSize: 1, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/preschooler.png', dialog: "I wanna battle! My Pokémon is my bestest friend!", pool: ['lillipup', 'patrat', 'purrloin', 'pidove', 'tepig', 'oshawott', 'snivy', 'fennekin', 'chespin', 'froakie', 'rowlet', 'litten', 'popplio', 'grookey', 'scorbunny', 'sobble', 'sprigatito', 'fuecoco', 'quaxly'] },
 		'School Kid Jack': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/schoolkid.png', dialog: "I studied all the type matchups — I've got this in the bag!", pool: ['magnemite', 'voltorb', 'exeggcute', 'oddish', 'drowzee', 'slowpoke', 'abra', 'natu', 'ralts', 'spoink', 'chingling', 'munna', 'elgyem'] },
 		'Rich Boy Winston': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/richboy.png', dialog: "Money can buy the finest Pokémon — and they'll crush you!", pool: ['meowth', 'persian', 'growlithe', 'vulpix', 'eevee', 'snorunt', 'seel', 'snorlax', 'munchlax', 'indeedee'] },
 		'Lady Sarah': { teamSize: 2, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lady.png', dialog: "Only the finest Pokémon for someone of my status!", pool: ['clefairy', 'snubbull', 'smoochum', 'togekiss', 'gardevoir', 'sylveon', 'comfey', 'alcremie'] },
 	},
-	'random_mid': {
+	'STANDARD_mid': {
 		'Ace Trainer Chase': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainer.png', dialog: "I've trained relentlessly for this moment. Don't hold back!", pool: ['staraptor', 'luxray', 'gastrodon', 'rapidash', 'roselia', 'floatzel', 'lucario', 'garchomp', 'togekiss', 'gallade', 'magnezone', 'leafeon', 'glaceon', 'umbreon', 'espeon'] },
 		'Black Belt Kenji': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/blackbelt.png', dialog: "I have mastered the fighting arts. Your defeat is certain!", pool: ['machamp', 'hitmonlee', 'hitmonchan', 'primeape', 'poliwrath', 'hariyama', 'heracross', 'medicham', 'toxicroak', 'mienshao', 'pangoro', 'hawlucha', 'passimian', 'falinks', 'annihilape'] },
 		'Scientist Albert': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/scientist.png', dialog: "According to my calculations, your probability of winning is negligible!", pool: ['magneton', 'porygon2', 'muk', 'weezing', 'electrode', 'raichu', 'starmie', 'kadabra', 'hypno', 'grimer', 'voltorb', 'beheeyem', 'magnezone', 'toxtricity', 'pawmot'] },
@@ -1731,11 +1737,12 @@ export const TRAINERS: Record<string, Record<string, TrainerData>> = {
 		'Biker Rex': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/biker.png', dialog: "You picked the wrong biker to mess with, kid!", pool: ['weezing', 'koffing', 'grimer', 'muk', 'scyther', 'magmar', 'electabuzz', 'pinsir', 'hitmonchan', 'hitmonlee', 'machoke', 'jynx'] },
 		'Sailor Cid': { teamSize: 3, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/sailor.png', dialog: "I've sailed every sea and battled every storm. You're nothing!", pool: ['poliwrath', 'machamp', 'dewgong', 'tentacruel', 'slowbro', 'seel', 'shellder', 'cloyster', 'lapras', 'kingler', 'seaking', 'gyarados'] },
 	},
-	'random_late': {
+	'STANDARD_late': {
 		'Veteran Harold': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/veteran.png', dialog: "I've been battling since before you were born. Show some respect!", pool: ['snorlax', 'lapras', 'dragonite', 'arcanine', 'gyarados', 'aerodactyl', 'kangaskhan', 'tauros', 'starmie', 'exeggutor', 'slowbro', 'machamp', 'golem', 'alakazam', 'gengar'] },
 		'Ace Trainer Lara': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainerf.png', dialog: "I've dedicated everything to becoming the best. Let's see where you stand!", pool: ['garchomp', 'lucario', 'milotic', 'togekiss', 'roserade', 'gallade', 'electivire', 'magmortar', 'leafeon', 'glaceon', 'mamoswine', 'rhyperior', 'tangrowth', 'porygon-z', 'magnezone'] },
 		'Dragon Tamer Lance (Fan)': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/dragontamer.png', dialog: "The Lance of the Elite Four is my idol — and my dragons will match his!", pool: ['dragonite', 'salamence', 'flygon', 'haxorus', 'hydreigon', 'dragonair', 'altaria', 'goodra', 'kommo-o', 'dragapult', 'roaring-moon', 'iron-jugulis', 'cyclizar'] },
-		'Pokémon Master Felix': { teamSize: 6, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainer.png', dialog: "To be a Pokémon Master means never losing. I intend to keep that record!", pool: ['metagross', 'tyranitar', 'salamence', 'garchomp', 'dragonite', 'hydreigon', 'goodra', 'kommo-o', 'dragapult', 'volcarona', 'toxapex', 'ferrothorn', 'clefable', 'heatran', 'landorus'] },
+		'Pokémon Master Felix': {
+			chance: 5, teamSize: 6, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/acetrainer.png', dialog: "To be a Pokémon Master means never losing. I intend to keep that record!", pool: ['metagross', 'tyranitar', 'salamence', 'garchomp', 'dragonite', 'hydreigon', 'goodra', 'kommo-o', 'dragapult', 'volcarona', 'toxapex', 'ferrothorn', 'clefable', 'heatran', 'landorus'] },
 		'Socialite Elena': { teamSize: 5, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/lady.png', dialog: "Darling, my Pokémon are as exquisite as my taste. Prepare to be overwhelmed!", pool: ['gardevoir', 'togekiss', 'sylveon', 'florges', 'primarina', 'ninetales', 'aromatisse', 'alcremie', 'dachsbun', 'hattrene', 'milotic', 'froslass', 'mismagius'] },
 		'Pokémon Ranger Sophia': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/pokemonrangerf.png', dialog: "Rangers never back down from a challenge — especially to protect what we love!", pool: ['arcanine', 'steelix', 'flygon', 'talonflame', 'braviary', 'lycanroc', 'bewear', 'stufful', 'mudsdale', 'drampa', 'tsareena', 'lurantis', 'salazzle'] },
 		'Battle Girl Maya': { teamSize: 4, spriteUrl: 'https://play.pokemonshowdown.com/sprites/trainers/battlegirl.png', dialog: "I train every day to push my limits. Come on, let's go!", pool: ['lucario', 'mienshao', 'hawlucha', 'medicham', 'toxicroak', 'conkeldurr', 'infernape', 'heracross', 'machamp', 'gallade', 'sirfetchd', 'falinks', 'annihilape'] },

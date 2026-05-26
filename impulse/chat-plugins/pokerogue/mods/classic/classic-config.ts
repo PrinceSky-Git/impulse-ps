@@ -36,13 +36,6 @@ export const classicConfig: ModeConfig = {
 		startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 	},
 
-	storyRouting: {
-		fixedTrainerWaves: [5, 8, 25, 35, 55, 62, 64, 66, 95, 112, 114, 115, 145, 164, 165, 182, 184, 186, 188, 190, 195, 200],
-		gymLeaderInterval: 30,
-		maxGymLeaderTier: 5,
-		firstGymLeaderWaves: [20, 30],
-	},
-
 	mechanicUnlocks: {
 		terastallize: 25,
 	},
@@ -75,46 +68,102 @@ export const classicData: ModeData = {
 	useNewStarterSelectionUI: true,
 
 	resolveTrainer: (floor: number, state: PokeRogueState, config: ModeConfig) => {
-		const routing = config.storyRouting;
-		let trainerKey: string | null = null;
+		const trainers = ClassicTrainers;
+		if (!trainers) return null;
 
-		if (routing?.fixedTrainerWaves?.includes(floor)) {
-			trainerKey = `fixed_${floor}`;
-		} else if (floor % config.bossInterval === 0 && routing?.gymLeaderInterval) {
-			const firstWaves = routing.firstGymLeaderWaves || [];
+		// RULE 1: Guaranteed Fixed Floors (Bosses, Rivals - Overrides everything)
+		const floorKey = `Floor_${floor}`;
+		if (trainers[floorKey]) {
+			const trainerNames = Object.keys(trainers[floorKey]);
+			const selectedName = trainerNames[Math.floor(Math.random() * trainerNames.length)];
+			return { key: floorKey, name: selectedName };
+		}
 
-			if (!state.firstGymLeaderWave && firstWaves.includes(floor)) {
-				if (Math.random() < 0.5 || floor === firstWaves[firstWaves.length - 1]) {
-					state.firstGymLeaderWave = floor;
+		// RULE 2: Official 20/30 Gym Leader Routing & Scaling
+		const gymInterval = 30;
+
+		// Determine the first gym wave (either 20 or 30) if it hasn't been set yet
+		if (!state.firstGymLeaderWave) {
+			state.firstGymLeaderWave = Math.random() < 0.5 ? 20 : 30;
+		}
+
+		// Check if the current floor aligns with their Gym track
+		if (floor >= state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % gymInterval === 0) {
+			const gymKeys = Object.keys(trainers).filter(k => k.startsWith('GYM_'));
+			if (gymKeys.length > 0) {
+				
+				// Scale tier based on floor depth
+				let targetTier = '1';
+				if (floor >= 50 && floor < 100) targetTier = '3';
+				if (floor >= 100) targetTier = '5';
+				
+				const scaledGymKey = gymKeys.find(k => k.includes(`tier_${targetTier}`)) || gymKeys[0];
+				const gymTrainers = Object.keys(trainers[scaledGymKey]);
+				
+				if (gymTrainers.length > 0) {
+					const selectedGymTrainer = gymTrainers[Math.floor(Math.random() * gymTrainers.length)];
+					return { key: scaledGymKey, name: selectedGymTrainer };
 				}
 			}
+		}
 
-			if (state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % routing.gymLeaderInterval === 0) {
-				const encounterNum = 1 + ((floor - state.firstGymLeaderWave) / routing.gymLeaderInterval);
-				trainerKey = `gym_leader_tier_${Math.min(routing.maxGymLeaderTier || 5, encounterNum)}`;
-			}
-		} else if (state.currentBiome !== config.startingBiome && Math.random() < 0.15) {
-			const lastTrainer = state.lastTrainerFloor || -99;
+		// GLOBAL SPAWN CHECK: 25% chance for standard dynamic trainers vs 75% Wild Pokemon
+		if (state.currentBiome === config.startingBiome) return null; 
+		
+		const lastTrainer = state.lastTrainerFloor || -99;
+		if (floor - lastTrainer < 3) return null; // 3-floor cooldown between dynamic trainers
+		
+		if (Math.random() > 0.25) return null; // 75% chance to spawn Wild Pokemon instead
 
-			if (floor - lastTrainer >= 3) {
-				if (floor <= 30) trainerKey = 'random_early';
-				else if (floor <= 100) trainerKey = 'random_mid';
-				else trainerKey = 'random_late';
+		// DYNAMIC POOL BUILDING
+		const currentBiome = state.currentBiome || config.startingBiome;
+		const validTrainers: { key: string, name: string, chance: number }[] = [];
+		let totalChance = 0;
+
+		for (const [categoryKey, categoryData] of Object.entries(trainers)) {
+			// Skip categories we already handled above
+			if (categoryKey.startsWith('Floor_')) continue; 
+			if (categoryKey.startsWith('GYM_')) continue;
+
+			// RULE 3: STANDARD_ Prefix Floor Filtering (Early, Mid, Late game progression)
+			if (categoryKey.startsWith('STANDARD_early') && floor > 30) continue;
+			if (categoryKey.startsWith('STANDARD_mid') && (floor <= 30 || floor > 100)) continue;
+			if (categoryKey.startsWith('STANDARD_late') && floor <= 100) continue;
+
+			// Evaluate the remaining trainers for this category
+			for (const [trainerName, trainerData] of Object.entries(categoryData as Record<string, any>)) {
+				
+				// BIOME CHECK
+				if (trainerData.biome) {
+					const allowedBiomes = Array.isArray(trainerData.biome) ? trainerData.biome : [trainerData.biome];
+					if (!allowedBiomes.includes(currentBiome)) {
+						continue; // Trainer doesn't spawn in this biome
+					}
+				}
+				
+				// Add valid trainer to the lottery pool
+				const chanceWeight = trainerData.chance ?? 10;
+				validTrainers.push({ key: categoryKey, name: trainerName, chance: chanceWeight });
+				totalChance += chanceWeight;
 			}
 		}
 
-		if (trainerKey && ClassicTrainers[trainerKey]) {
-			const trainerNames = Object.keys(ClassicTrainers[trainerKey]);
-			const selectedTrainer = trainerNames[Math.floor(Math.random() * trainerNames.length)];
-
-			if (trainerKey.startsWith('random_')) {
-				state.lastTrainerFloor = floor;
+		// THE LOTTERY ROLL (Weighted Random)
+		if (validTrainers.length > 0) {
+			state.lastTrainerFloor = floor; // Update the cooldown tracker
+			
+			let roll = Math.random() * totalChance;
+			for (const trainer of validTrainers) {
+				roll -= trainer.chance;
+				if (roll <= 0) {
+					return { key: trainer.key, name: trainer.name };
+				}
 			}
-
-			return { key: trainerKey, name: selectedTrainer };
+			// Fallback in case of floating point inaccuracies
+			return { key: validTrainers[validTrainers.length - 1].key, name: validTrainers[validTrainers.length - 1].name };
 		}
 
-		return null;
+		return null; // No valid trainers matched the current biome/rules, fallback to Wild Pokemon
 	},
 
 	resolveBoss: (floor: number, currentBiome: string, config: ModeConfig): TrainerMon[] | null => {
