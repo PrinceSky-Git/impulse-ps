@@ -59,6 +59,9 @@ export class Pokemon {
 	readonly dynamaxLevel: number;
 	readonly gigantamax: boolean;
 
+	/** Custom Stacked Type-Boosting Item */
+	readonly stackedItem?: { id: ID, count: number };
+
 	/** Transform keeps the original pre-transformed Hidden Power in Gen 2-4. */
 	readonly baseHpType: string;
 	readonly baseHpPower: number;
@@ -344,6 +347,13 @@ export class Pokemon {
 		this.pokeball = toID(this.set.pokeball) || 'pokeball' as ID;
 		this.dynamaxLevel = typeof set.dynamaxLevel === 'number' ? this.battle.clampIntRange(set.dynamaxLevel, 0, 10) : 10;
 		this.gigantamax = this.set.gigantamax || false;
+
+		if ((this.set as any).stackedItem) {
+			this.stackedItem = {
+				id: (this.set as any).stackedItem.id as ID,
+				count: (this.set as any).stackedItem.count
+			};
+		}
 
 		this.baseMoveSlots = [];
 		this.moveSlots = [];
