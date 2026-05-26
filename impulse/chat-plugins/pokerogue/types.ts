@@ -145,6 +145,7 @@ export interface PokemonEntry {
 	selectedTeraType?: string;
 	
 	activeBuffs?: Record<string, number>;
+	stackedItems?: Record<string, number>;
 }
 
 export interface PokeRogueState {
@@ -175,6 +176,7 @@ export interface PokeRogueState {
 	pendingItemName?: string;
 	pendingItemIsEvo?: boolean;
 	pendingItemIsMega?: boolean;
+	pendingItemIsStackable?: boolean;
 	isRotationalItem?: boolean;
 	moveToLearn?: string;
 	pokemonForTM?: number;
