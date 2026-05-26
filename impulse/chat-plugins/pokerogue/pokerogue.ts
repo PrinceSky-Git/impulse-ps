@@ -344,22 +344,74 @@ function processFloorRewards(
 			if (egg.wavesRemaining <= 0) {
 				const sid = toID(egg.species);
 				const isShiny = egg.shiny;
+				const dexSpecies = Dex.species.get(sid);
+
+				// Generate Random Nature
+				const allNatures = Dex.natures.all().map(n => n.name);
+				const randomNature = allNatures[Math.floor(Math.random() * allNatures.length)] || 'Hardy';
+
+				// Generate Tera Type (80% matching species types, 20% completely random)
+				let generatedTeraType = 'Normal';
+				if (Math.random() < 0.8 && dexSpecies.types.length > 0) {
+					generatedTeraType = dexSpecies.types[Math.floor(Math.random() * dexSpecies.types.length)];
+				} else {
+					const allTypes = Dex.types.all().map(t => t.name);
+					generatedTeraType = allTypes[Math.floor(Math.random() * allTypes.length)] || 'Normal';
+				}
+
+				// Check for Hidden Ability Unlock
+				let haName = '';
+				if (egg.hiddenAbility && dexSpecies.abilities['H']) {
+					haName = dexSpecies.abilities['H'];
+				}
 
 				if (!userData.starters[sid]) {
 					userData.starters[sid] = {
 						species: sid, level: 5, exp: 0,
-						moves: [], nature: 'Hardy', ability: '',
-						shiny: isShiny, teraType: 'Normal',
-						unlockedNatures: ['Hardy'], unlockedAbilities: [''], unlockedTeraTypes: ['Normal'],
-						selectedNature: 'Hardy', selectedAbility: '', selectedTeraType: 'Normal'
+						moves: [], nature: randomNature, ability: haName || dexSpecies.abilities['0'] || '',
+						shiny: isShiny, teraType: generatedTeraType,
+						unlockedNatures: [randomNature], 
+						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''], 
+						unlockedTeraTypes: [generatedTeraType],
+						selectedNature: randomNature, 
+						selectedAbility: haName || dexSpecies.abilities['0'] || '', 
+						selectedTeraType: generatedTeraType
 					} as PokemonEntry;
-					extraNotifs.push(`<div style="text-align: center; color: #4caf50;"><b>An Egg hatched into ${Dex.species.get(sid).name}! (New Starter)</b></div>`);
+					extraNotifs.push(`<div style="text-align: center; color: #4caf50;"><b>An Egg hatched into ${dexSpecies.name}! (New Starter)</b></div>`);
 				} else {
-					if (isShiny && !userData.starters[sid].shiny) {
-						userData.starters[sid].shiny = true;
-						extraNotifs.push(`<div style="text-align: center; color: #fda085;"><b>An Egg hatched into a Shiny ${Dex.species.get(sid).name}!</b></div>`);
+					const starter = userData.starters[sid];
+					const unlockedFeatures: string[] = [];
+
+					// Unlock Nature
+					if (!starter.unlockedNatures) starter.unlockedNatures = [starter.nature || 'Hardy'];
+					if (!starter.unlockedNatures.includes(randomNature)) {
+						starter.unlockedNatures.push(randomNature);
+						unlockedFeatures.push('Nature');
+					}
+
+					// Unlock Tera Type
+					if (!starter.unlockedTeraTypes) starter.unlockedTeraTypes = [starter.teraType || 'Normal'];
+					if (!starter.unlockedTeraTypes.includes(generatedTeraType)) {
+						starter.unlockedTeraTypes.push(generatedTeraType);
+						unlockedFeatures.push('Tera');
+					}
+
+					// Unlock Hidden Ability
+					if (haName) {
+						if (!starter.unlockedAbilities) starter.unlockedAbilities = [starter.ability || dexSpecies.abilities['0'] || ''];
+						if (!starter.unlockedAbilities.includes(haName)) {
+							starter.unlockedAbilities.push(haName);
+							unlockedFeatures.push('Hidden Ability');
+						}
+					}
+
+					if (isShiny && !starter.shiny) {
+						starter.shiny = true;
+						extraNotifs.push(`<div style="text-align: center; color: #fda085;"><b>An Egg hatched into a Shiny ${dexSpecies.name}!</b></div>`);
+					} else if (unlockedFeatures.length > 0) {
+						extraNotifs.push(`<div style="text-align: center; color: #8ab4f8;"><b>An Egg hatched into ${dexSpecies.name}! (Unlocked: ${unlockedFeatures.join(', ')})</b></div>`);
 					} else {
-						extraNotifs.push(`<div style="text-align: center;"><b>An Egg hatched into ${Dex.species.get(sid).name}! (Duplicate)</b></div>`);
+						extraNotifs.push(`<div style="text-align: center;"><b>An Egg hatched into ${dexSpecies.name}! (Duplicate)</b></div>`);
 					}
 				}
 				userData.eggs.splice(i, 1);
