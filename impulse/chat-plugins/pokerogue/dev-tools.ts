@@ -144,8 +144,8 @@ export const devCommands: Chat.ChatCommands = {
 		if (isNaN(amount) || amount <= 0) return this.errorReply(`Amount must be a positive number.`);
 
 		if (!userData.vouchers) userData.vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
-		
-		userData.vouchers[type as keyof typeof userData.vouchers] = (userData.vouchers[type as keyof typeof userData.vouchers] || 0) + amount;
+
+		userData.vouchers[type] = (userData.vouchers[type] || 0) + amount;
 		saveUserData(tId);
 
 		const displayType = type.charAt(0).toUpperCase() + type.slice(1);

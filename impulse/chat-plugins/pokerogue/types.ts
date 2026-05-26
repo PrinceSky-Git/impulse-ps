@@ -199,7 +199,7 @@ export interface PokeRogueState {
 	statsTab?: number;
 	lastThrowTime?: number;
 	isConfiguringStarter?: boolean;
-	
+
 	hatchedEggs?: PokemonEntry[];
 }
 

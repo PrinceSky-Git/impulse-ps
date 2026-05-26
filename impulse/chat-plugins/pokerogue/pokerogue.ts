@@ -374,12 +374,12 @@ function processFloorRewards(
 				if (!userData.starters[sid]) {
 					userData.starters[sid] = {
 						...hatchedMon,
-						unlockedNatures: [randomNature], 
-						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''], 
+						unlockedNatures: [randomNature],
+						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''],
 						unlockedTeraTypes: [generatedTeraType],
-						selectedNature: randomNature, 
-						selectedAbility: haName || dexSpecies.abilities['0'] || '', 
-						selectedTeraType: generatedTeraType
+						selectedNature: randomNature,
+						selectedAbility: haName || dexSpecies.abilities['0'] || '',
+						selectedTeraType: generatedTeraType,
 					} as PokemonEntry;
 					extraNotifs.push(`<div style="text-align: center; color: #4caf50;"><b>Unlocked New Starter: ${dexSpecies.name}!</b></div>`);
 				} else {
@@ -552,7 +552,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 		}
 		return false;
 	},
-	
+
 	learnmove(state, user, rest, ctx) {
 		if (!state.pendingMoves?.length) return false;
 		const pending = state.pendingMoves[0];
@@ -1687,11 +1687,11 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
-			const currentVouchers = userData.vouchers[type as keyof typeof userData.vouchers] || 0;
+			const currentVouchers = userData.vouchers[type] || 0;
 			if (currentVouchers <= 0) return this.errorReply(`You don't have any ${type} vouchers!`);
 
 			// Deduct the voucher safely
-			userData.vouchers[type as keyof typeof userData.vouchers] = currentVouchers - 1;
+			userData.vouchers[type] = currentVouchers - 1;
 
 			const newEggs = [];
 			const allSpecies = Dex.species.all().filter(s => s.exists && !s.isNonstandard && !s.isMega && !s.isPrimal && (!s.prevo || s.prevo === ''));
@@ -1700,13 +1700,11 @@ export const commands: Chat.ChatCommands = {
 				const roll = Math.floor(Math.random() * 256);
 				let tier: 'Common' | 'Rare' | 'Epic' | 'Legendary' = 'Common';
 				let waves = 10;
-				
-				if (roll < 1) { tier = 'Legendary'; waves = 100; }
-				else if (roll < 8) { tier = 'Epic'; waves = 50; }
-				else if (roll < 52) { tier = 'Rare'; waves = 25; }
 
-				const shinyRoll = Math.floor(Math.random() * 128) === 0; 
-				const haRoll = Math.floor(Math.random() * 32) === 0; 
+				if (roll < 1) { tier = 'Legendary'; waves = 100; } else if (roll < 8) { tier = 'Epic'; waves = 50; } else if (roll < 52) { tier = 'Rare'; waves = 25; }
+
+				const shinyRoll = Math.floor(Math.random() * 128) === 0;
+				const haRoll = Math.floor(Math.random() * 32) === 0;
 				const species = allSpecies[Math.floor(Math.random() * allSpecies.length)].id;
 
 				// Push raw object to avoid explicit EggData import errors
@@ -1723,7 +1721,7 @@ export const commands: Chat.ChatCommands = {
 			}
 			refreshGamePage(user);
 		},
-		
+
 		statstab(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');

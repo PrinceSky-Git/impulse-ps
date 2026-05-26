@@ -245,7 +245,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		main: 'PokéRogue', top: 'Ladder',
 		resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome',
 		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game', draft: 'Reward Draft',
-		gacha: 'Egg Gacha'
+		gacha: 'Egg Gacha',
 	};
 
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
@@ -301,14 +301,14 @@ function renderGachaView(user: User): string {
 	const eggs = userData.eggs || [];
 
 	let buf = `<div style="padding: 10px;">`;
-	
+
 	buf += `<div class="pr-section-title">Your Vouchers</div>`;
-	
+
 	buf += `<div class="pr-statbar cols2">`;
 	buf += `<div class="pr-stat"><div class="pr-stat-label">Regular (1x)</div><div class="pr-stat-val">${v.regular || 0}</div></div>`;
 	buf += `<div class="pr-stat"><div class="pr-stat-label">Plus (5x)</div><div class="pr-stat-val">${v.plus || 0}</div></div>`;
 	buf += `</div>`;
-	
+
 	buf += `<div class="pr-statbar cols2">`;
 	buf += `<div class="pr-stat"><div class="pr-stat-label">Premium (10x)</div><div class="pr-stat-val">${v.premium || 0}</div></div>`;
 	buf += `<div class="pr-stat"><div class="pr-stat-label">Gold (25x)</div><div class="pr-stat-val">${v.gold || 0}</div></div>`;
@@ -322,17 +322,17 @@ function renderGachaView(user: User): string {
 	buf += `</div>`;
 
 	buf += `<div class="pr-section-title">Your Incubator (${eggs.length} Eggs)</div>`;
-	
+
 	if (eggs.length === 0) {
 		buf += `<div class="pr-card" style="text-align:center; color:#9d93c8; font-size:12px;">No eggs currently in the incubator. Keep playing to earn Vouchers!</div>`;
 	} else {
 		buf += `<div style="text-align:center;">`;
 		for (const egg of eggs) {
-			let tierColor = '#9d93c8'; 
-			if (egg.tier === 'Rare') tierColor = '#93c5fd'; 
-			else if (egg.tier === 'Epic') tierColor = '#c4b8ff'; 
-			else if (egg.tier === 'Legendary') tierColor = '#fca5a5'; 
-			
+			let tierColor = '#9d93c8';
+			if (egg.tier === 'Rare') tierColor = '#93c5fd';
+			else if (egg.tier === 'Epic') tierColor = '#c4b8ff';
+			else if (egg.tier === 'Legendary') tierColor = '#fca5a5';
+
 			buf += `<div class="pr-card" style="display:inline-block; width:100px; margin:4px; border-color:${tierColor}60; vertical-align:top;">`;
 			buf += `<b style="color:${tierColor}; font-size:13px;">${egg.tier} Egg</b><br>`;
 			buf += `<div class="pr-sv-subdesc" style="margin-top:6px;">${egg.wavesRemaining} waves left</div>`;
@@ -348,9 +348,9 @@ function renderGachaView(user: User): string {
 function renderHatchedEggsView(state: PokeRogueState): string {
 	const hatched = state.hatchedEggs || [];
 	let buf = `<h2 class="pr-choice-heading" style="text-align:center; margin-bottom:12px;">Eggs Hatched!</h2>`;
-	
+
 	buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:16px;"><tbody>`;
-	
+
 	const COLS = 4;
 	for (let i = 0; i < hatched.length; i += COLS) {
 		buf += `<tr>`;
@@ -360,7 +360,7 @@ function renderHatchedEggsView(state: PokeRogueState): string {
 				const mon = hatched[j];
 				const sp = Dex.species.get(mon.species);
 				const isShiny = mon.shiny;
-				
+
 				buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
 				buf += Utils.escapeHTML(sp.name);
 				if (isShiny) buf += ` <span style="color:#fda085">★</span>`;
@@ -371,7 +371,7 @@ function renderHatchedEggsView(state: PokeRogueState): string {
 		}
 		buf += `</tr>`;
 	}
-	
+
 	buf += `</tbody></table>`;
 	buf += `<div style="text-align:center;">`;
 	buf += renderBtn('/pokerogue resolve hatched continue', 'Continue', 'pr-btn primary', 'font-size:12px;padding:6px 16px;');
