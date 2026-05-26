@@ -251,15 +251,19 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
 
 	if (view === 'main' && !hasGameOver) {
-		buf += `<div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;">`;
-		buf += `${renderBtn('/pokerogue view gacha', 'Egg Gacha', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
+		buf += `<div style="display:flex;flex-wrap:wrap;justify-content:flex-end;margin-left:auto;">`;
+		buf += `${renderBtn('/pokerogue view gacha', 'Gacha', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
+		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view save', 'Save', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
+		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view load', 'Load', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
+		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view top', 'Ladder', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
+		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view === 'welcome') {
-		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+		buf += `<div style="display:flex;margin-left:auto">`;
 		buf += `${renderBtn('/pokerogue view gacha', 'Egg Gacha', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome') {
@@ -337,6 +341,41 @@ function renderGachaView(user: User): string {
 		buf += `</div>`;
 	}
 
+	buf += `</div>`;
+	return buf;
+}
+
+function renderHatchedEggsView(state: PokeRogueState): string {
+	const hatched = state.hatchedEggs || [];
+	let buf = `<h2 class="pr-choice-heading" style="text-align:center; color:#fca5a5; font-size:18px; margin-bottom: 16px;">Eggs Hatched!</h2>`;
+	
+	buf += `<table style="width:100%; border-collapse:collapse; table-layout:fixed; margin-bottom:20px;"><tbody>`;
+	
+	const COLS = 4;
+	for (let i = 0; i < hatched.length; i += COLS) {
+		buf += `<tr>`;
+		for (let j = i; j < i + COLS; j++) {
+			buf += `<td style="width:25%; text-align:center; padding:6px 2px; vertical-align:top;">`;
+			if (j < hatched.length) {
+				const mon = hatched[j];
+				const sp = Dex.species.get(mon.species);
+				const isShiny = mon.shiny;
+				buf += `<div class="pr-card" style="padding: 10px 4px; display: inline-block; width: 100%; border-color: ${isShiny ? '#fda085' : '#5548a0'};">`;
+				buf += `<div style="font-size:11px; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight: 600; color: #ede9ff;">`;
+				buf += Utils.escapeHTML(sp.name);
+				if (isShiny) buf += ` <span style="color:#fda085">★</span>`;
+				buf += `</div>`;
+				buf += getSprite(sp.id, 50, isShiny);
+				buf += `</div>`;
+			}
+			buf += `</td>`;
+		}
+		buf += `</tr>`;
+	}
+	
+	buf += `</tbody></table>`;
+	buf += `<div style="text-align:center;">`;
+	buf += renderBtn('/pokerogue resolve hatched continue', 'Continue', 'pr-btn primary', 'font-size:14px; padding:8px 24px;');
 	buf += `</div>`;
 	return buf;
 }
@@ -1377,13 +1416,16 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'gacha') return buf + renderHeader('gacha', !!isEffectivelyGameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGachaView(user)}</div></div>`;
 
 	let displayView = view;
-	if (view === 'draft' && (state.pendingChoice?.length || state.pendingSwap || state.pendingMoves?.length || state.itemOptions?.length || state.pendingItemName || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined)) {
+	// Intercept 'draft' view to display overlay menus first (Hatched Eggs take absolute priority)
+	if (view === 'draft' && (state.hatchedEggs?.length || state.pendingChoice?.length || state.pendingSwap || state.pendingMoves?.length || state.itemOptions?.length || state.pendingItemName || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined)) {
 		displayView = 'main';
 	}
 	if (state.gameWon) displayView = 'victory';
 
 	buf += renderHeader(displayView, !!state.gameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 
+	// UI Overlays by Priority
+	if (state.hatchedEggs?.length) return buf + renderHatchedEggsView(state) + `</div></div>`;
 	if (state.pendingChoice?.length) return buf + renderPendingChoice(state) + `</div></div>`;
 	if (state.pendingSwap) return buf + renderPendingSwap(state) + `</div></div>`;
 	if (state.pendingMoves?.length) return buf + renderPendingMoves(state) + `</div></div>`;
