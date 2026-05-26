@@ -251,21 +251,20 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
 
 	if (view === 'main' && !hasGameOver) {
-		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
+		buf += `<div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;">`;
+		buf += `${renderBtn('/pokerogue view gacha', 'Egg Gacha', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		buf += `${renderBtn('/pokerogue view save', 'Save', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
-		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view load', 'Load', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
-		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view top', 'Ladder', 'pr-btn', 'font-size:11px;padding:5px 10px')}`;
-		buf += `&nbsp;&nbsp;`;
 		buf += `${renderBtn('/pokerogue view resetconfirm', 'Reset', 'pr-btn danger', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view === 'welcome') {
 		buf += `<div style="display:flex;gap:8px;margin-left:auto">`;
 		buf += `${renderBtn('/pokerogue view gacha', 'Egg Gacha', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
-	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome' && !hasGameOver) {
-		buf += renderBtn('/pokerogue view main', '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
+	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome') {
+		const backTarget = hasGameOver ? '/pokerogue view welcome' : '/pokerogue view main';
+		buf += renderBtn(backTarget, '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	}
 	return buf + `</div>`;
 }
@@ -1365,7 +1364,9 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 
 	buf += `<div class="pr" style="min-height:100vh;padding-bottom:20px">`;
 
-	if (state.gameOver && view !== 'welcome') return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGameOverView(state)}</div></div>`;
+	const isEffectivelyGameOver = state.gameOver || (state.team.length === 0 && !state.isConfiguringStarter && (!state.pendingChoice || state.pendingChoice.length === 0));
+
+	if (state.gameOver && view !== 'welcome' && view !== 'gacha') return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGameOverView(state)}</div></div>`;
 	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderResetConfirmView(state)}</div></div>`;
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderTopView()}</div></div>`;
 	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderWelcomeView()}</div></div>`;
@@ -1373,7 +1374,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStatsView(state, user)}</div></div>`;
 	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'save')}</div></div>`;
 	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'load')}</div></div>`;
-	if (view === 'gacha') return buf + renderHeader('gacha', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGachaView(user)}</div></div>`;
+	if (view === 'gacha') return buf + renderHeader('gacha', !!isEffectivelyGameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGachaView(user)}</div></div>`;
 
 	let displayView = view;
 	if (view === 'draft' && (state.pendingChoice?.length || state.pendingSwap || state.pendingMoves?.length || state.itemOptions?.length || state.pendingItemName || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined)) {
@@ -1381,7 +1382,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	}
 	if (state.gameWon) displayView = 'victory';
 
-	buf += renderHeader(displayView, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
+	buf += renderHeader(displayView, !!state.gameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 
 	if (state.pendingChoice?.length) return buf + renderPendingChoice(state) + `</div></div>`;
 	if (state.pendingSwap) return buf + renderPendingSwap(state) + `</div></div>`;
