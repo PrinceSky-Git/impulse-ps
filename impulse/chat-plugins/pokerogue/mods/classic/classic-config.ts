@@ -32,12 +32,12 @@ export const classicConfig: ModeConfig = {
 
 	economy: {
 		startingMoney: 1000,
-		startingKeyItems: { 'Exp. All': 1 },
+		startingKeyItems: { 'Exp. All': 2 },
 		startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 	},
 
 	mechanicUnlocks: {
-		terastallize: 25,
+		terastallize: 40,
 	},
 
 	milestoneRewards: [
@@ -107,13 +107,13 @@ export const classicData: ModeData = {
 			}
 		}
 
-		// GLOBAL SPAWN CHECK: 25% chance for standard dynamic trainers vs 75% Wild Pokemon
+		// GLOBAL SPAWN CHECK: 10% chance for standard dynamic trainers vs 75% Wild Pokemon
 		if (state.currentBiome === config.startingBiome) return null; 
 		
 		const lastTrainer = state.lastTrainerFloor || -99;
 		if (floor - lastTrainer < 3) return null; // 3-floor cooldown between dynamic trainers
 		
-		if (Math.random() > 0.25) return null; // 75% chance to spawn Wild Pokemon instead
+		if (Math.random() > 0.10) return null; // 90% chance to spawn Wild Pokemon instead
 
 		// DYNAMIC POOL BUILDING
 		const currentBiome = state.currentBiome || config.startingBiome;
