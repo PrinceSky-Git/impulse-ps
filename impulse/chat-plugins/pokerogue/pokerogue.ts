@@ -1560,7 +1560,7 @@ export const commands: Chat.ChatCommands = {
 			const args = target.trim().split(' ');
 			const v = args[0] as any;
 
-			if (['main', 'top', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft'].includes(v)) {
+			if (['main', 'top', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft', 'gacha'].includes(v)) {
 				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
 					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 					if (modeData.useNewStarterSelectionUI !== false) {
@@ -1603,6 +1603,51 @@ export const commands: Chat.ChatCommands = {
 			}
 		},
 
+		pull(target, room, user) {
+			const type = target.trim().toLowerCase();
+			const validTypes: Record<string, number> = { regular: 1, plus: 5, premium: 10, gold: 25 };
+			if (!validTypes[type]) return this.errorReply("Invalid voucher type.");
+
+			const userData = getUserData(user.id);
+			if (!userData.vouchers) userData.vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
+			if (!userData.eggs) userData.eggs = [];
+
+			if ((userData.vouchers[type] || 0) <= 0) return this.errorReply(`You don't have any ${type} vouchers!`);
+
+			userData.vouchers[type]--;
+
+			const pulls = validTypes[type];
+			const newEggs = [];
+			const allSpecies = Dex.species.all().filter(s => s.exists && !s.isNonstandard && !s.isMega && !s.isPrimal && (!s.prevo || s.prevo === ''));
+
+			for (let i = 0; i < pulls; i++) {
+				const roll = Math.random();
+				let tier: 'Common' | 'Rare' | 'Epic' | 'Legendary' = 'Common';
+				let waves = 10;
+				
+				if (roll < 0.01) { tier = 'Legendary'; waves = 100; }
+				else if (roll < 0.05) { tier = 'Epic'; waves = 50; }
+				else if (roll < 0.25) { tier = 'Rare'; waves = 25; }
+
+				const shinyRoll = Math.random() < 0.03; 
+				const haRoll = Math.random() < 0.10; 
+				const species = allSpecies[Math.floor(Math.random() * allSpecies.length)].id;
+
+				const egg: EggData = { species, wavesRemaining: waves, tier, shiny: shinyRoll, hiddenAbility: haRoll };
+				userData.eggs.push(egg);
+				newEggs.push(egg.tier);
+			}
+
+			saveUserData(user.id);
+
+			const state = getState(user.id);
+			if (state) {
+				state.notification = `You redeemed a ${type} voucher and received ${pulls} egg(s)!`;
+				setState(user.id, state);
+			}
+			refreshGamePage(user);
+		},
+		
 		statstab(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
