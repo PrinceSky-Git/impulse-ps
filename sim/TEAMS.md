@@ -12,7 +12,7 @@ Variables storing teams inside PS's codebase will generally be stored in JSON fo
 
 Export format is basically only used by the client, to show users.
 
-> **Impulse Mod Extensions:** This server features a custom mechanics mod that allows Pokémon to optionally start battles with a specific HP percentage, a major status condition, custom Base Stat (BST) percentage boosts, and HP multipliers (HPX). These custom properties are fully supported across all three team formats.
+> **Impulse Mod Extensions:** This server features a custom mechanics mod that allows Pokémon to optionally start battles with a specific HP percentage, a major status condition, custom Base Stat (BST) percentage boosts, HP multipliers (HPX), and Stacked Type-Boosting Items. These custom properties are fully supported across all three team formats.
 
 ---
 
@@ -42,7 +42,7 @@ Modest Nature
 ```
 
 **Custom Impulse Mod Sets:**
-When utilizing the custom server mechanics, you can add `HP`, `Status`, `BST`, and `HPX` lines directly into the export format:
+When utilizing the custom server mechanics, you can add `HP`, `Status`, `BST`, `HPX` and `Stacked Item` lines directly into the export format:
 
 ```
 Raid Boss (Snorlax) @ Figy Berry
@@ -53,6 +53,7 @@ HP: 50%
 Status: brn
 BST: 50, 50, 0, 0, 0
 HPX: 10
+Stacked Item: Black Belt x4
 - Curse
 - Body Slam
 - Earthquake
@@ -61,7 +62,7 @@ HPX: 10
 
 ### The Nickname Hack
 
-Because public clients strictly validate teambuilder inputs and strip out unrecognized lines, users connecting from `play.pokemonshowdown.com` must use the **Nickname Hack** to pass custom stats to the server. These are written as bracketed tags inside a nickname (which supports up to 100 characters).
+Because public clients strictly validate teambuilder inputs and strip out unrecognized lines, users connecting from `play.pokemonshowdown.com` must use the **Nickname Hack** to pass custom stats to the server. These are written as bracketed tags inside a nickname (which supports up to 1000 characters).
 
 During validation, the server intercepts these tags, applies the stats, and cleans up the nickname:
 
@@ -71,11 +72,12 @@ During validation, the server intercepts these tags, applies the stats, and clea
 | `[S:xxx]` | Starting status (e.g., `brn`, `par`, `slp`, `frz`, `psn`, `tox`) |
 | `[BST: a,b,c,d,e]` | Percentage boosts for Atk, Def, SpA, SpD, Spe |
 | `[HPX: XX]` | Max HP multiplier |
+| `[STACK: item:count]` | Stacked type-boosting item (up to 99). Example: `[STACK: blackbelt:4]` |
 
 **Example:**
 
 ```
-Raid Boss [H:50] [S:brn] [BST: 50,50,0,0,0] [HPX: 10] (Snorlax) @ Figy Berry
+Raid Boss [H:50] [S:brn] [BST: 50,50,0,0,0] [HPX: 10] [STACK: blackbelt:4] (Snorlax) @ Figy Berry
 ```
 
 ---
@@ -109,7 +111,8 @@ JSON format looks like this:
     "hp": 50,
     "status": "brn",
     "bstBoosts": {"atk": 50, "def": 50, "spa": 0, "spd": 0, "spe": 0},
-    "hpMultiplier": 10
+    "hpMultiplier": 10,
+    "stackedItem": {"id": "blackbelt", "count": 4}
   }
 ]
 ```
@@ -121,7 +124,7 @@ JSON format looks like this:
 Packed format looks like this:
 
 ```
-Articuno||leftovers|pressure|icebeam,hurricane,substitute,roost|Modest|252,,,252,4,||,,,30,30,|||]Ludicolo||lifeorb|swiftswim|surf,gigadrain,icebeam,raindance|Modest|4,,,252,,252|||||]Raid Boss|Snorlax|figyberry|gluttony|curse,bodyslam,earthquake,rest|Impish|252,,252,,4,|M||||,,,,,,50,brn,50:50:0:0:0,10
+Articuno||leftovers|pressure|icebeam,hurricane,substitute,roost|Modest|252,,,252,4,||,,,30,30,|||]Ludicolo||lifeorb|swiftswim|surf,gigadrain,icebeam,raindance|Modest|4,,,252,,252|||||]Raid Boss|Snorlax|figyberry|gluttony|curse,bodyslam,earthquake,rest|Impish|252,,252,,4,|M||||,,,,,,50,brn,50:50:0:0:0,10,blackbelt:4
 ```
 
 *(Line breaks added for readability — this is all one line normally.)*
@@ -129,7 +132,7 @@ Articuno||leftovers|pressure|icebeam,hurricane,substitute,roost|Modest|252,,,252
 The format is a list of Pokémon delimited by `]`, where every Pokémon is:
 
 ```
-NICKNAME|SPECIES|ITEM|ABILITY|MOVES|NATURE|EVS|GENDER|IVS|SHINY|LEVEL|HAPPINESS,HIDDENPOWERTYPE,POKEBALL,GIGANTAMAX,DYNAMAXLEVEL,TERATYPE,HP,STATUS,BSTBOOSTS,HPMULTIPLIER
+NICKNAME|SPECIES|ITEM|ABILITY|MOVES|NATURE|EVS|GENDER|IVS|SHINY|LEVEL|HAPPINESS,HIDDENPOWERTYPE,POKEBALL,GIGANTAMAX,DYNAMAXLEVEL,TERATYPE,HP,STATUS,BSTBOOSTS,HPMULTIPLIER,STACKEDITEM
 ```
 
 | Field | Notes |
@@ -153,6 +156,7 @@ NICKNAME|SPECIES|ITEM|ABILITY|MOVES|NATURE|EVS|GENDER|IVS|SHINY|LEVEL|HAPPINESS,
 | `STATUS` *(Impulse Mod)* | Left blank for no status |
 | `BSTBOOSTS` *(Impulse Mod)* | Formatted as `atk:def:spa:spd:spe`. Left blank if unmodified |
 | `HPMULTIPLIER` *(Impulse Mod)* | Left blank for 1× |
+| `STACKEDITEM` *(Impulse Mod)* | Formatted as `itemid:count` (e.g. `blackbelt:4`). Left blank if unmodified |
 
 > If all trailing comma-separated fields in the misc section are blank, the commas will be left off.
 
