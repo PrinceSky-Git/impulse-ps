@@ -116,6 +116,43 @@ export const devCommands: Chat.ChatCommands = {
 		setState(tId, s);
 	},
 
+	givevoucher(target, room, user) {
+		this.checkCan("bypassall");
+		let [name, type, amt] = target.split(',').map(s => s?.trim());
+
+		const validTypes = ['regular', 'plus', 'premium', 'gold'];
+
+		if (!amt && type && !isNaN(parseInt(type))) {
+			amt = type;
+			type = name;
+			name = user.id;
+		} else if (!type && !amt) {
+			type = name;
+			name = user.id;
+			amt = '1';
+		}
+
+		type = type?.toLowerCase();
+		if (!type || !validTypes.includes(type)) {
+			return this.errorReply(`Usage: /pokerogue givevoucher [user], [type], [amount]. Valid types: regular, plus, premium, gold.`);
+		}
+
+		const tId = toID(name) || user.id;
+		const userData = getUserData(tId);
+
+		const amount = parseInt(amt || '1');
+		if (isNaN(amount) || amount <= 0) return this.errorReply(`Amount must be a positive number.`);
+
+		if (!userData.vouchers) userData.vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
+		
+		userData.vouchers[type as keyof typeof userData.vouchers] = (userData.vouchers[type as keyof typeof userData.vouchers] || 0) + amount;
+		saveUserData(tId);
+
+		const displayType = type.charAt(0).toUpperCase() + type.slice(1);
+		this.sendReply(`Gave ${amount}x Egg Voucher ${displayType} to ${tId}.`);
+		notifyUser(tId, `${nameColor(user.name, false, true)} gave you <b>${amount}x Egg Voucher ${displayType}</b>.`);
+	},
+
 	addmon(target, room, user) {
 		this.checkCan("bypassall");
 		const [name, mon, lvl] = target.split(',').map(s => s?.trim() || '');
