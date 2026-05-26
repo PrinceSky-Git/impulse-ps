@@ -122,6 +122,8 @@ export interface PokemonSet {
 	bstBoosts?: { atk: number, def: number, spa: number, spd: number, spe: number };
 	/** Custom Max HP Multiplier */
 	hpMultiplier?: number;
+	/** Custom Stacked Type-Boosting Item */
+	stackedItem?: { id: string, count: number };
 }
 
 export const Teams = new class Teams {
@@ -228,6 +230,13 @@ export const Teams = new class Teams {
 				// --- CUSTOM HPX PACKING ---
 				if (set.hpMultiplier) {
 					buf += `,${set.hpMultiplier}`;
+				} else {
+					buf += `,`;
+				}
+
+				// --- CUSTOM STACKED ITEM PACKING ---
+				if (set.stackedItem) {
+					buf += `,${set.stackedItem.id}:${set.stackedItem.count}`;
 				} else {
 					buf += `,`;
 				}
@@ -381,6 +390,12 @@ export const Teams = new class Teams {
 				if (misc[9]) {
 					set.hpMultiplier = Number(misc[9]);
 				}
+
+				// --- CUSTOM STACKED ITEM UNPACKING ---
+				if (misc[10]) {
+					const stackParts = misc[10].split(':');
+					set.stackedItem = { id: stackParts[0], count: Number(stackParts[1]) };
+				}
 			}
 			if (j < 0) break;
 			i = j + 1;
@@ -473,6 +488,10 @@ export const Teams = new class Teams {
 		}
 		if (set.hpMultiplier) {
 			out += `HPX: ${set.hpMultiplier}  \n`;
+		}
+		if (set.stackedItem) {
+			// e.g., "Stacked Item: Black Belt x4"
+			out += `Stacked Item: ${Dex.items.get(set.stackedItem.id).name} x${set.stackedItem.count}  \n`;
 		}
 
 		// stats
@@ -577,6 +596,12 @@ export const Teams = new class Teams {
 		} else if (line.startsWith('HPX: ')) {
 			line = line.slice(5).trim();
 			set.hpMultiplier = parseInt(line);			
+		} else if (line.startsWith('Stacked Item: ')) {
+			line = line.slice(14).trim();
+			const match = line.match(/(.+) x(\d+)/);
+			if (match) {
+				set.stackedItem = { id: toID(match[1]), count: parseInt(match[2]) };
+			}
 		} else if (line === 'Gigantamax: Yes') {
 			set.gigantamax = true;
 		} else if (line.startsWith('EVs: ')) {
