@@ -37,6 +37,15 @@ const CUSTOM_ICON_MAP: Record<string, string> = {
 	'Max Lure': 'max-lure.png',
 };
 
+const XITEM_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/xitems/';
+const XITEM_ICON_MAP: Record<string, string> = {
+	'X Attack': 'x-attack.png',
+	'X Defense': 'x-defense.png',
+	'X Sp. Atk': 'x-sp-atk.png',
+	'X Sp. Def': 'x-sp-def.png',
+	'X Speed': 'x-speed.png',
+};
+
 const MINT_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/mints/';
 const MINT_ICON_MAP: Record<string, string> = {
 	'Atk Mint': 'Lonely-Mint.png',
@@ -137,6 +146,10 @@ function getShopItemIcon(icon: string, size = 20): string {
 	const customFile = CUSTOM_ICON_MAP[icon];
 	if (customFile) {
 		return `<img src="${Utils.escapeHTML(CUSTOM_SPRITE_BASE + customFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
+	}
+	const xItemFile = XITEM_ICON_MAP[icon];
+	if (xItemFile) {
+		return `<img src="${Utils.escapeHTML(XITEM_SPRITE_BASE + xItemFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
 	}
 	const url = `https://www.smogon.com/forums/media/minisprites/${itemURLFormat(icon)}.png`;
 	return `<img src="${Utils.escapeHTML(url)}" width="${size}" height="${size}" class="pr-shop-icon">`;
