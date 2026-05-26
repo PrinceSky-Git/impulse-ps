@@ -19,9 +19,9 @@ const getFullRestoreWeight = (state: PokeRogueState) => {
 const X_ITEMS_DATA: [string, string, string, string, ItemRarityTier][] = [
 	['xattack', "X Attack", "atk", "Raises Attack by 10% for 5 battles.", "Common"],
 	['xdefense', "X Defense", "def", "Raises Defense by 10% for 5 battles.", "Common"],
-	['xspatk', "X SPA", "spa", "Raises Sp. Atk by 10% for 5 battles.", "Common"],
-	['xspdef', "X SPD", "spd", "Raises Sp. Def by 10% for 5 battles.", "Common"],
-	['xspeed', "X SPEED", "spe", "Raises Speed by 10% for 5 battles.", "Common"],
+	['xspatk', "X Sp. Atk", "spa", "Raises Sp. Atk by 10% for 5 battles.", "Common"],
+	['xspdef', "X Sp. Def", "spd", "Raises Sp. Def by 10% for 5 battles.", "Common"],
+	['xspeed', "X Speed", "spe", "Raises Speed by 10% for 5 battles.", "Common"],
 ];
 
 const generatedXItems: Record<string, ShopItem> = {};
