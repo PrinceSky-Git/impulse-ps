@@ -1688,14 +1688,30 @@ export const commands: Chat.ChatCommands = {
 
 			const allSpeciesFallback = Dex.species.all().filter(s => s.exists && !s.isNonstandard && !s.isMega && !s.isPrimal && (!s.prevo || s.prevo === '')).map(s => s.id);
 
+			let highestTierRolled = 0;
+
 			for (let i = 0; i < pulls; i++) {
-				const roll = Math.floor(Math.random() * 256);
+				let roll = Math.floor(Math.random() * 256);
+				
+				if (i === pulls - 1) {
+					if (type === 'premium' && highestTierRolled < 1) {
+						roll = Math.floor(Math.random() * 52);
+					} else if (type === 'gold' && highestTierRolled < 2) {
+						roll = Math.floor(Math.random() * 8);
+					}
+				}
+
 				let tier: EggTier = 'Common';
 				let waves = 10;
+				let tierValue = 0;
 				
-				if (roll < 1) { tier = 'Legendary'; waves = 100; }
-				else if (roll < 8) { tier = 'Epic'; waves = 50; }
-				else if (roll < 52) { tier = 'Rare'; waves = 25; }
+				if (roll < 1) { tier = 'Legendary'; waves = 100; tierValue = 3; }
+				else if (roll < 8) { tier = 'Epic'; waves = 50; tierValue = 2; }
+				else if (roll < 52) { tier = 'Rare'; waves = 25; tierValue = 1; }
+
+				if (tierValue > highestTierRolled) {
+					highestTierRolled = tierValue;
+				}
 
 				const shinyRoll = Math.floor(Math.random() * 128) === 0; 
 				const haRoll = Math.floor(Math.random() * 32) === 0; 
