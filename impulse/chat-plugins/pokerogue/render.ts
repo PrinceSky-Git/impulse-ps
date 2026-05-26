@@ -651,7 +651,8 @@ function renderGiveItem(state: PokeRogueState): string {
 		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, isCompatible ? '' : 'opacity:.4;filter:grayscale(80%);');
 	}
 
-	buf += renderBtn('/pokerogue resolve giveitem skip', 'Cancel <small style="color:#888">(refund)</small>', 'pr-btn', 'width:100%;padding:8px;margin-top:2px') + `</div>`;
+	const cancelText = state.pendingDraftPick ? 'Cancel <small style="color:#888">(return to draft)</small>' : 'Cancel <small style="color:#888">(refund)</small>';
+	buf += renderBtn('/pokerogue resolve giveitem skip', cancelText, 'pr-btn', 'width:100%;padding:8px;margin-top:2px') + `</div>`;
 	return buf;
 }
 
@@ -756,7 +757,8 @@ function renderConsumable(state: PokeRogueState): string {
 		buf += renderChoiceRow(getSpriteWithBall(mon.species, 40, mon.ball), flexHtml, btnHtml, disabled ? 'opacity:.45' : '');
 	}
 
-	buf += renderBtn('/pokerogue resolve useshopitem skip', 'Cancel', 'pr-btn', 'width:100%;padding:8px;margin-top:2px') + `</div>`;
+	const cancelText = state.pendingDraftPick ? 'Cancel <small style="color:#888">(return to draft)</small>' : 'Cancel <small style="color:#888">(refund)</small>';
+	buf += renderBtn('/pokerogue resolve useshopitem skip', cancelText, 'pr-btn', 'width:100%;padding:8px;margin-top:2px') + `</div>`;
 	return buf;
 }
 
