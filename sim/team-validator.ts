@@ -622,6 +622,16 @@ export class TeamValidator {
 				(set as any).hpMultiplier = Math.max(1, parseInt(hpxMatch[1]));
 				set.name = set.name.replace(hpxMatch[0], '').trim();
 			}
+
+			// Look for [STACK: itemname:count] in the nickname (e.g., [STACK: blackbelt:4])
+			const stackMatch = set.name.match(/\[STACK:\s*([a-zA-Z0-9]+)\s*:\s*(\d+)\s*\]/i);
+			if (stackMatch) {
+				(set as any).stackedItem = {
+					id: stackMatch[1].toLowerCase(),
+					count: parseInt(stackMatch[2])
+				};
+				set.name = set.name.replace(stackMatch[0], '').trim();
+			}
 		}
 		// --- THE NICKNAME HACK END ---
 
@@ -635,8 +645,8 @@ export class TeamValidator {
 			set.gigantamax = true;
 		}
 
-		// --- CHANGED NICKNAME LIMIT TO 100 ---
-		if (set.name && set.name.length > 100) {
+		// --- CHANGED NICKNAME LIMIT TO 1000 ---
+		if (set.name && set.name.length > 1000) {
 			if (set.name === set.species) {
 				set.name = species.baseSpecies;
 			} else {
@@ -787,6 +797,22 @@ export class TeamValidator {
 				problems.push(`${name} has an invalid starting status condition (${set.status}).`);
 			} else {
 				set.status = status.name;
+			}
+		}
+
+		// Validate Stacked Items
+		if ((set as any).stackedItem) {
+			const stacked = (set as any).stackedItem;
+			const validBoosters = [
+				'silkscarf', 'blackbelt', 'sharpbeak', 'poisonbarb', 'softsand', 'hardstone',
+				'silverpowder', 'spelltag', 'metalcoat', 'charcoal', 'mysticwater', 'miracleseed',
+				'magnet', 'twistedspoon', 'nevermeltice', 'dragonfang', 'blackglasses', 'fairyfeather'
+			];
+			if (!validBoosters.includes(stacked.id)) {
+				problems.push(`${name} has an invalid Stacked Item ("${stacked.id}"). It must be a valid Type-Boosting item.`);
+			}
+			if (stacked.count < 1 || stacked.count > 99) {
+				problems.push(`${name}'s Stacked Item count must be between 1 and 99.`);
 			}
 		}
 
