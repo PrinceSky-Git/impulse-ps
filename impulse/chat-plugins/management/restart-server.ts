@@ -80,6 +80,6 @@ export const commands: Chat.ChatCommands = {
 		}
 	},
 	restartserverhelp: [
-		`/restartserver - Restarts the server. On servers with battle saving enabled, saves battles by default; use <code>nosave</code> during lockdown to skip saving. On servers without battle saving, battles cannot be saved and the server must already be in lockdown. Requires: ~`,
+		`/restartserver - Restarts the server. On servers with battle saving enabled, saves battles by default; use 'nosave' during lockdown to skip saving. On servers without battle saving, battles cannot be saved and the server must already be in lockdown. Requires: ~`,
 	],
 };
