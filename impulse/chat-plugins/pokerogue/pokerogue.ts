@@ -1,6 +1,7 @@
 import { Utils } from '../../../lib';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
 import { type AIPokemonSet } from './pokemon';
+import { EGG_POOLS, type EggTier } from './egg-data';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem, generateDraftOptions, getRewardMoney, getItemPrice, getRerollCost } from './items';
@@ -1670,7 +1671,6 @@ export const commands: Chat.ChatCommands = {
 
 			const pulls = validTypes[type];
 
-			// Limit the incubator to a maximum of 100 eggs using native game notifications
 			if (userData.eggs.length + pulls > 100) {
 				const state = getState(user.id);
 				if (state) {
@@ -1681,29 +1681,29 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
-			const currentVouchers = userData.vouchers[type] || 0;
+			const currentVouchers = userData.vouchers[type as keyof typeof userData.vouchers] || 0;
 			if (currentVouchers <= 0) return this.errorReply(`You don't have any ${type} vouchers!`);
 
-			// Deduct the voucher safely
-			userData.vouchers[type] = currentVouchers - 1;
+			userData.vouchers[type as keyof typeof userData.vouchers] = currentVouchers - 1;
 
-			const newEggs = [];
-			const allSpecies = Dex.species.all().filter(s => s.exists && !s.isNonstandard && !s.isMega && !s.isPrimal && (!s.prevo || s.prevo === ''));
+			const allSpeciesFallback = Dex.species.all().filter(s => s.exists && !s.isNonstandard && !s.isMega && !s.isPrimal && (!s.prevo || s.prevo === '')).map(s => s.id);
 
 			for (let i = 0; i < pulls; i++) {
 				const roll = Math.floor(Math.random() * 256);
-				let tier: 'Common' | 'Rare' | 'Epic' | 'Legendary' = 'Common';
+				let tier: EggTier = 'Common';
 				let waves = 10;
+				
+				if (roll < 1) { tier = 'Legendary'; waves = 100; }
+				else if (roll < 8) { tier = 'Epic'; waves = 50; }
+				else if (roll < 52) { tier = 'Rare'; waves = 25; }
 
-				if (roll < 1) { tier = 'Legendary'; waves = 100; } else if (roll < 8) { tier = 'Epic'; waves = 50; } else if (roll < 52) { tier = 'Rare'; waves = 25; }
+				const shinyRoll = Math.floor(Math.random() * 128) === 0; 
+				const haRoll = Math.floor(Math.random() * 32) === 0; 
+				
+				const pool = EGG_POOLS[tier] && EGG_POOLS[tier].length > 0 ? EGG_POOLS[tier] : allSpeciesFallback;
+				const species = pool[Math.floor(Math.random() * pool.length)];
 
-				const shinyRoll = Math.floor(Math.random() * 128) === 0;
-				const haRoll = Math.floor(Math.random() * 32) === 0;
-				const species = allSpecies[Math.floor(Math.random() * allSpecies.length)].id;
-
-				// Push raw object to avoid explicit EggData import errors
 				userData.eggs.push({ species, wavesRemaining: waves, tier, shiny: shinyRoll, hiddenAbility: haRoll });
-				newEggs.push(tier);
 			}
 
 			saveUserData(user.id);
@@ -1715,7 +1715,7 @@ export const commands: Chat.ChatCommands = {
 			}
 			refreshGamePage(user);
 		},
-
+		
 		statstab(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
