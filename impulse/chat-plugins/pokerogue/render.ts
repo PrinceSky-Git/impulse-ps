@@ -347,26 +347,25 @@ function renderGachaView(user: User): string {
 
 function renderHatchedEggsView(state: PokeRogueState): string {
 	const hatched = state.hatchedEggs || [];
-	let buf = `<h2 class="pr-choice-heading" style="text-align:center; color:#fca5a5; font-size:18px; margin-bottom: 16px;">Eggs Hatched!</h2>`;
+	let buf = `<h2 class="pr-choice-heading" style="text-align:center; margin-bottom:12px;">Eggs Hatched!</h2>`;
 	
-	buf += `<table style="width:100%; border-collapse:collapse; table-layout:fixed; margin-bottom:20px;"><tbody>`;
+	buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:16px;"><tbody>`;
 	
 	const COLS = 4;
 	for (let i = 0; i < hatched.length; i += COLS) {
 		buf += `<tr>`;
 		for (let j = i; j < i + COLS; j++) {
-			buf += `<td style="width:25%; text-align:center; padding:6px 2px; vertical-align:top;">`;
+			buf += `<td style="width:25%;text-align:center;padding:4px 2px;vertical-align:top;">`;
 			if (j < hatched.length) {
 				const mon = hatched[j];
 				const sp = Dex.species.get(mon.species);
 				const isShiny = mon.shiny;
-				buf += `<div class="pr-card" style="padding: 10px 4px; display: inline-block; width: 100%; border-color: ${isShiny ? '#fda085' : '#5548a0'};">`;
-				buf += `<div style="font-size:11px; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight: 600; color: #ede9ff;">`;
+				
+				buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
 				buf += Utils.escapeHTML(sp.name);
 				if (isShiny) buf += ` <span style="color:#fda085">★</span>`;
 				buf += `</div>`;
-				buf += getSprite(sp.id, 50, isShiny);
-				buf += `</div>`;
+				buf += getSprite(sp.id, 40, isShiny);
 			}
 			buf += `</td>`;
 		}
@@ -375,7 +374,7 @@ function renderHatchedEggsView(state: PokeRogueState): string {
 	
 	buf += `</tbody></table>`;
 	buf += `<div style="text-align:center;">`;
-	buf += renderBtn('/pokerogue resolve hatched continue', 'Continue', 'pr-btn primary', 'font-size:14px; padding:8px 24px;');
+	buf += renderBtn('/pokerogue resolve hatched continue', 'Continue', 'pr-btn primary', 'font-size:12px;padding:6px 16px;');
 	buf += `</div>`;
 	return buf;
 }
