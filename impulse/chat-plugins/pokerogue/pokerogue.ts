@@ -335,6 +335,7 @@ function processFloorRewards(
 ): { extraNotifs: string[] } {
 	const extraNotifs: string[] = [];
 	const userData = getUserData(userId);
+	const newlyHatched: PokemonEntry[] = [];
 
 	// Process Egg Hatching
 	if (userData.eggs && userData.eggs.length > 0) {
@@ -346,11 +347,9 @@ function processFloorRewards(
 				const isShiny = egg.shiny;
 				const dexSpecies = Dex.species.get(sid);
 
-				// Generate Random Nature
 				const allNatures = Dex.natures.all().map(n => n.name);
 				const randomNature = allNatures[Math.floor(Math.random() * allNatures.length)] || 'Hardy';
 
-				// Generate Tera Type (80% matching species types, 20% completely random)
 				let generatedTeraType = 'Normal';
 				if (Math.random() < 0.8 && dexSpecies.types.length > 0) {
 					generatedTeraType = dexSpecies.types[Math.floor(Math.random() * dexSpecies.types.length)];
@@ -359,17 +358,22 @@ function processFloorRewards(
 					generatedTeraType = allTypes[Math.floor(Math.random() * allTypes.length)] || 'Normal';
 				}
 
-				// Check for Hidden Ability Unlock
 				let haName = '';
 				if (egg.hiddenAbility && dexSpecies.abilities['H']) {
 					haName = dexSpecies.abilities['H'];
 				}
 
+				// Create the entity strictly for the Hatch UI
+				const hatchedMon: PokemonEntry = {
+					species: sid, level: 5, exp: 0,
+					moves: [], nature: randomNature, ability: haName || dexSpecies.abilities['0'] || '',
+					shiny: isShiny, teraType: generatedTeraType,
+				};
+				newlyHatched.push(hatchedMon);
+
 				if (!userData.starters[sid]) {
 					userData.starters[sid] = {
-						species: sid, level: 5, exp: 0,
-						moves: [], nature: randomNature, ability: haName || dexSpecies.abilities['0'] || '',
-						shiny: isShiny, teraType: generatedTeraType,
+						...hatchedMon,
 						unlockedNatures: [randomNature], 
 						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''], 
 						unlockedTeraTypes: [generatedTeraType],
@@ -377,26 +381,23 @@ function processFloorRewards(
 						selectedAbility: haName || dexSpecies.abilities['0'] || '', 
 						selectedTeraType: generatedTeraType
 					} as PokemonEntry;
-					extraNotifs.push(`<div style="text-align: center; color: #4caf50;"><b>An Egg hatched into ${dexSpecies.name}! (New Starter)</b></div>`);
+					extraNotifs.push(`<div style="text-align: center; color: #4caf50;"><b>Unlocked New Starter: ${dexSpecies.name}!</b></div>`);
 				} else {
 					const starter = userData.starters[sid];
 					const unlockedFeatures: string[] = [];
 
-					// Unlock Nature
 					if (!starter.unlockedNatures) starter.unlockedNatures = [starter.nature || 'Hardy'];
 					if (!starter.unlockedNatures.includes(randomNature)) {
 						starter.unlockedNatures.push(randomNature);
 						unlockedFeatures.push('Nature');
 					}
 
-					// Unlock Tera Type
 					if (!starter.unlockedTeraTypes) starter.unlockedTeraTypes = [starter.teraType || 'Normal'];
 					if (!starter.unlockedTeraTypes.includes(generatedTeraType)) {
 						starter.unlockedTeraTypes.push(generatedTeraType);
 						unlockedFeatures.push('Tera');
 					}
 
-					// Unlock Hidden Ability
 					if (haName) {
 						if (!starter.unlockedAbilities) starter.unlockedAbilities = [starter.ability || dexSpecies.abilities['0'] || ''];
 						if (!starter.unlockedAbilities.includes(haName)) {
@@ -407,16 +408,18 @@ function processFloorRewards(
 
 					if (isShiny && !starter.shiny) {
 						starter.shiny = true;
-						extraNotifs.push(`<div style="text-align: center; color: #fda085;"><b>An Egg hatched into a Shiny ${dexSpecies.name}!</b></div>`);
+						extraNotifs.push(`<div style="text-align: center; color: #fda085;"><b>Unlocked Shiny form for ${dexSpecies.name}!</b></div>`);
 					} else if (unlockedFeatures.length > 0) {
-						extraNotifs.push(`<div style="text-align: center; color: #8ab4f8;"><b>An Egg hatched into ${dexSpecies.name}! (Unlocked: ${unlockedFeatures.join(', ')})</b></div>`);
-					} else {
-						extraNotifs.push(`<div style="text-align: center;"><b>An Egg hatched into ${dexSpecies.name}! (Duplicate)</b></div>`);
+						extraNotifs.push(`<div style="text-align: center; color: #8ab4f8;"><b>Unlocked ${unlockedFeatures.join(', ')} for ${dexSpecies.name}!</b></div>`);
 					}
 				}
 				userData.eggs.splice(i, 1);
 			}
 		}
+	}
+
+	if (newlyHatched.length > 0) {
+		state.hatchedEggs = newlyHatched;
 	}
 
 	if (clearedFloor > (state.highestFloor ?? 0)) {
@@ -480,7 +483,6 @@ function processFloorRewards(
 		}
 		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
 
-		// Award Vouchers
 		if (!userData.vouchers) userData.vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
 		if (clearedFloor === 200) {
 			userData.vouchers.gold = (userData.vouchers.gold || 0) + 1;
@@ -543,6 +545,14 @@ interface CommandContext {
 }
 
 const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: string, ctx: CommandContext) => boolean> = {
+	hatched(state, user, rest, ctx) {
+		if (rest === 'continue') {
+			delete state.hatchedEggs;
+			return true;
+		}
+		return false;
+	},
+	
 	learnmove(state, user, rest, ctx) {
 		if (!state.pendingMoves?.length) return false;
 		const pending = state.pendingMoves[0];
