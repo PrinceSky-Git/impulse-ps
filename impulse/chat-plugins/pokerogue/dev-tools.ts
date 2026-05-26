@@ -62,7 +62,7 @@ export const devCommands: Chat.ChatCommands = {
 	giveitem(target, room, user) {
 		this.checkCan("bypassall");
 		let [name, itemName, amt] = target.split(',').map(s => s?.trim());
-		
+
 		if (!amt && itemName && !isNaN(parseInt(itemName))) {
 			amt = itemName;
 			itemName = name;
@@ -92,13 +92,12 @@ export const devCommands: Chat.ChatCommands = {
 			const current = s.inventory[itemKey] || 0;
 			const maxStack = item.maxStack ?? 99;
 			const added = Math.min(amount, maxStack - current);
-			
+
 			if (added <= 0) return this.errorReply(`${tId} is already at the maximum stack size for ${item.name}.`);
 			s.inventory[itemKey] = current + added;
 
 			this.sendReply(`Gave ${added}x ${item.name} to ${tId}.`);
 			notifyUser(tId, `${nameColor(user.name, false, true)} gave you <b>${added}x ${item.name}</b>.`);
-
 		} else if (item.type === 'key') {
 			s.keyItems = s.keyItems || {};
 			const current = s.keyItems[item.name] || 0;
@@ -110,7 +109,6 @@ export const devCommands: Chat.ChatCommands = {
 
 			this.sendReply(`Gave ${added}x ${item.name} to ${tId}.`);
 			notifyUser(tId, `${nameColor(user.name, false, true)} gave you <b>${added}x ${item.name}</b>.`);
-
 		} else {
 			return this.errorReply(`Only Pokeballs and Key Items can be directly given via this command.`);
 		}
@@ -123,7 +121,7 @@ export const devCommands: Chat.ChatCommands = {
 		const [name, mon, lvl] = target.split(',').map(s => s?.trim() || '');
 		const tId = toID(name) || user.id;
 		let s = getState(tId);
-		
+
 		if (!s || s.gameOver) {
 			const highestFloor = s?.highestFloor || 0;
 			const displayName = s?.displayName || name;
@@ -151,7 +149,7 @@ export const devCommands: Chat.ChatCommands = {
 		if (s.team.length >= 6) return this.errorReply(`${tId}'s team is full.`);
 		const species = Dex.species.get(toID(mon));
 		if (!species.exists) return this.errorReply("Invalid Pokémon.");
-		
+
 		const level = parseInt(lvl) || 1;
 		let finalSpecies: string = species.id;
 		while (true) {
@@ -186,7 +184,7 @@ export const devCommands: Chat.ChatCommands = {
 			metLevel: level,
 			metLocation: 'Dev Command',
 			metDate: Date.now(),
-			marks: []
+			marks: [],
 		} as PokemonEntry);
 
 		setState(tId, s);
@@ -257,7 +255,7 @@ export const devCommands: Chat.ChatCommands = {
 
 		const [scope, ...rest] = trimmedTarget.split(' ').map(t => t.trim()).filter(Boolean);
 		const normalizedScope = toID(scope);
-		
+
 		if (normalizedScope === 'all') {
 			const token = toID(rest[0] || '');
 			const now = Date.now();
@@ -279,7 +277,7 @@ export const devCommands: Chat.ChatCommands = {
 
 			const staffName = nameColor(user.name, false, true);
 			let affectedUsers = 0;
-			
+
 			for (const key in globalStats) {
 				delete globalStats[key];
 			}
@@ -295,7 +293,7 @@ export const devCommands: Chat.ChatCommands = {
 				notifyUser(userid, `Your PokéRogue ladder data has been reset by ${staffName}.`);
 				affectedUsers++;
 			}
-			
+
 			saveAllData();
 			this.modlog('POKEROGUE RESETLADDER ALL');
 			this.privateModAction(`${user.name} reset PokéRogue ladder data (highestFloor and recordTeam) for ${affectedUsers} user(s).`);
@@ -306,17 +304,17 @@ export const devCommands: Chat.ChatCommands = {
 		if (!targetId) {
 			return this.errorReply(`Usage: /pokerogue resetladder [user|all]`);
 		}
-		
+
 		const state = getState(targetId);
 		if (!state) return this.errorReply(`No active run found for ${targetId}.`);
-		
+
 		state.highestFloor = 0;
 		state.recordTeam = [];
 		if (globalStats[targetId]) delete globalStats[targetId];
-		
+
 		setState(targetId, state);
 		saveGlobalStats();
-		
+
 		this.modlog('POKEROGUE RESETLADDER', targetId);
 		this.privateModAction(`${user.name} reset PokéRogue ladder data for ${targetId}.`);
 		const staffName = nameColor(user.name, false, true);

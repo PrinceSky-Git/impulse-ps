@@ -27,7 +27,7 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 	const p1TeamHp: Record<number, number> = {};
 	const p1TeamStatus: Record<number, string> = {};
 	const p1FaintedIndices = new Set<number>();
-	
+
 	const p2Active = new Map<string, ParsedPokemonState>();
 	let p1ActiveFainted = false;
 
@@ -36,11 +36,11 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 	// For tracking P1 mappings
 	const p1SlotToTeamIdx: Record<string, number> = {};
 	const p1ActivelyAssigned = new Set<number>();
-	
+
 	// Items tracking maps
 	const itemSlotMap: Record<string, number> = {};
 	const itemAssigned = new Set<number>();
-	
+
 	// Track the fainted/alive state of each specific P1 slot
 	const p1SlotState = new Map<string, boolean>();
 
@@ -57,7 +57,7 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 
 			if (slot.startsWith('p1')) {
 				p1SlotState.set(slot, false); // Mark slot as alive
-				
+
 				// P1 team matching logic
 				const prev = p1SlotToTeamIdx[slot];
 				if (prev !== undefined) p1ActivelyAssigned.delete(prev);
@@ -155,7 +155,7 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 			const slot = faintMatch[1];
 			if (slot.startsWith('p1')) {
 				p1SlotState.set(slot, true); // Mark slot as fainted
-				
+
 				const idx = p1SlotToTeamIdx[slot];
 				if (idx !== undefined) {
 					p1TeamHp[idx] = 0;
@@ -201,7 +201,7 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 		const activeAliveCount = Array.from(p1SlotState.values()).filter(isFainted => !isFainted).length;
 		const hasFaintedSlot = Array.from(p1SlotState.values()).includes(true);
 
-		// The player is "fainted" if they have 0 pokemon on the field, 
+		// The player is "fainted" if they have 0 pokemon on the field,
 		// OR they have an empty/fainted slot AND have a living pokemon on the bench to fill it.
 		p1ActiveFainted = activeAliveCount === 0 || (hasFaintedSlot && totalAlive > activeAliveCount);
 	}
@@ -212,7 +212,7 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 		p1FaintedIndices,
 		p2Active,
 		p1ActiveFainted,
-		consumedItems
+		consumedItems,
 	};
 }
 

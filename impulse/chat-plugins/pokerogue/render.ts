@@ -231,9 +231,9 @@ function renderNotification(state: PokeRogueState): string {
 
 function renderStatBar(state: PokeRogueState, cols2 = false, variant: 'main' | 'draft' = 'main'): string {
 	const floorStat = cols2 ? '' : `<div class="pr-stat"><div class="pr-stat-label">Floor</div><div class="pr-stat-val">${state.floor}</div></div>`;
-	const thirdStat = variant === 'draft'
-		? `<div class="pr-stat"><div class="pr-stat-label">Luck</div><div class="pr-stat-val">${state.luck ?? 0}</div></div>`
-		: `<div class="pr-stat"><div class="pr-stat-label">Record</div><div class="pr-stat-val">Floor ${state.highestFloor ?? 1}</div></div>`;
+	const thirdStat = variant === 'draft' ?
+		`<div class="pr-stat"><div class="pr-stat-label">Luck</div><div class="pr-stat-val">${state.luck ?? 0}</div></div>` :
+		`<div class="pr-stat"><div class="pr-stat-label">Record</div><div class="pr-stat-val">Floor ${state.highestFloor ?? 1}</div></div>`;
 	return `<div class="pr-statbar${cols2 ? ' cols2' : ''}">` + floorStat +
 		`<div class="pr-stat"><div class="pr-stat-label">Money</div><div class="pr-stat-val">$${state.money ?? 0}</div></div>` +
 		thirdStat +
@@ -734,7 +734,7 @@ function renderConsumable(state: PokeRogueState): string {
 		case 'xItem': {
 			if (hp <= 0) { disabled = true; reason = 'fainted'; break; }
 			const buffStat = consumableItem?.buffStat;
-			if (buffStat && mon.activeBuffs && mon.activeBuffs[buffStat]) {
+			if (buffStat && mon.activeBuffs?.[buffStat]) {
 				reason = `active: ${mon.activeBuffs[buffStat]} left`;
 			}
 			break;
@@ -913,7 +913,7 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 		if (starterData) {
 			if ((starterData.unlockedAbilities?.length || 0) > 1) showAbilityArrows = true;
 			if ((starterData.unlockedNatures?.length || 0) > 1) showNatureArrows = true;
-			
+
 			const hasTera = !!MODE_CONFIGS[state.gameMode]?.mechanicUnlocks?.terastallize;
 			if (hasTera && (starterData.unlockedTeraTypes?.length || 0) > 1) showTeraArrows = true;
 		}
@@ -964,7 +964,7 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 	const hpColor = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ff9800' : '#f44336';
 	const dateStr = mon.metDate ? new Date(mon.metDate).toLocaleDateString() : 'Unknown';
 	const heldItem = mon.heldItem ? Dex.items.get(mon.heldItem) : null;
-	
+
 	let genderHtml = '';
 	if (mon.gender === 'M') genderHtml = `<span style="color:#4f8ef7">♂</span>`;
 	else if (mon.gender === 'F') genderHtml = `<span style="color:#f74f8e">♀</span>`;
@@ -983,7 +983,7 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 	const teamNav = state.team.map((m, i) => ({
 		isMe: i === slot,
 		slot: i,
-		name: Dex.species.get(toID(m.species)).name
+		name: Dex.species.get(toID(m.species)).name,
 	}));
 
 	const totalEvs = Object.values(evs as Record<string, number>).reduce((a, b) => a + b, 0);
@@ -992,7 +992,7 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 		mon, spData, showAbilityArrows, showNatureArrows, showTeraArrows, natureName, naturePlus, natureMinus,
 		abilityName, abilityDesc, bs, ivs, evs: evs as any, stats, maxStats, totalEvs, hpPct, hpColor,
 		dateStr, heldItem, genderHtml, statusHtml, statKeys, statLabels, statColors,
-		tabNames, prevTab, nextTab, teamNav
+		tabNames, prevTab, nextTab, teamNav,
 	};
 }
 
@@ -1006,7 +1006,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	const vm = buildStatsViewModel(state, user, slot, activeTab);
 
 	let buf = `<div class="pr-sv-wrap">`;
-	
+
 	buf += `<div class="pr-sv-header">`;
 	buf += `<div class="pr-sv-sprite-col">${getSprite(vm.mon.species, 80, vm.mon.shiny, 'pr-sv-sprite')}</div>&nbsp;&nbsp;`;
 	buf += `<div class="pr-sv-info-col">`;
@@ -1162,14 +1162,14 @@ function renderMainView(state: PokeRogueState, user: User): string {
 	let buf = renderStatBar(state);
 
 	buf += `<div style="text-align:center;margin-bottom:8px">`;
-	
+
 	// Conditionally render "Return to Draft" if a draft is pending
 	if (state.pendingRewardDraft?.length) {
 		buf += renderBtn('/pokerogue view draft', 'Return to Draft', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	} else {
 		buf += renderBtn('/pokerogue prebattle', 'Start battle', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	}
-	
+
 	buf += `</div>`;
 
 	buf += `<div class="pr-section-title">Your team</div>`;

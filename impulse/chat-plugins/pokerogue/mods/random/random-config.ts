@@ -18,27 +18,27 @@ export const randomConfig: ModeConfig = {
 	doublesFormat: '[Gen 9] PokeRogue Doubles',
 	economy: {
 		startingMoney: 1500,
-		startingKeyItems: { 'Exp. All': 2},
+		startingKeyItems: { 'Exp. All': 2 },
 		startingInventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
 	},
-	
+
 	mechanicUnlocks: {
 		terastallize: 25,
 	},
-	
+
 	milestoneRewards: [
 		{ floor: 8, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 		{ floor: 8, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
 		{ floor: 10, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
-		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },	
+		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 	],
-	
+
 	lastBiome: {
 		biome: 'End',
 		floor: '191-200',
 	},
-	
+
 	victoryConfig: {
 		name: 'Champion',
 		dialog: 'You have conquered all 200 floors of the Random run! A true master of chaos!',
@@ -74,14 +74,13 @@ export const randomData: ModeData = {
 		if (floor >= state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % gymInterval === 0) {
 			const gymKeys = Object.keys(trainers).filter(k => k.startsWith('GYM_'));
 			if (gymKeys.length > 0) {
-				
 				let targetTier = '1';
 				if (floor >= 50 && floor < 100) targetTier = '3';
 				if (floor >= 100) targetTier = '5';
-				
+
 				const scaledGymKey = gymKeys.find(k => k.includes(`tier_${targetTier}`)) || gymKeys[0];
 				const gymTrainers = Object.keys(trainers[scaledGymKey]);
-				
+
 				if (gymTrainers.length > 0) {
 					const selectedGymTrainer = gymTrainers[Math.floor(Math.random() * gymTrainers.length)];
 					return { key: scaledGymKey, name: selectedGymTrainer };
@@ -90,12 +89,12 @@ export const randomData: ModeData = {
 		}
 
 		// GLOBAL SPAWN CHECK: 10% chance for standard dynamic trainers in Random mode
-		if (state.currentBiome === config.startingBiome) return null; 
-		
+		if (state.currentBiome === config.startingBiome) return null;
+
 		const lastTrainer = state.lastTrainerFloor || -99;
-		if (floor - lastTrainer < 3) return null; 
-		
-		if (Math.random() > 0.10) return null; 
+		if (floor - lastTrainer < 3) return null;
+
+		if (Math.random() > 0.10) return null;
 
 		// DYNAMIC POOL BUILDING
 		const currentBiome = state.currentBiome || config.startingBiome;
@@ -103,7 +102,7 @@ export const randomData: ModeData = {
 		let totalChance = 0;
 
 		for (const [categoryKey, categoryData] of Object.entries(trainers)) {
-			if (categoryKey.startsWith('Floor_')) continue; 
+			if (categoryKey.startsWith('Floor_')) continue;
 			if (categoryKey.startsWith('GYM_')) continue;
 
 			if (categoryKey.startsWith('STANDARD_early') && floor > 30) continue;
@@ -111,14 +110,13 @@ export const randomData: ModeData = {
 			if (categoryKey.startsWith('STANDARD_late') && floor <= 100) continue;
 
 			for (const [trainerName, trainerData] of Object.entries(categoryData as Record<string, any>)) {
-				
 				if (trainerData.biome) {
 					const allowedBiomes = Array.isArray(trainerData.biome) ? trainerData.biome : [trainerData.biome];
 					if (!allowedBiomes.includes(currentBiome)) {
-						continue; 
+						continue;
 					}
 				}
-				
+
 				const chanceWeight = trainerData.chance ?? 10;
 				validTrainers.push({ key: categoryKey, name: trainerName, chance: chanceWeight });
 				totalChance += chanceWeight;
@@ -127,8 +125,8 @@ export const randomData: ModeData = {
 
 		// THE LOTTERY ROLL
 		if (validTrainers.length > 0) {
-			state.lastTrainerFloor = floor; 
-			
+			state.lastTrainerFloor = floor;
+
 			let roll = Math.random() * totalChance;
 			for (const trainer of validTrainers) {
 				roll -= trainer.chance;
@@ -139,7 +137,7 @@ export const randomData: ModeData = {
 			return { key: validTrainers[validTrainers.length - 1].key, name: validTrainers[validTrainers.length - 1].name };
 		}
 
-		return null; 
+		return null;
 	},
 
 	resolveBoss: (floor: number, currentBiome: string, config: ModeConfig): TrainerMon[] | null => {

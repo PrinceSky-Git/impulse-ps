@@ -137,7 +137,7 @@ export interface PokemonEntry {
 	selectedNature?: string;
 	selectedAbility?: string;
 	selectedTeraType?: string;
-	
+
 	activeBuffs?: Record<string, number>;
 	stackedItems?: Record<string, number>;
 }

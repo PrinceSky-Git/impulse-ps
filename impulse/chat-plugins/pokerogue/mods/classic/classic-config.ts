@@ -45,7 +45,7 @@ export const classicConfig: ModeConfig = {
 		{ floor: 8, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
 		{ floor: 10, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
-		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },	
+		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 	],
 
 	maxFloor: 200,
@@ -91,15 +91,14 @@ export const classicData: ModeData = {
 		if (floor >= state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % gymInterval === 0) {
 			const gymKeys = Object.keys(trainers).filter(k => k.startsWith('GYM_'));
 			if (gymKeys.length > 0) {
-				
 				// Scale tier based on floor depth
 				let targetTier = '1';
 				if (floor >= 50 && floor < 100) targetTier = '3';
 				if (floor >= 100) targetTier = '5';
-				
+
 				const scaledGymKey = gymKeys.find(k => k.includes(`tier_${targetTier}`)) || gymKeys[0];
 				const gymTrainers = Object.keys(trainers[scaledGymKey]);
-				
+
 				if (gymTrainers.length > 0) {
 					const selectedGymTrainer = gymTrainers[Math.floor(Math.random() * gymTrainers.length)];
 					return { key: scaledGymKey, name: selectedGymTrainer };
@@ -108,11 +107,11 @@ export const classicData: ModeData = {
 		}
 
 		// GLOBAL SPAWN CHECK: 10% chance for standard dynamic trainers vs 75% Wild Pokemon
-		if (state.currentBiome === config.startingBiome) return null; 
-		
+		if (state.currentBiome === config.startingBiome) return null;
+
 		const lastTrainer = state.lastTrainerFloor || -99;
 		if (floor - lastTrainer < 3) return null; // 3-floor cooldown between dynamic trainers
-		
+
 		if (Math.random() > 0.10) return null; // 90% chance to spawn Wild Pokemon instead
 
 		// DYNAMIC POOL BUILDING
@@ -122,7 +121,7 @@ export const classicData: ModeData = {
 
 		for (const [categoryKey, categoryData] of Object.entries(trainers)) {
 			// Skip categories we already handled above
-			if (categoryKey.startsWith('Floor_')) continue; 
+			if (categoryKey.startsWith('Floor_')) continue;
 			if (categoryKey.startsWith('GYM_')) continue;
 
 			// RULE 3: STANDARD_ Prefix Floor Filtering (Early, Mid, Late game progression)
@@ -132,7 +131,6 @@ export const classicData: ModeData = {
 
 			// Evaluate the remaining trainers for this category
 			for (const [trainerName, trainerData] of Object.entries(categoryData as Record<string, any>)) {
-				
 				// BIOME CHECK
 				if (trainerData.biome) {
 					const allowedBiomes = Array.isArray(trainerData.biome) ? trainerData.biome : [trainerData.biome];
@@ -140,7 +138,7 @@ export const classicData: ModeData = {
 						continue; // Trainer doesn't spawn in this biome
 					}
 				}
-				
+
 				// Add valid trainer to the lottery pool
 				const chanceWeight = trainerData.chance ?? 10;
 				validTrainers.push({ key: categoryKey, name: trainerName, chance: chanceWeight });
@@ -151,7 +149,7 @@ export const classicData: ModeData = {
 		// THE LOTTERY ROLL (Weighted Random)
 		if (validTrainers.length > 0) {
 			state.lastTrainerFloor = floor; // Update the cooldown tracker
-			
+
 			let roll = Math.random() * totalChance;
 			for (const trainer of validTrainers) {
 				roll -= trainer.chance;

@@ -39,7 +39,7 @@ const NATURES = [
 	{ name: "Modest", stat: "SpAtk Mint" }, { name: "Mild", stat: "SpAtk Mint" }, { name: "Rash", stat: "SpAtk Mint" }, { name: "Quiet", stat: "SpAtk Mint" },
 	{ name: "Calm", stat: "SpDef Mint" }, { name: "Gentle", stat: "SpDef Mint" }, { name: "Careful", stat: "SpDef Mint" }, { name: "Sassy", stat: "SpDef Mint" },
 	{ name: "Timid", stat: "Spe Mint" }, { name: "Hasty", stat: "Spe Mint" }, { name: "Jolly", stat: "Spe Mint" }, { name: "Naive", stat: "Spe Mint" },
-	{ name: "Serious", stat: "Neutral Mint" }
+	{ name: "Serious", stat: "Neutral Mint" },
 ];
 
 const generatedMints: Record<string, ShopItem> = {};
@@ -60,7 +60,7 @@ const MEGA_STONES = [
 	"Kangaskhanite", "Latiasite", "Latiosite", "Lopunnite", "Lucarionite", "Manectite",
 	"Mawilite", "Medichamite", "Metagrossite", "Mewtwonite X", "Mewtwonite Y", "Pidgeotite",
 	"Pinsirite", "Sablenite", "Salamencite", "Sceptilite", "Scizorite", "Sharpedonite",
-	"Slowbronite", "Steelixite", "Swampertite", "Tyranitarite", "Venusaurite"
+	"Slowbronite", "Steelixite", "Swampertite", "Tyranitarite", "Venusaurite",
 ];
 
 const generatedMegaStones: Record<string, ShopItem> = {};
@@ -218,12 +218,12 @@ export const SHOP_DB: Record<string, ShopItem> = {
 	...generatedStackableItems,
 	...generatedHeldItems,
 	...generatedXItems,
-	
+
 	megabracelet: {
 		name: "Mega Bracelet", icon: "Mega Bracelet", type: "key", category: "Key Items",
 		desc: "A cuff that enables Pokémon to Mega Evolve. Unlocks Mega Stones in the item pool.",
 		moneyMultiplier: 0, tier: "Rogue", maxStack: 1, weight: 4, minWeight: 4, maxWeight: 4,
-		weightFunc: (state) => {
+		weightFunc: state => {
 			if ((state.keyItems?.['Mega Bracelet'] || 0) >= 1) return 0;
 			if (state.floor <= 50) return 4;
 			if (state.floor <= 100) return 8;
@@ -235,68 +235,68 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		name: "Candy Jar", icon: "Candy Jar", type: "key", category: "Key Items",
 		desc: "Increases the number of levels added by Rare Candy and Rarer Candy items by 1. Stacks up to 99 times.",
 		moneyMultiplier: 2.0, tier: "Ultra", maxStack: 99, weight: 5, minWeight: 5, maxWeight: 5,
-		weightFunc: (state) => (state.keyItems?.['Candy Jar'] || 0) >= 99 ? 0 : 5,
+		weightFunc: state => (state.keyItems?.['Candy Jar'] || 0) >= 99 ? 0 : 5,
 	},
 	expall: {
 		name: "Exp. All", icon: "Exp Share", type: "key", category: "Key Items",
 		desc: "Gives 20% Exp. to all non-fainted Pokemon not in the battle. Stacks up to 5 times.",
 		moneyMultiplier: 2.0, tier: "Ultra", maxStack: 5, weight: 4, minWeight: 0, maxWeight: 4,
-		weightFunc: (state) => (state.keyItems?.['Exp. All'] || 0) >= 5 ? 0 : 4,
+		weightFunc: state => (state.keyItems?.['Exp. All'] || 0) >= 5 ? 0 : 4,
 	},
 	expcharm: {
 		name: "Exp. Charm", icon: "Exp. Share", type: "key", category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 25%. Stacks up to 99 times.",
 		moneyMultiplier: 1.5, tier: "Great", maxStack: 99, weight: 8, minWeight: 0, maxWeight: 8,
-		weightFunc: (state) => (state.keyItems?.['Exp. Charm'] || 0) >= 99 ? 0 : 8,
+		weightFunc: state => (state.keyItems?.['Exp. Charm'] || 0) >= 99 ? 0 : 8,
 	},
 	superexpcharm: {
 		name: "Super Exp. Charm", icon: "Exp. Charm", type: "key", category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 60%. Stacks up to 30 times.",
 		moneyMultiplier: 2.5, tier: "Ultra", maxStack: 30, weight: 8, minWeight: 8, maxWeight: 8,
-		weightFunc: (state) => (state.keyItems?.['Super Exp. Charm'] || 0) >= 30 ? 0 : 8,
+		weightFunc: state => (state.keyItems?.['Super Exp. Charm'] || 0) >= 30 ? 0 : 8,
 	},
 	shinycharm: {
 		name: "Shiny Charm", icon: "Shiny Charm", type: "key", category: "Key Items",
 		desc: "Greatly increases the chance of finding Shiny Pokémon. (Max 4)",
 		moneyMultiplier: 0, tier: "Master", maxStack: 4, weight: 2, minWeight: 2, maxWeight: 2,
-		weightFunc: (state) => (state.keyItems?.['Shiny Charm'] || 0) >= 4 ? 0 : 2,
+		weightFunc: state => (state.keyItems?.['Shiny Charm'] || 0) >= 4 ? 0 : 2,
 	},
 	abilitycharm: {
 		name: "Ability Charm", icon: "Ability Charm", type: "key", category: "Key Items",
 		desc: "Increases the chance of wild Pokémon having their Hidden Ability. (Max 4)",
 		moneyMultiplier: 0, tier: "Rogue", maxStack: 4, weight: 4, minWeight: 4, maxWeight: 4,
-		weightFunc: (state) => (state.keyItems?.['Ability Charm'] || 0) >= 4 ? 0 : 4,
+		weightFunc: state => (state.keyItems?.['Ability Charm'] || 0) >= 4 ? 0 : 4,
 	},
 	amuletcoin: {
 		name: "Amulet Coin", icon: "Amulet Coin", type: "key", category: "Key Items",
 		desc: "Increases the amount of money gained from battles by 20%. Stacks up to 5 times.",
 		moneyMultiplier: 1.0, tier: "Great", maxStack: 5, weight: 4, minWeight: 0, maxWeight: 4,
-		weightFunc: (state) => (state.keyItems?.['Amulet Coin'] || 0) >= 5 ? 0 : 4,
+		weightFunc: state => (state.keyItems?.['Amulet Coin'] || 0) >= 5 ? 0 : 4,
 	},
 	goldenball: {
 		name: "Golden Ball", icon: "Relic Gold", type: "key", category: "Key Items",
 		desc: "Increases the number of item choices in the reward draft by 1. Stacks up to 3 times.",
 		moneyMultiplier: 0, tier: "Rogue", maxStack: 3, weight: 3, minWeight: 0, maxWeight: 3,
-		weightFunc: (state) => (state.keyItems?.['Golden Ball'] || 0) >= 3 ? 0 : 3,
+		weightFunc: state => (state.keyItems?.['Golden Ball'] || 0) >= 3 ? 0 : 3,
 	},
 
 	pokeball: {
 		name: "Poke Ball", icon: "Poke Ball", type: "pokeball", category: "Pokéballs",
 		desc: "A standard ball for catching wild Pokemon.",
 		moneyMultiplier: 0.2, tier: "Common", maxStack: 99, weight: 40, minWeight: 5, maxWeight: 40,
-		weightFunc: (state) => Math.max(5, 40 - Math.floor(state.floor / 10)),
+		weightFunc: state => Math.max(5, 40 - Math.floor(state.floor / 10)),
 	},
 	greatball: {
 		name: "Great Ball", icon: "Great Ball", type: "pokeball", category: "Pokéballs",
 		desc: "A good ball with a higher catch rate.",
 		moneyMultiplier: 0.6, tier: "Great", maxStack: 99, weight: 30, minWeight: 5, maxWeight: 30,
-		weightFunc: (state) => Math.max(5, 30 - Math.floor(state.floor / 15)),
+		weightFunc: state => Math.max(5, 30 - Math.floor(state.floor / 15)),
 	},
 	ultraball: {
 		name: "Ultra Ball", icon: "Ultra Ball", type: "pokeball", category: "Pokéballs",
 		desc: "An excellent ball with a very high catch rate.",
 		moneyMultiplier: 1.5, tier: "Rogue", maxStack: 99, weight: 20, minWeight: 5, maxWeight: 20,
-		weightFunc: (state) => Math.min(40, 20 + Math.floor(state.floor / 10)),
+		weightFunc: state => Math.min(40, 20 + Math.floor(state.floor / 10)),
 	},
 	masterball: {
 		name: "Master Ball", icon: "Master Ball", type: "pokeball", category: "Pokéballs",

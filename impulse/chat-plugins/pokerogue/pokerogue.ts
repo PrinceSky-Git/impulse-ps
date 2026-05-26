@@ -10,7 +10,7 @@ import {
 import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
-	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution
+	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution,
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser, parseBattleState } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -232,7 +232,7 @@ function applyExpShare(
 	const expAllStacks = Math.min(maxExpAllStacks, (state.keyItems?.[EXP_SHARE_NAME] || 0));
 	const expCharmStacks = Math.min(maxExpCharmStacks, (state.keyItems?.['Exp. Charm'] || 0));
 	const superExpCharmStacks = Math.min(maxSuperExpCharmStacks, (state.keyItems?.['Super Exp. Charm'] || 0));
-	
+
 	const charmMult = 1 + (0.25 * expCharmStacks) + (0.60 * superExpCharmStacks);
 
 	const result = new Map<number, number>();
@@ -374,12 +374,12 @@ function processFloorRewards(
 					const maxStack = shopItemDef?.maxStack ?? 99;
 					let added = 0;
 					const currentAmount = state.inventory[ballType] || 0;
-					
+
 					for (let i = 0; i < reward.amount; i++) {
 						if ((currentAmount + added) >= maxStack) continue;
 						added++;
 					}
-					
+
 					if (added > 0) {
 						state.inventory[ballType] = currentAmount + added;
 						extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received ${added}x ${reward.itemName} for clearing Floor ${clearedFloor}!</b></div>`);
@@ -553,7 +553,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			state.pendingMoves = [{ pokemonIndex: slot, move: allMoves[Math.floor(Math.random() * allMoves.length)], speciesName: mon.species }];
 			delete state.purchasedItem;
 			delete state.pendingItemName;
-			
+
 			if (state.pendingDraftPick) {
 				delete state.pendingRewardDraft;
 				delete state.rerollCount;
@@ -649,7 +649,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 		if (rest === 'skip') {
 			delete state.purchasedItem;
 			delete state.pendingConsumableType;
-			
+
 			if (state.pendingDraftPick) {
 				delete state.pendingDraftPick;
 			} else if (itemKey) {
@@ -697,18 +697,18 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			if (hp <= 0) { ctx.errorReply("Can't use on a fainted Pokémon."); return false; }
 			const candyJarStacks = state.keyItems?.['Candy Jar'] || 0;
 			const levelsToGain = 1 + candyJarStacks;
-			
+
 			const oldLevel = mon.level;
 			const oldSpecies = mon.species;
-			
+
 			mon.level += levelsToGain;
 			mon.exp = expForLevel(mon.level, mon.expType || getExpType(mon.species));
 			mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
-			
+
 			const evolved = processLevelUpEvolutions(mon);
 			const currentName = Dex.species.get(toID(mon.species)).name;
 			state.notification = `<b>${currentName}</b> leveled up by ${levelsToGain} (Lv. ${mon.level})!`;
-			
+
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 			const msgs = processLevelUp(mon, oldLevel, oldSpecies, evolved, slot, state, config.generation || 9);
 			if (msgs.length) state.notification += '<br>' + msgs.join('<br>');
@@ -732,7 +732,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			const totalEvs = Object.values(mon.evs).reduce((a, b) => a + b, 0);
 			if (totalEvs >= 508) { ctx.errorReply("This Pokémon's EVs are maxed out (508 total)."); return false; }
 			if (mon.evs[evStat] >= 252) { ctx.errorReply(`This Pokémon's EV in this stat is already at max (252).`); return false; }
-			
+
 			const gain = Math.min(item.evGain ?? 10, 252 - mon.evs[evStat], 508 - totalEvs);
 			mon.evs[evStat] += gain;
 			mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
@@ -761,7 +761,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			mon.nature = nature.name;
 			mon.happiness = Math.min(255, (mon.happiness ?? 70) + 5);
 			state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b>'s stats changed to match the <b>${nature.name}</b> nature!`;
-			
+
 			if (state.gameMode === 'classic') {
 				const userData = getUserData(user.id);
 				let baseSpecies = toID(mon.species);
@@ -784,19 +784,19 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			if (hp <= 0) { ctx.errorReply("Can't use on a fainted Pokémon."); return false; }
 			const stat = item.buffStat!;
 			if (!mon.activeBuffs) mon.activeBuffs = {};
-			
+
 			if (mon.activeBuffs[stat]) {
 				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> used ${item.name}! Its stat boost duration was refreshed!`;
 			} else {
 				state.notification = `<b>${Dex.species.get(toID(mon.species)).name}</b> used ${item.name}! Its stat is boosted for 5 battles!`;
 			}
-			
+
 			mon.activeBuffs[stat] = 5;
 		}
 
 		delete state.purchasedItem;
 		delete state.pendingConsumableType;
-		
+
 		if (state.pendingDraftPick) {
 			delete state.pendingRewardDraft;
 			delete state.rerollCount;
@@ -806,7 +806,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 		if (state.pendingRewardDraft) (state as any).view = 'draft';
 		else { state.floor++; (state as any).view = 'main'; }
 		return true;
-	}
+	},
 };
 
 function handleDraftAction(target: string, user: User, state: PokeRogueState, ctx: CommandContext): boolean {
@@ -828,7 +828,7 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 	if (item.type === 'pokeball') {
 		state.inventory = state.inventory || {};
 		const maxStack = item.maxStack ?? 99;
-		
+
 		let amountToAdd = 1;
 		if (itemKey === 'pokeball' || itemKey === 'greatball') amountToAdd = 5;
 		else if (itemKey === 'ultraball') amountToAdd = 2;
@@ -863,7 +863,7 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 	} else if (item.type === 'itemPack') {
 		delete state.pendingRewardDraft;
 		delete state.rerollCount;
-		
+
 		if (itemKey === 'starter_token') {
 			state.notification = `You unlocked a new Starter!`;
 			state.floor++;
@@ -986,7 +986,7 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 	const savedStarter = isStarterChoice ? userData.starters[toID(finalSpecies)] : null;
 
 	const randomIvs = {
-		hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32), def: Math.floor(Math.random() * 32), 
+		hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32), def: Math.floor(Math.random() * 32),
 		spa: Math.floor(Math.random() * 32), spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
 	};
 	const shiny = savedStarter ? !!savedStarter.shiny : (Math.floor(Math.random() * 4096) === 0);
@@ -1031,11 +1031,11 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 		const sid = toID(finalSpecies);
 		if (!userData.starters[sid]) {
 			userData.starters[sid] = {
-				...newMon, 
-				unlockedNatures: [newMon.nature!], 
+				...newMon,
+				unlockedNatures: [newMon.nature!],
 				unlockedAbilities: [newMon.ability!],
 				unlockedTeraTypes: [newMon.teraType!],
-				selectedNature: newMon.nature, 
+				selectedNature: newMon.nature,
 				selectedAbility: newMon.ability,
 				selectedTeraType: newMon.teraType,
 			};
@@ -1098,7 +1098,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 	const parsed = parseBattleState(log, state.team);
 	const p1Fainted = parsed.p1ActiveFainted;
 	const p2State = parsed.p2Active;
-	
+
 	for (const data of p2State.values()) if (!data.level) data.level = botLevel(floor, config);
 
 	let aliveOpponents = 0;
@@ -1206,7 +1206,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		let caughtItem = '';
 
 		const freshCaughtIvs = {
-			hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32), def: Math.floor(Math.random() * 32), 
+			hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32), def: Math.floor(Math.random() * 32),
 			spa: Math.floor(Math.random() * 32), spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
 		};
 		let caughtShiny = false;
@@ -1259,7 +1259,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 			} : { ...caught.ivs };
 
 			const isShiny = existingStarter?.shiny || caught.shiny;
-			
+
 			const unlockedNatures = new Set(existingStarter?.unlockedNatures || []);
 			if (existingStarter?.nature) unlockedNatures.add(existingStarter.nature);
 			if (existingStarter?.selectedNature) unlockedNatures.add(existingStarter.selectedNature);
@@ -1288,10 +1288,10 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 				shiny: !!isShiny, ivs: bestIvs, evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
 				metLevel: 5, metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`, currentHp: 100,
 				ball: caught.ball, gender: caught.gender, teraType: caught.teraType, marks: caught.marks ? [...caught.marks] : [],
-				unlockedNatures: Array.from(unlockedNatures), 
+				unlockedNatures: Array.from(unlockedNatures),
 				unlockedAbilities: Array.from(unlockedAbilities),
 				unlockedTeraTypes: Array.from(unlockedTeraTypes),
-				selectedNature, 
+				selectedNature,
 				selectedAbility,
 				selectedTeraType,
 			};
@@ -1330,7 +1330,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		if (match) {
 			const botUser = Users.get(match.botUserId);
 			if (botUser) {
-				setTimeout(() => { if (room.battle && !room.battle.ended) (room.battle as any).forfeit(botUser); }, 300);
+				setTimeout(() => { if (room.battle && !room.battle.ended) (room.battle).forfeit(botUser); }, 300);
 			}
 		}
 	} else {
@@ -1564,7 +1564,7 @@ export const commands: Chat.ChatCommands = {
 			const dir = args[0];
 			const TAB_COUNT = 3;
 			let current = (state as any).statsTab ?? 0;
-			
+
 			if (dir === 'next') current = (current + 1) % TAB_COUNT;
 			else if (dir === 'prev') current = (current - 1 + TAB_COUNT) % TAB_COUNT;
 			else {
@@ -1592,7 +1592,7 @@ export const commands: Chat.ChatCommands = {
 			const [trait, direction] = target.trim().split(' ');
 			const mon = state.team[0];
 			let baseSpecies = toID(mon.species);
-			
+
 			while (true) {
 				const sp = Dex.species.get(baseSpecies);
 				if (!sp.prevo) break;
@@ -1601,13 +1601,13 @@ export const commands: Chat.ChatCommands = {
 
 			let starterData = userData.starters[baseSpecies];
 			if (!starterData) {
-				starterData = { 
-					unlockedNatures: [mon.nature!], 
-					unlockedAbilities: [mon.ability!], 
+				starterData = {
+					unlockedNatures: [mon.nature!],
+					unlockedAbilities: [mon.ability!],
 					unlockedTeraTypes: [mon.teraType!],
-					selectedNature: mon.nature!, 
+					selectedNature: mon.nature!,
 					selectedAbility: mon.ability!,
-					selectedTeraType: mon.teraType!
+					selectedTeraType: mon.teraType!,
 				} as PokemonEntry;
 				userData.starters[baseSpecies] = starterData;
 			}
@@ -1769,7 +1769,7 @@ export const commands: Chat.ChatCommands = {
 
 			const fromDexSpecies = Dex.species.get(toID(fromMon.species));
 			const toDexSpecies = Dex.species.get(toID(toMon.species));
-			
+
 			if (fromMon.heldItem) {
 				const dexOldItem = Dex.items.get(fromMon.heldItem);
 				if (dexOldItem.forcedForme && fromDexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
@@ -1782,7 +1782,7 @@ export const commands: Chat.ChatCommands = {
 					toMon.species = toID(toDexSpecies.changesFrom ?? toDexSpecies.baseSpecies);
 				}
 			}
-			
+
 			const temp = toMon.heldItem;
 			toMon.heldItem = fromMon.heldItem;
 			if (temp) fromMon.heldItem = temp;
@@ -1813,27 +1813,27 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.battleRoomId) return;
 			if (hasPendingActions(state)) return this.errorReply("Resolve pending choices first.");
-			
+
 			const slot = parseInt(target.trim()) - 1;
 			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid team slot.");
-			
+
 			const mon = state.team[slot];
 			if (!mon.heldItem) return this.errorReply("That Pokémon isn't holding anything.");
-			
+
 			const dexOldItem = Dex.items.get(mon.heldItem);
 			const dexSpecies = Dex.species.get(toID(mon.species));
-			
+
 			if (dexOldItem.forcedForme && dexSpecies.otherFormes?.includes(dexOldItem.forcedForme)) {
 				mon.species = toID(dexSpecies.changesFrom ?? dexSpecies.baseSpecies);
 			}
-			
+
 			delete mon.heldItem;
 			state.notification = `Discarded ${dexOldItem.name} from ${dexSpecies.name}.`;
-			
+
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-		
+
 		reroll(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'draft') return;
@@ -1905,7 +1905,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || state.gameOver) return this.errorReply("No active run.");
 			if (!room?.battle) return this.errorReply("You must be in a battle to catch Pokémon.");
-			
+
 			handleCatchAction(target, room, user, state, this as any);
 		},
 
@@ -2137,7 +2137,7 @@ export const handlers: Chat.Handlers = {
 
 			const rewardMultiplier = isBossFloor ? 1.0 : 0.2;
 			let moneyGained = getRewardMoney(prevFloor, rewardMultiplier);
-			
+
 			const amuletCoinStacks = state.keyItems?.['Amulet Coin'] || 0;
 			if (amuletCoinStacks > 0) {
 				moneyGained = Math.floor(moneyGained * (1 + 0.20 * amuletCoinStacks));
@@ -2170,5 +2170,5 @@ export const handlers: Chat.Handlers = {
 		setState(match.userId, state);
 		const hUser = Users.get(match.userId);
 		if (hUser) refreshGamePage(hUser);
-	}
+	},
 };

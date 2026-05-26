@@ -4,20 +4,20 @@ import { type PokemonEntry, type PokeRogueState, type ModeConfig } from './types
 import { canLearnTM } from './pokemon';
 
 export type ItemType =
-	| 'pokeball'
-	| 'healHP'
-	| 'key'
-	| 'revive'
-	| 'cureStatus'
-	| 'itemPack'
-	| 'item'
-	| 'evolveItem'
-	| 'megaStone'
-	| 'vitamin'
-	| 'tm'
-	| 'mint'
-	| 'rareCandy'
-	| 'stackableItem';
+	| 'pokeball' |
+	'healHP' |
+	'key' |
+	'revive' |
+	'cureStatus' |
+	'itemPack' |
+	'item' |
+	'evolveItem' |
+	'megaStone' |
+	'vitamin' |
+	'tm' |
+	'mint' |
+	'rareCandy' |
+	'stackableItem';
 
 export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
@@ -270,7 +270,7 @@ function isItemValidForDraft(
 		if (dexItem.itemUser) {
 			let hasCompatibleUser = false;
 			const targetUsers = dexItem.itemUser.map(toID);
-			
+
 			for (const species of partySpecies) {
 				const spData = Dex.species.get(species);
 				if (targetUsers.includes(spData.id) || (spData.baseSpecies && targetUsers.includes(toID(spData.baseSpecies)))) {
@@ -320,7 +320,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 
 		const validItems = Object.entries(SHOP_ITEMS).filter(([key, item]) => {
 			return isItemValidForDraft(
-				key, item, state, targetTier, pickedKeys, tmsInDraft, heldItemsInDraft, 
+				key, item, state, targetTier, pickedKeys, tmsInDraft, heldItemsInDraft,
 				needsHeal, needsRevive, needsCure, partySpecies
 			);
 		});
@@ -333,7 +333,7 @@ export function generateDraftOptions(state: PokeRogueState, config?: ModeConfig)
 				if (getItemWeight(item, state) <= 0) return false;
 				return true;
 			});
-			
+
 			const randomFallback = weightedItemPick(anyUnpicked, state);
 			if (randomFallback) {
 				draft.push(randomFallback[0]);

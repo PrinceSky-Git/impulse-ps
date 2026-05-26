@@ -317,7 +317,7 @@ export function applyExpAndLevelUp(
 	}
 
 	const evolved = processLevelUpEvolutions(mon);
-	
+
 	return { evolved, oldLevel };
 }
 
@@ -572,7 +572,7 @@ function pickBestMoves(speciesId: string, chosenLevel: number, genNumber: number
 	return picked.slice(0, 4).map(m => Dex.moves.get(m).id || toID(m));
 }
 
-function pickBestAbility(species: Species, floor: number, config?: ModeConfig, abilityCharms: number = 0): string {
+function pickBestAbility(species: Species, floor: number, config?: ModeConfig, abilityCharms = 0): string {
 	if (config?.randomizeAbilities) {
 		const allAbilities = Dex.abilities.all().filter(a => !a.isNonstandard);
 		return allAbilities[Math.floor(Math.random() * allAbilities.length)].id;
@@ -594,9 +594,9 @@ function pickBestAbility(species: Species, floor: number, config?: ModeConfig, a
 		} else if (slot === 'H') {
 			let baseChance = 1 / 128;
 			if (abilityCharms > 0) {
-				baseChance *= Math.pow(2, Math.min(abilityCharms, 4));
+				baseChance *= 2 ** Math.min(abilityCharms, 4);
 			}
-			
+
 			const chance = floor >= 99 ? Math.max(0.20, baseChance) : floor >= 60 ? Math.max(0.10, baseChance) : baseChance;
 			priority = Math.random() < chance ? 80 : 0;
 		} else if (slot === '1') {
@@ -869,8 +869,8 @@ export function genPokemon(
 	currentBiome?: string,
 	config?: ModeConfig,
 	data?: ModeData,
-	shinyCharms: number = 0,
-	abilityCharms: number = 0
+	shinyCharms = 0,
+	abilityCharms = 0
 ): AIPokemonSet[] {
 	let minLevel: number;
 	let maxLevel: number;
@@ -900,7 +900,7 @@ export function genPokemon(
 		const isForced = !!(forcedSpeciesPool && forcedSpeciesPool.length > depth);
 
 		if (isForced) {
-			const forced = forcedSpeciesPool![depth];
+			const forced = forcedSpeciesPool[depth];
 			if (typeof forced === 'string') {
 				finalSpeciesId = toID(forced);
 			} else {
@@ -1048,9 +1048,9 @@ export function packPokemon(mon: PokemonEntry): string {
 	const spdBoost = mon.activeBuffs?.spd ? 10 : 0;
 	const speBoost = mon.activeBuffs?.spe ? 10 : 0;
 
-	const bstBoostsStr = (atkBoost || defBoost || spaBoost || spdBoost || speBoost)
-		? `${atkBoost}:${defBoost}:${spaBoost}:${spdBoost}:${speBoost}`
-		: '';
+	const bstBoostsStr = (atkBoost || defBoost || spaBoost || spdBoost || speBoost) ?
+		`${atkBoost}:${defBoost}:${spaBoost}:${spdBoost}:${speBoost}` :
+		'';
 
 	let stackedItemStr = '';
 	if (mon.stackedItems) {
@@ -1090,7 +1090,7 @@ export function packAIPokemon(set: AIPokemonSet): string {
 	const evStr = `${set.evs.hp},${set.evs.atk},${set.evs.def},${set.evs.spa},${set.evs.spd},${set.evs.spe}`;
 	const movesStr = set.moves.map(m => Dex.moves.get(m).name || m).join(',');
 	const shinyStr = set.shiny ? 'S' : '';
-	
+
 	let base = `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|`;
 
 	// Map strictly to the simulator's misc array format
