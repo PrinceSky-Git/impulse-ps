@@ -334,6 +334,38 @@ function processFloorRewards(
 	userId: string
 ): { extraNotifs: string[] } {
 	const extraNotifs: string[] = [];
+	const userData = getUserData(userId);
+
+	// Process Egg Hatching
+	if (userData.eggs && userData.eggs.length > 0) {
+		for (let i = userData.eggs.length - 1; i >= 0; i--) {
+			const egg = userData.eggs[i];
+			egg.wavesRemaining--;
+			if (egg.wavesRemaining <= 0) {
+				const sid = toID(egg.species);
+				const isShiny = egg.shiny;
+
+				if (!userData.starters[sid]) {
+					userData.starters[sid] = {
+						species: sid, level: 5, exp: 0,
+						moves: [], nature: 'Hardy', ability: '',
+						shiny: isShiny, teraType: 'Normal',
+						unlockedNatures: ['Hardy'], unlockedAbilities: [''], unlockedTeraTypes: ['Normal'],
+						selectedNature: 'Hardy', selectedAbility: '', selectedTeraType: 'Normal'
+					} as PokemonEntry;
+					extraNotifs.push(`<div style="text-align: center; color: #4caf50;"><b>An Egg hatched into ${Dex.species.get(sid).name}! (New Starter)</b></div>`);
+				} else {
+					if (isShiny && !userData.starters[sid].shiny) {
+						userData.starters[sid].shiny = true;
+						extraNotifs.push(`<div style="text-align: center; color: #fda085;"><b>An Egg hatched into a Shiny ${Dex.species.get(sid).name}!</b></div>`);
+					} else {
+						extraNotifs.push(`<div style="text-align: center;"><b>An Egg hatched into ${Dex.species.get(sid).name}! (Duplicate)</b></div>`);
+					}
+				}
+				userData.eggs.splice(i, 1);
+			}
+		}
+	}
 
 	if (clearedFloor > (state.highestFloor ?? 0)) {
 		state.highestFloor = clearedFloor;
@@ -395,8 +427,22 @@ function processFloorRewards(
 			delete mon.status;
 		}
 		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
+
+		// Award Vouchers
+		if (!userData.vouchers) userData.vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
+		if (clearedFloor === 200) {
+			userData.vouchers.gold = (userData.vouchers.gold || 0) + 1;
+			extraNotifs.push(`<div style="text-align: center; color: #fbbf24;"><b>Received an Egg Voucher Gold!</b></div>`);
+		} else if (clearedFloor % 50 === 0) {
+			userData.vouchers.premium = (userData.vouchers.premium || 0) + 1;
+			extraNotifs.push(`<div style="text-align: center; color: #a78bfa;"><b>Received an Egg Voucher Premium!</b></div>`);
+		} else if (clearedFloor % 10 === 0) {
+			userData.vouchers.plus = (userData.vouchers.plus || 0) + 1;
+			extraNotifs.push(`<div style="text-align: center; color: #60a5fa;"><b>Received an Egg Voucher Plus!</b></div>`);
+		}
 	}
 
+	saveUserData(userId);
 	return { extraNotifs };
 }
 
