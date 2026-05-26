@@ -367,6 +367,7 @@ function processFloorRewards(
 					species: sid, level: 5, exp: 0,
 					moves: [], nature: randomNature, ability: haName || dexSpecies.abilities['0'] || '',
 					shiny: isShiny, teraType: generatedTeraType,
+					eggTier: egg.tier,
 				};
 				newlyHatched.push(hatchedMon);
 
