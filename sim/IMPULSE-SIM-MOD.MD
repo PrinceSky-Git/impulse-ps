@@ -10,7 +10,7 @@ Because we use the official public Pokémon Showdown client (`play.pokemonshowdo
 
 To get around this, we use the **Nickname Hack**. You can encode your custom HP, Status conditions, and Stat Boosts directly into your Pokémon's nickname using special bracket tags. When the battle starts, our server intercepts these tags, applies the stats, and magically cleans up the nickname so your opponent never sees the brackets.
 
-*(Note: Nicknames can now be up to 100 characters long to accommodate multiple tags!)*
+*(Note: Nicknames can now be up to 1000 characters long to accommodate multiple tags!)*
 
 ---
 
