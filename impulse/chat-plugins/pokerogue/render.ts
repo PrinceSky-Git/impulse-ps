@@ -556,23 +556,51 @@ function renderPendingChoice(state: PokeRogueState): string {
 function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const pending = state.pendingChoice || [];
 	const userData = getUserData(user.id);
-	const search = ((state as any).starterSearch || '').toLowerCase().trim();
+	
+	let rawSearch = ((state as any).starterSearch || '').toLowerCase().trim();
+	let sort: 'costAsc' | 'costDesc' | null = null;
+	let filterEgg = false;
 
+	// Extract Sort Commands
+	if (rawSearch.includes('cost +') || rawSearch.includes('cost+')) {
+		sort = 'costDesc'; // Highest cost first
+		rawSearch = rawSearch.replace(/cost\s*\+/, '').trim();
+	} else if (rawSearch.includes('cost -') || rawSearch.includes('cost-')) {
+		sort = 'costAsc'; // Lowest cost first
+		rawSearch = rawSearch.replace(/cost\s*-/, '').trim();
+	}
+
+	// Extract Egg Filter (using \b word boundary to avoid matching "exeggcute")
+	if (/\begg\b/.test(rawSearch)) {
+		filterEgg = true;
+		rawSearch = rawSearch.replace(/\begg\b/, '').trim();
+	}
+
+	const search = rawSearch;
 	const currentCost = state.team?.reduce((sum, mon) => sum + getStarterCost(mon.species), 0) || 0;
 
-	const filtered = search.length > 0 ?
-		pending.filter(sid => {
-			const sp = Dex.species.get(toID(sid));
-			const saved = userData.starters[toID(sid)];
+	let filtered = pending.filter(sid => {
+		const sp = Dex.species.get(toID(sid));
+		const saved = userData.starters[toID(sid)];
 
+		if (filterEgg && (!saved?.unlockedEggMoves || saved.unlockedEggMoves.length === 0)) return false;
+
+		if (search.length > 0) {
 			if (search === 'shiny') return !!saved?.shiny;
 
 			const types = (sp.types ?? []).map(t => t.toLowerCase());
 			if (types.includes(search)) return true;
 
 			return sp.name.toLowerCase().includes(search) || toID(sid).includes(search);
-		}) :
-		pending;
+		}
+		return true;
+	});
+
+	if (sort === 'costAsc') {
+		filtered.sort((a, b) => getStarterCost(toID(a)) - getStarterCost(toID(b)));
+	} else if (sort === 'costDesc') {
+		filtered.sort((a, b) => getStarterCost(toID(b)) - getStarterCost(toID(a)));
+	}
 
 	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
 	buf += `<div style="text-align:center;font-size:11px;margin:-6px 0 12px">`;
@@ -611,16 +639,17 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	}
 
 	buf += `<form data-submitsend="/pokerogue startersearch {data}" style="text-align:center;margin-bottom:12px">`;
-	buf += `<input name="data" value="${Utils.escapeHTML(search)}" placeholder="Name, type, or 'shiny'..." ` +
-		`style="padding:5px 10px;border-radius:6px;border:1px solid rgba(150,150,150,0.4);background:rgba(0,0,0,0.2);color:inherit;font-size:12px;width:180px;" />`;
+	const displaySearch = ((state as any).starterSearch || '');
+	buf += `<input name="data" value="${Utils.escapeHTML(displaySearch)}" placeholder="Name, type, 'shiny', 'egg', 'cost+', 'cost-'" ` +
+		`style="padding:5px 10px;border-radius:6px;border:1px solid rgba(150,150,150,0.4);background:rgba(0,0,0,0.2);color:inherit;font-size:12px;width:240px;" />`;
 	buf += `&nbsp;&nbsp;<button type="submit" class="pr-btn" style="font-size:11px;padding:5px 10px;">Search</button>`;
-	if (search) {
+	if (displaySearch) {
 		buf += `&nbsp;&nbsp;` + renderBtn('/pokerogue startersearch', 'Clear', 'pr-btn', 'font-size:11px;padding:5px 10px');
 	}
 	buf += `</form>`;
 
 	if (filtered.length === 0) {
-		buf += `<div style="text-align:center;padding:16px;color:#888;">No Pokémon found for "<b>${Utils.escapeHTML(search)}</b>".</div>`;
+		buf += `<div style="text-align:center;padding:16px;color:#888;">No Pokémon found for "<b>${Utils.escapeHTML(displaySearch)}</b>".</div>`;
 		return buf;
 	}
 
