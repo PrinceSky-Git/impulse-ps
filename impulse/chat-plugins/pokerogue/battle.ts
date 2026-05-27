@@ -33,19 +33,15 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 
 	const consumedItems: { teamIdx: number, itemId: string }[] = [];
 
-	// For tracking P1 mappings
 	const p1SlotToTeamIdx: Record<string, number> = {};
 	const p1ActivelyAssigned = new Set<number>();
 
-	// Items tracking maps
 	const itemSlotMap: Record<string, number> = {};
 	const itemAssigned = new Set<number>();
 
-	// Track the fainted/alive state of each specific P1 slot
 	const p1SlotState = new Map<string, boolean>();
 
 	for (const line of logLines) {
-		// Handle Switches
 		const swMatch = /^\|(?:switch|drag)\|(p[12][a-z]): [^|]+\|([^|,]+)(?:, L(\d+))?[^|]*\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 		if (swMatch) {
 			const slot = swMatch[1];
@@ -58,7 +54,6 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 			if (slot.startsWith('p1')) {
 				p1SlotState.set(slot, false); // Mark slot as alive
 
-				// P1 team matching logic
 				const prev = p1SlotToTeamIdx[slot];
 				if (prev !== undefined) p1ActivelyAssigned.delete(prev);
 
@@ -76,7 +71,6 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 					p1TeamStatus[matched] = status;
 				}
 
-				// Item tracking logic (requires checking base species too)
 				const prevItem = itemSlotMap[slot];
 				if (prevItem !== undefined) itemAssigned.delete(prevItem);
 				const logBase = toID(Dex.species.get(species).baseSpecies || species);
@@ -89,13 +83,11 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 					}
 				}
 			} else {
-				// P2 active tracking (for catching)
 				p2Active.set(slot, { species, level, hp, maxHp, status, fainted: hp <= 0 });
 			}
 			continue;
 		}
 
-		// Damage / Heal
 		const dmgMatch = /^\|(?:-damage|-heal)\|(p[12][a-z]): [^|]+\|(\d+)(?:\/(\d+))?(?: (brn|psn|tox|par|slp|frz))?/.exec(line);
 		if (dmgMatch) {
 			const slot = dmgMatch[1];
@@ -120,7 +112,6 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 			continue;
 		}
 
-		// Status apply
 		const stMatch = /^\|-status\|(p[12][a-z]): [^|]+\|(brn|psn|tox|par|slp|frz)/.exec(line);
 		if (stMatch) {
 			const slot = stMatch[1];
@@ -135,7 +126,6 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 			continue;
 		}
 
-		// Cure status
 		const cureMatch = /^\|-curestatus\|(p[12][a-z]):/.exec(line);
 		if (cureMatch) {
 			const slot = cureMatch[1];
@@ -149,7 +139,6 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 			continue;
 		}
 
-		// Faint
 		const faintMatch = /^\|faint\|(p[12][a-z]):/.exec(line);
 		if (faintMatch) {
 			const slot = faintMatch[1];
@@ -175,7 +164,6 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 			continue;
 		}
 
-		// End item
 		const endItemMatch = /^\|-enditem\|p1([a-z]): [^|]+\|([^|]+)/.exec(line);
 		if (endItemMatch) {
 			if (line.includes('[from] move: Knock Off') || line.includes('[from] move: Thief') || line.includes('[from] move: Incinerate')) continue;
@@ -188,7 +176,6 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 		}
 	}
 
-	// Safely determine if the player is actively blocked by a fainted Pokémon.
 	if (p1SlotState.size > 0) {
 		let totalAlive = 0;
 		for (let i = 0; i < playerTeam.length; i++) {
@@ -201,8 +188,6 @@ export function parseBattleState(logLines: string[], playerTeam: PokemonEntry[])
 		const activeAliveCount = Array.from(p1SlotState.values()).filter(isFainted => !isFainted).length;
 		const hasFaintedSlot = Array.from(p1SlotState.values()).includes(true);
 
-		// The player is "fainted" if they have 0 pokemon on the field,
-		// OR they have an empty/fainted slot AND have a living pokemon on the bench to fill it.
 		p1ActiveFainted = activeAliveCount === 0 || (hasFaintedSlot && totalAlive > activeAliveCount);
 	}
 

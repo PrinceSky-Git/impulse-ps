@@ -71,7 +71,6 @@ export const classicData: ModeData = {
 		const trainers = ClassicTrainers;
 		if (!trainers) return null;
 
-		// RULE 1: Guaranteed Fixed Floors (Bosses, Rivals - Overrides everything)
 		const floorKey = `Floor_${floor}`;
 		if (trainers[floorKey]) {
 			const trainerNames = Object.keys(trainers[floorKey]);
@@ -79,19 +78,15 @@ export const classicData: ModeData = {
 			return { key: floorKey, name: selectedName };
 		}
 
-		// RULE 2: Official 20/30 Gym Leader Routing & Scaling
 		const gymInterval = 30;
 
-		// Determine the first gym wave (either 20 or 30) if it hasn't been set yet
 		if (!state.firstGymLeaderWave) {
 			state.firstGymLeaderWave = Math.random() < 0.5 ? 20 : 30;
 		}
 
-		// Check if the current floor aligns with their Gym track
 		if (floor >= state.firstGymLeaderWave && (floor - state.firstGymLeaderWave) % gymInterval === 0) {
 			const gymKeys = Object.keys(trainers).filter(k => k.startsWith('GYM_'));
 			if (gymKeys.length > 0) {
-				// Scale tier based on floor depth
 				let targetTier = '1';
 				if (floor >= 50 && floor < 100) targetTier = '3';
 				if (floor >= 100) targetTier = '5';
@@ -106,7 +101,6 @@ export const classicData: ModeData = {
 			}
 		}
 
-		// GLOBAL SPAWN CHECK: 10% chance for standard dynamic trainers vs 75% Wild Pokemon
 		if (state.currentBiome === config.startingBiome) return null;
 
 		const lastTrainer = state.lastTrainerFloor || -99;
@@ -114,24 +108,19 @@ export const classicData: ModeData = {
 
 		if (Math.random() > 0.10) return null; // 90% chance to spawn Wild Pokemon instead
 
-		// DYNAMIC POOL BUILDING
 		const currentBiome = state.currentBiome || config.startingBiome;
 		const validTrainers: { key: string, name: string, chance: number }[] = [];
 		let totalChance = 0;
 
 		for (const [categoryKey, categoryData] of Object.entries(trainers)) {
-			// Skip categories we already handled above
 			if (categoryKey.startsWith('Floor_')) continue;
 			if (categoryKey.startsWith('GYM_')) continue;
 
-			// RULE 3: STANDARD_ Prefix Floor Filtering (Early, Mid, Late game progression)
 			if (categoryKey.startsWith('STANDARD_early') && floor > 30) continue;
 			if (categoryKey.startsWith('STANDARD_mid') && (floor <= 30 || floor > 100)) continue;
 			if (categoryKey.startsWith('STANDARD_late') && floor <= 100) continue;
 
-			// Evaluate the remaining trainers for this category
 			for (const [trainerName, trainerData] of Object.entries(categoryData as Record<string, any>)) {
-				// BIOME CHECK
 				if (trainerData.biome) {
 					const allowedBiomes = Array.isArray(trainerData.biome) ? trainerData.biome : [trainerData.biome];
 					if (!allowedBiomes.includes(currentBiome)) {
@@ -139,14 +128,12 @@ export const classicData: ModeData = {
 					}
 				}
 
-				// Add valid trainer to the lottery pool
 				const chanceWeight = trainerData.chance ?? 10;
 				validTrainers.push({ key: categoryKey, name: trainerName, chance: chanceWeight });
 				totalChance += chanceWeight;
 			}
 		}
 
-		// THE LOTTERY ROLL (Weighted Random)
 		if (validTrainers.length > 0) {
 			state.lastTrainerFloor = floor; // Update the cooldown tracker
 
@@ -157,7 +144,6 @@ export const classicData: ModeData = {
 					return { key: trainer.key, name: trainer.name };
 				}
 			}
-			// Fallback in case of floating point inaccuracies
 			return { key: validTrainers[validTrainers.length - 1].key, name: validTrainers[validTrainers.length - 1].name };
 		}
 
