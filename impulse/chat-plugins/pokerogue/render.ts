@@ -258,7 +258,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		main: 'PokéRogue', top: 'Ladder',
 		resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome',
 		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game', draft: 'Reward Draft',
-		gacha: 'Egg Gacha',
+		gacha: 'Egg Gacha', incubator: 'Incubator', // Added incubator title
 	};
 
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
@@ -282,6 +282,11 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome') {
 		const backTarget = hasGameOver ? '/pokerogue view welcome' : '/pokerogue view main';
 		buf += renderBtn(backTarget, '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
+		
+		// Render Incubator button specifically inside the Gacha UI
+		if (view === 'gacha') {
+			buf += `&nbsp;&nbsp;${renderBtn('/pokerogue view incubator', 'Incubator', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
+		}
 	}
 	return buf + `</div>`;
 }
@@ -311,7 +316,6 @@ function renderHpBar(mon: PokemonEntry): string {
 function renderGachaView(user: User): string {
 	const userData = getUserData(user.id);
 	const v = userData.vouchers || { regular: 0, plus: 0, premium: 0, gold: 0 };
-	const eggs = userData.eggs || [];
 
 	let buf = `<div style="padding: 10px;">`;
 
@@ -344,9 +348,16 @@ function renderGachaView(user: User): string {
 		buf += renderBtn(v.gold > 0 ? `/pokerogue pull gold, ${banner.id}` : null, 'Pull 25x', `pr-btn ${v.gold > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.gold > 0));
 		buf += `</div></div>`;
 	}
-	buf += `</div>`;
+	buf += `</div></div>`;
+	return buf;
+}
 
-	buf += `<div class="pr-section-title">Your Incubator (${eggs.length} Eggs)</div>`;
+function renderIncubatorView(user: User): string {
+	const userData = getUserData(user.id);
+	const eggs = userData.eggs || [];
+
+	let buf = `<div style="padding: 10px;">`;
+	buf += `<div class="pr-section-title">Your Incubator (${eggs.length}/100 Eggs)</div>`;
 
 	if (eggs.length === 0) {
 		buf += `<div class="pr-card" style="text-align:center; color:#9d93c8; font-size:12px;">No eggs currently in the incubator. Keep playing to earn Vouchers!</div>`;
@@ -1577,6 +1588,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'save')}</div></div>`;
 	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'load')}</div></div>`;
 	if (view === 'gacha') return buf + renderHeader('gacha', !!isEffectivelyGameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGachaView(user)}</div></div>`;
+	if (view === 'incubator') return buf + renderHeader('incubator', !!isEffectivelyGameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderIncubatorView(user)}</div></div>`;
 
 	let displayView = view;
 	if (view === 'draft' && (state.hatchedEggs?.length || state.pendingChoice?.length || state.pendingSwap || state.pendingMoves?.length || state.itemOptions?.length || state.pendingItemName || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined)) {
