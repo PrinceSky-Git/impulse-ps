@@ -1910,9 +1910,17 @@ export const commands: Chat.ChatCommands = {
 
 		confirmstarter(target, room, user) {
 			const state = getState(user.id);
-			if (!state?.isConfiguringStarter) return;
+			if (!state || !state.isConfiguringStarter) return;
+
+			const totalCost = state.team.reduce((sum, mon) => sum + getStarterCost(mon.species), 0);
+			if (totalCost > 10) return this.errorReply("Total starter cost cannot exceed 10.");
+
+			delete state.pendingChoice;
+			delete state.pendingChoiceType;
+			delete state.pendingChoiceFloor;
 			delete state.isConfiguringStarter;
 			(state as any).view = 'main';
+			
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
