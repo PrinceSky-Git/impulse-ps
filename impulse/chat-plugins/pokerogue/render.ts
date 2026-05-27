@@ -280,13 +280,18 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += `${renderBtn('/pokerogue view gacha', 'Egg Gacha', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome') {
+		// 1. Add the flex wrapper to push items to the right
+		buf += `<div style="display:flex;margin-left:auto;align-items:center;">`; 
+		
 		const backTarget = hasGameOver ? '/pokerogue view welcome' : '/pokerogue view main';
 		buf += renderBtn(backTarget, '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
 		
-		// Render Incubator button specifically inside the Gacha UI
 		if (view === 'gacha') {
 			buf += `&nbsp;&nbsp;${renderBtn('/pokerogue view incubator', 'Incubator', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		}
+		
+		// 2. Close the flex wrapper
+		buf += `</div>`; 
 	}
 	return buf + `</div>`;
 }
