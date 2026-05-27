@@ -1,6 +1,7 @@
 import { Utils } from '../../../lib';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
 import { EGG_POOLS, type EggTier } from './egg-data';
+import { getStarterCost } from './starter-cost';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem, generateDraftOptions, getRewardMoney, getItemPrice, getRerollCost } from './items';
@@ -1098,6 +1099,23 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 		}
 	}
 
+	if (isStarterChoice) {
+		const currentCost = state.team?.reduce((sum, mon) => sum + getStarterCost(mon.species), 0) || 0;
+		const newCost = getStarterCost(finalSpecies);
+		if (currentCost + newCost > 10) {
+			ctx.errorReply("Total starter cost cannot exceed 10.");
+			return false;
+		}
+		if (state.team && state.team.length >= 6) {
+			ctx.errorReply("You can only choose up to 6 starters.");
+			return false;
+		}
+		if (state.team && state.team.some(m => toID(m.species) === toID(finalSpecies))) {
+			ctx.errorReply("You have already selected this starter.");
+			return false;
+		}
+	}
+
 	let newMon: PokemonEntry;
 	const savedStarter = isStarterChoice ? userData.starters[toID(finalSpecies)] : null;
 
@@ -1157,19 +1175,29 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 			};
 			saveUserData(user.id);
 		}
-		state.team = [newMon];
-		(state as any).view = 'stats';
-		(state as any).pendingStatsSlot = 0;
+		state.team = state.team || [];
+		state.team.push(newMon);
 		state.isConfiguringStarter = true;
+		
+		const useNewStarterSelectionUI = data.useNewStarterSelectionUI !== false;
+		if (!useNewStarterSelectionUI) {
+			delete state.pendingChoice;
+			delete state.pendingChoiceType;
+			delete state.pendingChoiceFloor;
+			(state as any).view = 'stats';
+			(state as any).pendingStatsSlot = 0;
+		}
 	} else if (state.team.length < 6) {
 		state.team.push(newMon);
 	} else {
 		state.pendingSwap = newMon;
 	}
 
-	delete state.pendingChoice;
-	delete state.pendingChoiceType;
-	delete state.pendingChoiceFloor;
+	if (!isStarterChoice) {
+		delete state.pendingChoice;
+		delete state.pendingChoiceType;
+		delete state.pendingChoiceFloor;
+	}
 	return true;
 }
 
@@ -1796,14 +1824,20 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-
+		
 		cyclestarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state?.isConfiguringStarter) return;
 			const userData = getUserData(user.id);
 
-			const [trait, direction] = target.trim().split(' ');
-			const mon = state.team[0];
+			const parts = target.trim().split(' ');
+			const trait = parts[0];
+			const direction = parts[1];
+			const slot = parseInt(parts[2]) || 0;
+
+			if (slot < 0 || slot >= state.team.length) return;
+
+			const mon = state.team[slot];
 			let baseSpecies = toID(mon.species);
 
 			while (true) {
@@ -1877,6 +1911,33 @@ export const commands: Chat.ChatCommands = {
 		confirmstarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state?.isConfiguringStarter) return;
+			delete state.isConfiguringStarter;
+			(state as any).view = 'main';
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		removestarter(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'starterselect') return;
+			const slot = parseInt(target.trim());
+			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
+			state.team.splice(slot, 1);
+			if (state.team.length === 0) delete state.isConfiguringStarter;
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		startrun(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'starterselect') return;
+			if (!state.team || state.team.length === 0) return this.errorReply("You must select at least one starter.");
+			const totalCost = state.team.reduce((sum, mon) => sum + getStarterCost(mon.species), 0);
+			if (totalCost > 10) return this.errorReply("Total starter cost cannot exceed 10.");
+
+			delete state.pendingChoice;
+			delete state.pendingChoiceType;
+			delete state.pendingChoiceFloor;
 			delete state.isConfiguringStarter;
 			(state as any).view = 'main';
 			setState(user.id, state);
