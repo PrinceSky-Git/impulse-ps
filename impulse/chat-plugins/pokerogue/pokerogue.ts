@@ -344,7 +344,9 @@ function processFloorRewards(
 			egg.wavesRemaining--;
 			if (egg.wavesRemaining <= 0) {
 				const sid = toID(egg.species);
-				const isShiny = egg.shiny;
+				const bannerType = (egg as any).bannerType || 'generic';
+				const shinyOdds = bannerType === 'shiny' ? 24 : 64;
+				const isShiny = Math.floor(Math.random() * shinyOdds) === 0;
 				const dexSpecies = Dex.species.get(sid);
 
 				const allNatures = Dex.natures.all().map(n => n.name);
@@ -363,7 +365,8 @@ function processFloorRewards(
 					haName = dexSpecies.abilities['H'];
 				}
 
-				const eggMoveRoll = Math.floor(Math.random() * 64) === 0;
+				const eggMoveOdds = bannerType === 'eggmove' ? 24 : 64;
+				const eggMoveRoll = Math.floor(Math.random() * eggMoveOdds) === 0;
 				let unlockedEggMove = '';
 				if (eggMoveRoll) {
 					const allEggMoves = getEggMoves(sid, config.generation || 9);
@@ -1752,7 +1755,11 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		pull(target, room, user) {
-			const type = target.trim().toLowerCase();
+			const parts = target.split(',').map(p => p.trim());
+			const type = parts[0].toLowerCase();
+			const rawBanner = parts[1] || 'generic';
+			const bannerType = ['shiny', 'eggmove', 'generic'].includes(rawBanner) ? rawBanner : 'generic';
+
 			const validTypes: Record<string, number> = { regular: 1, plus: 5, premium: 10, gold: 25 };
 			if (!validTypes[type]) return this.errorReply("Invalid voucher type.");
 
@@ -1814,13 +1821,12 @@ export const commands: Chat.ChatCommands = {
 					highestTierRolled = tierValue;
 				}
 
-				const shinyRoll = Math.floor(Math.random() * 64) === 0;
 				const haRoll = Math.floor(Math.random() * 64) === 0;
-				
+
 				const pool = EGG_POOLS[tier] && EGG_POOLS[tier].length > 0 ? EGG_POOLS[tier] : allSpeciesFallback;
 				const species = pool[Math.floor(Math.random() * pool.length)];
 
-				userData.eggs.push({ species, wavesRemaining: waves, tier, shiny: shinyRoll, hiddenAbility: haRoll });
+				userData.eggs.push({ species, wavesRemaining: waves, tier, shiny: false, hiddenAbility: haRoll, bannerType: bannerType } as any);
 			}
 
 			saveUserData(user.id);

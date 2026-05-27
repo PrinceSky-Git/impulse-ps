@@ -327,11 +327,23 @@ function renderGachaView(user: User): string {
 	buf += `<div class="pr-stat"><div class="pr-stat-label">Gold (25x)</div><div class="pr-stat-val">${v.gold || 0}</div></div>`;
 	buf += `</div>`;
 
-	buf += `<div style="text-align:center; margin-bottom: 20px; margin-top: 10px;">`;
-	buf += renderBtn(v.regular > 0 ? '/pokerogue pull regular' : null, 'Pull 1x', `pr-btn ${v.regular > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.regular > 0));
-	buf += renderBtn(v.plus > 0 ? '/pokerogue pull plus' : null, 'Pull 5x', `pr-btn ${v.plus > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.plus > 0));
-	buf += renderBtn(v.premium > 0 ? '/pokerogue pull premium' : null, 'Pull 10x', `pr-btn ${v.premium > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.premium > 0));
-	buf += renderBtn(v.gold > 0 ? '/pokerogue pull gold' : null, 'Pull 25x', `pr-btn ${v.gold > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.gold > 0));
+	const banners = [
+		{ id: 'shiny', name: 'Shiny Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/shiny-banner.jpg' },
+		{ id: 'eggmove', name: 'Egg Move Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/shiny-banner.jpg' },
+		{ id: 'generic', name: 'Generic Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/rayquaza-banner.jpg' }
+	];
+
+	buf += `<div style="max-height: 500px; overflow-y: scroll; padding: 10px; margin-bottom: 20px;">`;
+	for (const banner of banners) {
+		buf += `<div style="text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #444;">`;
+		buf += `<img src="${banner.img}" alt="${banner.name}" style="max-width: 100%; max-height: 180px; border-radius: 6px; display: block; margin: 0 auto 12px auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.3);" />`;
+		buf += `<div>`;
+		buf += renderBtn(v.regular > 0 ? `/pokerogue pull regular, ${banner.id}` : null, 'Pull 1x', `pr-btn ${v.regular > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.regular > 0));
+		buf += renderBtn(v.plus > 0 ? `/pokerogue pull plus, ${banner.id}` : null, 'Pull 5x', `pr-btn ${v.plus > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.plus > 0));
+		buf += renderBtn(v.premium > 0 ? `/pokerogue pull premium, ${banner.id}` : null, 'Pull 10x', `pr-btn ${v.premium > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.premium > 0));
+		buf += renderBtn(v.gold > 0 ? `/pokerogue pull gold, ${banner.id}` : null, 'Pull 25x', `pr-btn ${v.gold > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.gold > 0));
+		buf += `</div></div>`;
+	}
 	buf += `</div>`;
 
 	buf += `<div class="pr-section-title">Your Incubator (${eggs.length} Eggs)</div>`;
