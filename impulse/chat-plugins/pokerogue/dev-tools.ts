@@ -1,9 +1,10 @@
-import { getState, setState, deleteState, getUserData, saveUserData, globalStats, saveGlobalStats, userCache } from './state';
-import { getLevelUpEvo, getExpType, getLevelUpMoves, expForLevel } from './pokemon';
+import { getState, setState, deleteState, getUserData, saveUserData, globalStats, saveGlobalStats, userCache, saveAllData } from './state';
+import { getLevelUpEvo, getExpType, getLevelUpMoves, expForLevel, getEggMoves } from './pokemon';
 import { type PokeRogueState, type PokemonEntry } from './types';
 import { nameColor } from '../customization/custom-color';
 import { refreshGamePage } from './render';
 import { SHOP_ITEMS } from './items';
+import { MODE_CONFIGS } from './config';
 
 const LADDER_RESET_CONFIRM_WINDOW = 2 * 60 * 1000;
 const pendingLadderResetConfirmations = new Map<ID, number>();
@@ -151,6 +152,111 @@ export const devCommands: Chat.ChatCommands = {
 		const displayType = type.charAt(0).toUpperCase() + type.slice(1);
 		this.sendReply(`Gave ${amount}x Egg Voucher ${displayType} to ${tId}.`);
 		notifyUser(tId, `${nameColor(user.name, false, true)} gave you <b>${amount}x Egg Voucher ${displayType}</b>.`);
+	},
+
+	hatcheggs(target, room, user) {
+		this.checkCan("bypassall");
+		const targetId = toID(target) || user.id;
+		const userData = getUserData(targetId);
+
+		if (!userData.eggs || userData.eggs.length === 0) {
+			return this.errorReply(`${targetId} has no eggs in their incubator.`);
+		}
+
+		const state = getState(targetId);
+		if (!state) {
+			return this.errorReply(`${targetId} does not have an active run. An active run is required to receive hatched eggs.`);
+		}
+
+		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+		const newlyHatched: PokemonEntry[] = [];
+
+		for (let i = userData.eggs.length - 1; i >= 0; i--) {
+			const egg = userData.eggs[i];
+			const sid = toID(egg.species);
+			const isShiny = egg.shiny;
+			const dexSpecies = Dex.species.get(sid);
+
+			const allNatures = Dex.natures.all().map(n => n.name);
+			const randomNature = allNatures[Math.floor(Math.random() * allNatures.length)] || 'Hardy';
+
+			let generatedTeraType = 'Normal';
+			if (Math.random() < 0.8 && dexSpecies.types.length > 0) {
+				generatedTeraType = dexSpecies.types[Math.floor(Math.random() * dexSpecies.types.length)];
+			} else {
+				const allTypes = Dex.types.all().map(t => t.name);
+				generatedTeraType = allTypes[Math.floor(Math.random() * allTypes.length)] || 'Normal';
+			}
+
+			let haName = '';
+			if (egg.hiddenAbility && dexSpecies.abilities['H']) {
+				haName = dexSpecies.abilities['H'];
+			}
+
+			const eggMoveRoll = Math.floor(Math.random() * 512) === 0;
+			let unlockedEggMove = '';
+			if (eggMoveRoll) {
+				const allEggMoves = getEggMoves(sid, config.generation || 9);
+				const existingUnlocked = userData.starters[sid]?.unlockedEggMoves || [];
+				const availableToUnlock = allEggMoves.filter(m => !existingUnlocked.includes(m));
+				if (availableToUnlock.length > 0) {
+					unlockedEggMove = availableToUnlock[Math.floor(Math.random() * availableToUnlock.length)];
+				}
+			}
+
+			const hatchedMon: PokemonEntry = {
+				species: sid, level: 5, exp: 0,
+				moves: [], nature: randomNature, ability: haName || dexSpecies.abilities['0'] || '',
+				shiny: isShiny, teraType: generatedTeraType,
+				eggTier: egg.tier,
+			};
+			newlyHatched.push(hatchedMon);
+
+			if (!userData.starters[sid]) {
+				userData.starters[sid] = {
+					...hatchedMon,
+					unlockedNatures: [randomNature],
+					unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''],
+					unlockedTeraTypes: [generatedTeraType],
+					unlockedEggMoves: unlockedEggMove ? [unlockedEggMove] : [],
+					selectedNature: randomNature,
+					selectedAbility: haName || dexSpecies.abilities['0'] || '',
+					selectedTeraType: generatedTeraType,
+				} as PokemonEntry;
+			} else {
+				const starter = userData.starters[sid];
+
+				if (!starter.unlockedNatures) starter.unlockedNatures = [starter.nature || 'Hardy'];
+				if (!starter.unlockedNatures.includes(randomNature)) starter.unlockedNatures.push(randomNature);
+
+				if (!starter.unlockedTeraTypes) starter.unlockedTeraTypes = [starter.teraType || 'Normal'];
+				if (!starter.unlockedTeraTypes.includes(generatedTeraType)) starter.unlockedTeraTypes.push(generatedTeraType);
+
+				if (haName) {
+					if (!starter.unlockedAbilities) starter.unlockedAbilities = [starter.ability || dexSpecies.abilities['0'] || ''];
+					if (!starter.unlockedAbilities.includes(haName)) starter.unlockedAbilities.push(haName);
+				}
+
+				if (isShiny && !starter.shiny) starter.shiny = true;
+
+				if (unlockedEggMove) {
+					if (!starter.unlockedEggMoves) starter.unlockedEggMoves = [];
+					if (!starter.unlockedEggMoves.includes(unlockedEggMove)) starter.unlockedEggMoves.push(unlockedEggMove);
+				}
+			}
+			userData.eggs.splice(i, 1);
+		}
+
+		if (newlyHatched.length > 0) {
+			state.hatchedEggs = (state.hatchedEggs || []).concat(newlyHatched);
+		}
+
+		saveUserData(targetId);
+		setState(targetId, state);
+
+		const staffName = nameColor(user.name, false, true);
+		this.sendReply(`Force-hatched ${newlyHatched.length} eggs for ${targetId}.`);
+		notifyUser(targetId, `${staffName} used a dev command to hatch all your eggs!`);
 	},
 
 	addmon(target, room, user) {
