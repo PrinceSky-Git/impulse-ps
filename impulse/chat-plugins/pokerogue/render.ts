@@ -1270,6 +1270,25 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 
 	if (activeTab === 2) {
 		const moves = vm.mon.moves || [];
+		let hasAltMoves = false;
+		if (state.isConfiguringStarter) {
+			let baseSpecies = toID(vm.mon.species);
+			while (true) {
+				const sp = Dex.species.get(baseSpecies);
+				if (!sp.prevo) break;
+				baseSpecies = toID(sp.prevo);
+			}
+			const starterData = getUserData(user.id).starters[baseSpecies];
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const allLevel = getAllLevelUpMoves(baseSpecies, vm.mon.level, config.generation || 9);
+			const validEggMoves = getEggMoves(baseSpecies, config.generation || 9);
+			
+			const legalUnlockedEggMoves = (starterData?.unlockedEggMoves || []).filter(m => validEggMoves.includes(m));
+
+			const pool = new Set([...allLevel, ...legalUnlockedEggMoves]);
+			if (pool.size > moves.length) hasAltMoves = true;
+		}
+
 		for (let i = 0; i < 4; i++) {
 			if (i < moves.length) {
 				const move = Dex.moves.get(moves[i]);
@@ -1278,13 +1297,24 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 				const catIcon = move.category === 'Physical' ? '⚔' : move.category === 'Special' ? '◆' : '●';
 				const moveDesc = move.shortDesc || move.desc || '';
 
-				buf += `<div class="pr-sv-move" style="border-left:3px solid ${mColor}"><div class="pr-sv-move-top">`;
-				buf += `<b class="pr-sv-move-name">${Utils.escapeHTML(move.name)}</b><span class="pr-type" style="background:${mColor};color:#fff;font-size:9px">${move.type}</span></div>`;
+				buf += `<div class="pr-sv-move" style="border-left:3px solid ${mColor}"><div class="pr-sv-move-top" style="display:flex;justify-content:space-between;align-items:flex-start;">`;
+				buf += `<b class="pr-sv-move-name">${Utils.escapeHTML(move.name)}</b>`;
+				buf += `<div style="text-align:right;">`;
+				buf += `<span class="pr-type" style="background:${mColor};color:#fff;font-size:9px;display:inline-block;">${move.type}</span>`;
+				if (state.isConfiguringStarter && hasAltMoves) {
+					buf += `<br>${renderBtn(`/pokerogue cyclestarter move next ${slot} ${i}`, 'Change', 'pr-btn', 'font-size:8px;padding:2px 4px;margin-top:4px;')}`;
+				}
+				buf += `</div></div>`;
 				buf += `<div class="pr-sv-move-meta">${catIcon} ${move.category} &nbsp;·&nbsp; Pwr: <b>${move.basePower || '—'}</b> &nbsp;·&nbsp; Acc: <b>${move.accuracy === true ? '—' : (move.accuracy || '—')}</b> &nbsp;·&nbsp; Pri: <b>${move.priority > 0 ? `+${move.priority}` : move.priority}</b> &nbsp;·&nbsp; PP: <b>${maxPp}/${maxPp}</b></div>`;
 				if (moveDesc) buf += `<div class="pr-sv-subdesc" style="margin-top:3px">${Utils.escapeHTML(moveDesc)}</div>`;
 				buf += `</div>`;
 			} else {
-				buf += `<div class="pr-sv-move pr-sv-move-empty">— empty —</div>`;
+				buf += `<div class="pr-sv-move pr-sv-move-empty" style="display:flex;justify-content:space-between;align-items:center;">`;
+				buf += `<span>— empty —</span>`;
+				if (state.isConfiguringStarter && hasAltMoves) {
+					buf += renderBtn(`/pokerogue cyclestarter move next ${slot} ${i}`, 'Add Move', 'pr-btn', 'font-size:8px;padding:2px 4px;');
+				}
+				buf += `</div>`;
 			}
 		}
 	}
