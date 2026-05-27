@@ -1856,6 +1856,18 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'starterselect') return;
 			(state as any).starterSearch = target.trim().toLowerCase();
+			state.starterPage = 0; 
+			setState(user.id, state);
+			refreshGamePage(user);
+		},
+
+		starterpage(target, room, user) {
+			const state = getState(user.id);
+			if (!state || (state as any).view !== 'starterselect') return;
+			const page = parseInt(target.trim());
+			if (!isNaN(page)) {
+				state.starterPage = page;
+			}
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
