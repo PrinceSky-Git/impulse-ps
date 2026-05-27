@@ -581,20 +581,32 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 
 	if (state.team && state.team.length > 0) {
 		buf += `<div class="pr-section-title">Selected Starters</div>`;
-		buf += `<div style="display:flex; justify-content:center; gap: 8px; margin-bottom: 12px; flex-wrap:wrap;">`;
-		for (let i = 0; i < state.team.length; i++) {
-			const mon = state.team[i];
-			const cost = getStarterCost(mon.species);
-			const spData = Dex.species.get(mon.species);
-			buf += `<div class="pr-card" style="width: 100px; padding: 6px; position:relative;">`;
-			buf += getSprite(mon.species, 50, mon.shiny);
-			buf += `<div style="font-size:9px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${Utils.escapeHTML(spData.name)}</div>`;
-			buf += `<div style="font-size:9px;">Cost: ${cost}</div>`;
-			buf += `<div style="margin-top:4px;">${renderBtn(`/pokerogue view stats ${i}`, 'Config', 'pr-btn', 'font-size:10px;padding:2px;width:100%')}</div>`;
-			buf += `<div style="margin-top:4px;">${renderBtn(`/pokerogue removestarter ${i}`, 'Remove', 'pr-btn danger', 'font-size:10px;padding:2px;width:100%')}</div>`;
-			buf += `</div>`;
+		buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:12px;"><tbody>`;
+		
+		const TEAM_COLS = 4;
+		for (let i = 0; i < state.team.length; i += TEAM_COLS) {
+			buf += `<tr>`;
+			for (let j = i; j < i + TEAM_COLS; j++) {
+				buf += `<td style="width:25%;text-align:center;padding:4px 2px;vertical-align:top;">`;
+				if (j < state.team.length) {
+					const mon = state.team[j];
+					const cost = getStarterCost(mon.species);
+					const spData = Dex.species.get(mon.species);
+					
+					buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
+					buf += Utils.escapeHTML(spData.name);
+					if (mon.shiny) buf += ` <span style="color:#fda085">★</span>`;
+					buf += `</div>`;
+					buf += `<div style="font-size:9px; color:#fac000;">Cost: ${cost}</div>`;
+					buf += getSprite(mon.species, 40, mon.shiny);
+					buf += `<div style="margin-top:2px;">${renderBtn(`/pokerogue view stats ${j}`, 'Config', 'pr-btn', 'width:90%;padding:2px 0;font-size:10px;')}</div>`;
+					buf += `<div style="margin-top:2px;">${renderBtn(`/pokerogue removestarter ${j}`, 'Remove', 'pr-btn danger', 'width:90%;padding:2px 0;font-size:10px;')}</div>`;
+				}
+				buf += `</td>`;
+			}
+			buf += `</tr>`;
 		}
-		buf += `</div>`;
+		buf += `</tbody></table>`;
 		buf += `<div style="text-align:center;margin-bottom:12px;">${renderBtn('/pokerogue startrun', 'Start Run!', 'pr-btn primary', 'font-size:14px;padding:6px 12px;')}</div>`;
 	}
 
