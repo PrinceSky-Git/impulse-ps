@@ -65,6 +65,7 @@ export interface ModeConfig {
 	mechanicUnlocks?: {
 		terastallize?: number,
 		mega?: number,
+		dynamax?: number,
 	};
 
 	maxFloor?: number;
@@ -172,6 +173,7 @@ export interface PokeRogueState {
 	pendingItemName?: string;
 	pendingItemIsEvo?: boolean;
 	pendingItemIsMega?: boolean;
+	pendingItemIsGmax?: boolean;
 	pendingItemIsStackable?: boolean;
 	isRotationalItem?: boolean;
 	moveToLearn?: string;

@@ -17,7 +17,8 @@ export type ItemType =
 	'tm' |
 	'mint' |
 	'rareCandy' |
-	'stackableItem';
+	'stackableItem' |
+	'gmaxMushroom';
 
 export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
@@ -204,6 +205,16 @@ function hasCompatibleMegaTarget(team: PokemonEntry[], itemKey: string): boolean
 	return false;
 }
 
+function hasCompatibleGmaxTarget(team: PokemonEntry[]): boolean {
+	for (const mon of team) {
+		const dexSpecies = Dex.species.get(toID(mon.species));
+		if (dexSpecies.canGigantamax) {
+			return true;
+		}
+	}
+	return false;
+}
+
 function hasCompatibleTMTarget(team: PokemonEntry[], itemKey: string, item: ShopItem): boolean {
 	const moveId = itemKey.includes('_') ?
 		itemKey.substring(itemKey.indexOf('_') + 1).replace(/[^a-z0-9]/g, '') :
@@ -256,6 +267,11 @@ function isItemValidForDraft(
 	if (item.type === 'megaStone') {
 		if (!state.keyItems?.['Mega Bracelet']) return false;
 		if (!hasCompatibleMegaTarget(state.team, key)) return false;
+	}
+
+	if (item.type === 'gmaxMushroom') {
+		if (!state.keyItems?.['Dynamax Band']) return false;
+		if (!hasCompatibleGmaxTarget(state.team)) return false;
 	}
 
 	if (item.type === 'tm') {

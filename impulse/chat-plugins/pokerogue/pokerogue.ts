@@ -623,6 +623,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			delete state.purchasedItem;
 			delete state.pendingItemIsEvo;
 			delete state.pendingItemIsMega;
+			delete state.pendingItemIsGmax;
 			delete state.pendingItemIsStackable;
 
 			if (state.pendingDraftPick) {
@@ -682,13 +683,22 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 				ctx.errorReply("That Pokémon can't Mega Evolve with this stone.");
 				return false;
 			}
+		} else if (state.pendingItemIsGmax) {
+			const spData = Dex.species.get(toID(mon.species));
+			if (spData.canGigantamax) {
+				evoTarget = spData.name + '-Gmax';
+			}
+			if (!evoTarget) {
+				ctx.errorReply("That Pokémon can't Gigantamax with this mushroom.");
+				return false;
+			}
 		}
 
-		if (evoTarget && (state.pendingItemIsEvo || state.pendingItemIsMega)) {
+		if (evoTarget && (state.pendingItemIsEvo || state.pendingItemIsMega || state.pendingItemIsGmax)) {
 			mon.species = toID(evoTarget);
 			mon.expType = getExpType(evoTarget);
 			const evoName = Dex.species.get(evoTarget).name;
-			const actionName = state.pendingItemIsMega ? 'Mega Evolved' : 'evolved';
+			const actionName = state.pendingItemIsMega ? 'Mega Evolved' : (state.pendingItemIsGmax ? 'Gigantamaxed' : 'evolved');
 			state.notification = `<b>${dexSpecies.name}</b> ${actionName} into <b>${evoName}</b>!`;
 
 			const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
@@ -730,6 +740,7 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 		delete state.purchasedItem;
 		delete state.pendingItemIsEvo;
 		delete state.pendingItemIsMega;
+		delete state.pendingItemIsGmax;
 		delete state.pendingItemIsStackable;
 
 		if (state.pendingDraftPick) {
@@ -994,18 +1005,19 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 			state.floor++;
 			(state as any).view = 'main';
 		}
-	} else if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone' || item.type === 'stackableItem') {
+	} else if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone' || item.type === 'stackableItem' || item.type === 'gmaxMushroom') {
 		state.pendingDraftPick = true;
 		state.purchasedItem = itemKey;
 		state.pendingItemName = item.name;
 		state.pendingItemIsEvo = item.type === 'evolveItem' || itemKey === 'metalcoat';
 		state.pendingItemIsMega = item.type === 'megaStone';
+		state.pendingItemIsGmax = item.type === 'gmaxMushroom';
 		state.pendingItemIsStackable = item.type === 'stackableItem' || itemKey === 'metalcoat';
 		(state as any).view = 'main';
 	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
 		state.pendingDraftPick = true;
 		state.purchasedItem = itemKey;
-		state.pendingConsumableType = item.type;
+		state.pendingConsumableType = item.type as any;
 		(state as any).view = 'main';
 	}
 	return true;
@@ -1044,13 +1056,14 @@ function handleBuyShopAction(target: string, user: User, state: PokeRogueState, 
 	}
 
 	state.purchasedItem = itemKey;
-	if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone' || item.type === 'stackableItem') {
+	if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone' || item.type === 'stackableItem' || item.type === 'gmaxMushroom') {
 		state.pendingItemName = item.name;
 		state.pendingItemIsEvo = item.type === 'evolveItem' || itemKey === 'metalcoat';
 		state.pendingItemIsMega = item.type === 'megaStone';
+		state.pendingItemIsGmax = item.type === 'gmaxMushroom';
 		state.pendingItemIsStackable = item.type === 'stackableItem' || itemKey === 'metalcoat';
 	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
-		state.pendingConsumableType = item.type;
+		state.pendingConsumableType = item.type as any;
 	}
 	(state as any).view = 'main';
 	return true;
@@ -1605,7 +1618,7 @@ export const commands: Chat.ChatCommands = {
 				delete s.pendingMoves; delete s.pendingSwap; delete s.pendingChoice; delete s.moveToLearn;
 				delete s.pendingItemName; delete s.itemOptions; delete s.purchasedItem; delete s.pendingConsumableType;
 				delete s.pendingTrainer; delete s.pendingTrainerKey; delete s.pendingRewardDraft; delete s.rerollCount;
-				delete s.pendingItemIsEvo; delete s.pendingItemIsMega; delete s.pendingItemIsStackable;
+				delete s.pendingItemIsEvo; delete s.pendingItemIsMega; delete s.pendingItemIsGmax; delete s.pendingItemIsStackable;
 				setState(user.id, s);
 			}
 			refreshGamePage(user);

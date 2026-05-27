@@ -231,6 +231,23 @@ export const SHOP_DB: Record<string, ShopItem> = {
 			return 16;
 		},
 	},
+	dynamaxband: {
+		name: "Dynamax Band", icon: "Dynamax Band", type: "key", category: "Key Items",
+		desc: "A glowing band that enables certain Pokémon to Gigantamax. Unlocks Max Mushrooms in the item pool.",
+		moneyMultiplier: 0, tier: "Rogue", maxStack: 1, weight: 4, minWeight: 4, maxWeight: 4,
+		weightFunc: state => {
+			if ((state.keyItems?.['Dynamax Band'] || 0) >= 1) return 0;
+			if (state.floor <= 50) return 4;
+			if (state.floor <= 100) return 8;
+			if (state.floor <= 150) return 12;
+			return 16;
+		},
+	},
+	maxmushroom: {
+		name: "Max Mushroom", icon: "Max Mushroom", type: "gmaxMushroom", category: "Form Change",
+		desc: "A peculiar mushroom that can make certain species of Pokémon Gigantamax.",
+		moneyMultiplier: 1.0, tier: "Rogue", weight: 4, minWeight: 4, maxWeight: 4,
+	},
 	candyjar: {
 		name: "Candy Jar", icon: "Candy Jar", type: "key", category: "Key Items",
 		desc: "Increases the number of levels added by Rare Candy and Rarer Candy items by 1. Stacks up to 99 times.",
