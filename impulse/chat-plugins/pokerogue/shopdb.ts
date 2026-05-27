@@ -267,7 +267,7 @@ export const SHOP_DB: Record<string, ShopItem> = {
 		weightFunc: state => (state.keyItems?.['Exp. Charm'] || 0) >= 99 ? 0 : 8,
 	},
 	superexpcharm: {
-		name: "Super Exp. Charm", icon: "Exp. Charm", type: "key", category: "Key Items",
+		name: "Super Exp. Charm", icon: "Exp. Share", type: "key", category: "Key Items",
 		desc: "Boosts total EXP gained by the entire party by 60%. Stacks up to 30 times.",
 		moneyMultiplier: 2.5, tier: "Ultra", maxStack: 30, weight: 8, minWeight: 8, maxWeight: 8,
 		weightFunc: state => (state.keyItems?.['Super Exp. Charm'] || 0) >= 30 ? 0 : 8,
