@@ -708,6 +708,7 @@ function renderGiveItem(state: PokeRogueState): string {
 	let actionVerb = 'Give';
 	if (state.pendingItemIsEvo && !state.pendingItemIsStackable) actionVerb = 'Evolve';
 	if (state.pendingItemIsMega) actionVerb = 'Mega Evolve';
+	if (state.pendingItemIsGmax) actionVerb = 'Gigantamax';
 
 	let buf = `<h2 class="pr-choice-heading">${actionVerb} ${Utils.escapeHTML(dexItem.name || state.pendingItemName!)}?</h2>`;
 	buf += `<div style="font-size:12px;color:#aaa;margin-bottom:8px">Choose a Pokémon:</div><div class="pr-choice-grid">`;
@@ -749,13 +750,16 @@ function renderGiveItem(state: PokeRogueState): string {
 				isCompatible = true;
 			}
 			if (!isCompatible) reason = 'Incompatible';
+		} else if (state.pendingItemIsGmax) {
+			isCompatible = !!Dex.species.get(toID(mon.species)).canGigantamax;
+			if (!isCompatible) reason = 'Incompatible';
 		}
 
 		let flexHtml = `<span style="font-size:12px;font-weight:500">${spName}</span> <span style="font-size:10px;color:#888">Lv. ${mon.level}${reason ? ` <span style="color:#f87171">(${reason})</span>` : ''}</span>`;
 
 		if (mon.heldItem) flexHtml += `<div style="font-size:9px;color:#8ab4f8">Holds: ${Utils.escapeHTML(Dex.items.get(mon.heldItem).name || mon.heldItem)}</div>`;
 
-		if (isEvoAble || (state.pendingItemIsMega && isCompatible)) {
+		if (isEvoAble || (state.pendingItemIsMega && isCompatible) || (state.pendingItemIsGmax && isCompatible)) {
 			flexHtml += `<div style="font-size:10px;color:#4caf50;font-weight:bold;margin-top:2px;letter-spacing:0.5px;">ABLE!</div>`;
 		}
 
