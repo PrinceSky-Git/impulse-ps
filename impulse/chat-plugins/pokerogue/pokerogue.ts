@@ -1,7 +1,6 @@
 import { Utils } from '../../../lib';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
-import { EGG_POOLS, type EggTier } from './egg-data';
-import { getStarterCost } from './starter-cost';
+import { EGG_POOLS, getStarterCost, type EggTier } from './starter-data';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS, genItem, generateDraftOptions, getRewardMoney, getItemPrice, getRerollCost } from './items';
@@ -1106,11 +1105,11 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 			ctx.errorReply("Total starter cost cannot exceed 10.");
 			return false;
 		}
-		if (state.team && state.team.length >= 6) {
+		if (state.team?.length >= 6) {
 			ctx.errorReply("You can only choose up to 6 starters.");
 			return false;
 		}
-		if (state.team && state.team.some(m => toID(m.species) === toID(finalSpecies))) {
+		if (state.team?.some(m => toID(m.species) === toID(finalSpecies))) {
 			ctx.errorReply("You have already selected this starter.");
 			return false;
 		}
@@ -1178,7 +1177,7 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 		state.team = state.team || [];
 		state.team.push(newMon);
 		state.isConfiguringStarter = true;
-		
+
 		const useNewStarterSelectionUI = data.useNewStarterSelectionUI !== false;
 		if (!useNewStarterSelectionUI) {
 			delete state.pendingChoice;
@@ -1824,7 +1823,7 @@ export const commands: Chat.ChatCommands = {
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
-		
+
 		cyclestarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state?.isConfiguringStarter) return;
@@ -1910,7 +1909,7 @@ export const commands: Chat.ChatCommands = {
 
 		confirmstarter(target, room, user) {
 			const state = getState(user.id);
-			if (!state || !state.isConfiguringStarter) return;
+			if (!state?.isConfiguringStarter) return;
 
 			const totalCost = state.team.reduce((sum, mon) => sum + getStarterCost(mon.species), 0);
 			if (totalCost > 10) return this.errorReply("Total starter cost cannot exceed 10.");
@@ -1920,7 +1919,7 @@ export const commands: Chat.ChatCommands = {
 			delete state.pendingChoiceFloor;
 			delete state.isConfiguringStarter;
 			(state as any).view = 'main';
-			
+
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
