@@ -1,6 +1,5 @@
 import { Utils } from '../../../lib';
 import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
-import { type AIPokemonSet } from './pokemon';
 import { EGG_POOLS, type EggTier } from './egg-data';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
@@ -374,12 +373,12 @@ function processFloorRewards(
 				if (!userData.starters[sid]) {
 					userData.starters[sid] = {
 						...hatchedMon,
-						unlockedNatures: [randomNature], 
-						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''], 
+						unlockedNatures: [randomNature],
+						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''],
 						unlockedTeraTypes: [generatedTeraType],
-						selectedNature: randomNature, 
-						selectedAbility: haName || dexSpecies.abilities['0'] || '', 
-						selectedTeraType: generatedTeraType
+						selectedNature: randomNature,
+						selectedAbility: haName || dexSpecies.abilities['0'] || '',
+						selectedTeraType: generatedTeraType,
 					} as PokemonEntry;
 				} else {
 					const starter = userData.starters[sid];
@@ -1017,7 +1016,7 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
 		state.pendingDraftPick = true;
 		state.purchasedItem = itemKey;
-		state.pendingConsumableType = item.type as any;
+		state.pendingConsumableType = item.type;
 		(state as any).view = 'main';
 	}
 	return true;
@@ -1063,7 +1062,7 @@ function handleBuyShopAction(target: string, user: User, state: PokeRogueState, 
 		state.pendingItemIsGmax = item.type === 'gmaxMushroom';
 		state.pendingItemIsStackable = item.type === 'stackableItem' || itemKey === 'metalcoat';
 	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
-		state.pendingConsumableType = item.type as any;
+		state.pendingConsumableType = item.type;
 	}
 	(state as any).view = 'main';
 	return true;
@@ -1614,11 +1613,26 @@ export const commands: Chat.ChatCommands = {
 				Rooms.get(s.battleRoomId)?.battle?.forfeit(user);
 			}
 			if (s) {
-				s.gameOver = true; s.lastRunFloor = s.floor; s.floor = 1; s.team = [];
-				delete s.pendingMoves; delete s.pendingSwap; delete s.pendingChoice; delete s.moveToLearn;
-				delete s.pendingItemName; delete s.itemOptions; delete s.purchasedItem; delete s.pendingConsumableType;
-				delete s.pendingTrainer; delete s.pendingTrainerKey; delete s.pendingRewardDraft; delete s.rerollCount;
-				delete s.pendingItemIsEvo; delete s.pendingItemIsMega; delete s.pendingItemIsGmax; delete s.pendingItemIsStackable;
+				s.gameOver = true;
+				s.lastRunFloor = s.floor;
+				s.floor = 1;
+				s.team = [];
+				delete s.pendingMoves;
+				delete s.pendingSwap;
+				delete s.pendingChoice;
+				delete s.moveToLearn;
+				delete s.pendingItemName;
+				delete s.itemOptions;
+				delete s.purchasedItem;
+				delete s.pendingConsumableType;
+				delete s.pendingTrainer;
+				delete s.pendingTrainerKey;
+				delete s.pendingRewardDraft;
+				delete s.rerollCount;
+				delete s.pendingItemIsEvo;
+				delete s.pendingItemIsMega;
+				delete s.pendingItemIsGmax;
+				delete s.pendingItemIsStackable;
 				setState(user.id, s);
 			}
 			refreshGamePage(user);
@@ -1695,10 +1709,10 @@ export const commands: Chat.ChatCommands = {
 				return;
 			}
 
-			const currentVouchers = userData.vouchers[type as keyof typeof userData.vouchers] || 0;
+			const currentVouchers = userData.vouchers[type] || 0;
 			if (currentVouchers <= 0) return this.errorReply(`You don't have any ${type} vouchers!`);
 
-			userData.vouchers[type as keyof typeof userData.vouchers] = currentVouchers - 1;
+			userData.vouchers[type] = currentVouchers - 1;
 
 			const allSpeciesFallback = Dex.species.all().filter(s => s.exists && !s.isNonstandard && !s.isMega && !s.isPrimal && (!s.prevo || s.prevo === '')).map(s => s.id);
 
@@ -1706,7 +1720,7 @@ export const commands: Chat.ChatCommands = {
 
 			for (let i = 0; i < pulls; i++) {
 				let roll = Math.floor(Math.random() * 256);
-				
+
 				if (i === pulls - 1) {
 					if (type === 'premium' && highestTierRolled < 1) {
 						roll = Math.floor(Math.random() * 52);
@@ -1718,18 +1732,28 @@ export const commands: Chat.ChatCommands = {
 				let tier: EggTier = 'Common';
 				let waves = 10;
 				let tierValue = 0;
-				
-				if (roll < 1) { tier = 'Legendary'; waves = 100; tierValue = 3; }
-				else if (roll < 8) { tier = 'Epic'; waves = 50; tierValue = 2; }
-				else if (roll < 52) { tier = 'Rare'; waves = 25; tierValue = 1; }
+
+				if (roll < 1) {
+					tier = 'Legendary';
+					waves = 100;
+					tierValue = 3;
+				} else if (roll < 8) {
+					tier = 'Epic';
+					waves = 50;
+					tierValue = 2;
+				} else if (roll < 52) {
+					tier = 'Rare';
+					waves = 25;
+					tierValue = 1;
+				}
 
 				if (tierValue > highestTierRolled) {
 					highestTierRolled = tierValue;
 				}
 
-				const shinyRoll = Math.floor(Math.random() * 128) === 0; 
-				const haRoll = Math.floor(Math.random() * 32) === 0; 
-				
+				const shinyRoll = Math.floor(Math.random() * 128) === 0;
+				const haRoll = Math.floor(Math.random() * 32) === 0;
+
 				const pool = EGG_POOLS[tier] && EGG_POOLS[tier].length > 0 ? EGG_POOLS[tier] : allSpeciesFallback;
 				const species = pool[Math.floor(Math.random() * pool.length)];
 
@@ -1745,7 +1769,7 @@ export const commands: Chat.ChatCommands = {
 			}
 			refreshGamePage(user);
 		},
-		
+
 		statstab(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');

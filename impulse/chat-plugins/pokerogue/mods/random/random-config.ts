@@ -56,7 +56,6 @@ export const randomData: ModeData = {
 		const trainers = ClassicTrainers;
 		if (!trainers) return null;
 
-		// RULE 1: Guaranteed Fixed Floors (Bosses, Rivals - Overrides everything)
 		const floorKey = `Floor_${floor}`;
 		if (trainers[floorKey]) {
 			const trainerNames = Object.keys(trainers[floorKey]);
@@ -64,7 +63,6 @@ export const randomData: ModeData = {
 			return { key: floorKey, name: selectedName };
 		}
 
-		// RULE 2: Official 20/30 Gym Leader Routing & Scaling
 		const gymInterval = 30;
 
 		if (!state.firstGymLeaderWave) {
@@ -88,7 +86,6 @@ export const randomData: ModeData = {
 			}
 		}
 
-		// GLOBAL SPAWN CHECK: 10% chance for standard dynamic trainers in Random mode
 		if (state.currentBiome === config.startingBiome) return null;
 
 		const lastTrainer = state.lastTrainerFloor || -99;
@@ -96,7 +93,6 @@ export const randomData: ModeData = {
 
 		if (Math.random() > 0.10) return null;
 
-		// DYNAMIC POOL BUILDING
 		const currentBiome = state.currentBiome || config.startingBiome;
 		const validTrainers: { key: string, name: string, chance: number }[] = [];
 		let totalChance = 0;
@@ -123,7 +119,6 @@ export const randomData: ModeData = {
 			}
 		}
 
-		// THE LOTTERY ROLL
 		if (validTrainers.length > 0) {
 			state.lastTrainerFloor = floor;
 

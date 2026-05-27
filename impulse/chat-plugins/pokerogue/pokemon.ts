@@ -718,10 +718,6 @@ export function pickStarterOptions(availableStarters: string[]): string[] {
 	return shuffled.slice(0, 5);
 }
 
-// ============================================================================
-// Generation Helpers
-// ============================================================================
-
 function determineLevel(minLevel: number, maxLevel: number, depth: number): number {
 	if (depth > 500) return Math.floor(Math.random() * (maxLevel - minLevel)) + minLevel;
 	for (let curLevel = minLevel; curLevel <= maxLevel; curLevel++) {
@@ -853,10 +849,6 @@ function rollShiny(shinyCharms: number): boolean {
 	else if (shinyCharms >= 4) shinyRate = 32;
 	return Math.floor(Math.random() * shinyRate) === 0;
 }
-
-// ============================================================================
-// Core Generation Implementation
-// ============================================================================
 
 export function genPokemon(
 	quantity: number,
@@ -1093,7 +1085,6 @@ export function packAIPokemon(set: AIPokemonSet): string {
 
 	let base = `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|`;
 
-	// Map strictly to the simulator's misc array format
 	const misc = [
 		'', // Happiness
 		'', // HP Type
@@ -1103,7 +1094,6 @@ export function packAIPokemon(set: AIPokemonSet): string {
 		set.teraType || '', // Tera Type
 	];
 
-	// Pop off trailing empty strings
 	while (misc.length > 0 && misc[misc.length - 1] === '') {
 		misc.pop();
 	}

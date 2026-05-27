@@ -1,7 +1,5 @@
 import { type ShopItem, type ItemRarityTier } from './items';
 
-// TM Factory & Configurations
-
 const TM_CONFIGS = {
 	Common: { mult: 0.5, weight: 40 },
 	Great: { mult: 1.0, weight: 20 },
@@ -18,8 +16,6 @@ function buildTM(name: string, typeName: string, desc: string, tier: ItemRarityT
 }
 
 export const TMS_DB: Record<string, ShopItem> = {};
-
-// COMMON TIER (Weight: 40) - Utility, setup, and low/mid-power moves
 
 const COMMON_TMS: [string, string, string, string][] = [
 	['tm_facade', "TM Facade", "Normal", "Power doubles if the user is poisoned, burned, or paralyzed."],
@@ -46,8 +42,6 @@ COMMON_TMS.forEach(([id, name, type, desc]) => {
 	TMS_DB[id] = buildTM(name, type, desc, "Common");
 });
 
-// GREAT TIER (Weight: 20) - Mid/High power STABs and strong utility
-
 const GREAT_TMS: [string, string, string, string][] = [
 	['tm_return', "TM Return", "Normal", "Power increases with the user's friendship."],
 	['tm_flamethrower', "TM Flamethrower", "Fire", "May burn the target."],
@@ -72,8 +66,6 @@ const GREAT_TMS: [string, string, string, string][] = [
 GREAT_TMS.forEach(([id, name, type, desc]) => {
 	TMS_DB[id] = buildTM(name, type, desc, "Great");
 });
-
-// ULTRA TIER (Weight: 10) - Nukes and signature coverage
 
 const ULTRA_TMS: [string, string, string, string][] = [
 	['tm_boomburst', "TM Boomburst", "Normal", "Attacks everything around it with a terrible, destructive sound."],

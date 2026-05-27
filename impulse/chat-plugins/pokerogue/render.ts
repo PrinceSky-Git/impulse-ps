@@ -2,10 +2,9 @@ import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
-import { SHOP_ITEMS } from './items';
+import { SHOP_ITEMS, getRerollCost, getItemPrice } from './items';
 import { globalStats, getUserData } from './state';
 import { expForLevel, getLevelUpMoves } from './pokemon';
-import { getRerollCost, getItemPrice } from './items';
 
 const PAGE_REFRESH_SECONDS = 20;
 
@@ -971,10 +970,6 @@ function renderVictoryView(state: PokeRogueState): string {
 	});
 }
 
-// ============================================================================
-// View-Model Builders
-// ============================================================================
-
 interface StatsViewModel {
 	mon: PokemonEntry;
 	spData: any;
@@ -1277,7 +1272,6 @@ function renderMainView(state: PokeRogueState, user: User): string {
 
 	buf += `<div style="text-align:center;margin-bottom:8px">`;
 
-	// Conditionally render "Return to Draft" if a draft is pending
 	if (state.pendingRewardDraft?.length) {
 		buf += renderBtn('/pokerogue view draft', 'Return to Draft', 'pr-btn primary', 'font-size:11px;padding:5px 10px');
 	} else {
@@ -1437,7 +1431,6 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'gacha') return buf + renderHeader('gacha', !!isEffectivelyGameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGachaView(user)}</div></div>`;
 
 	let displayView = view;
-	// Intercept 'draft' view to display overlay menus first (Hatched Eggs take absolute priority)
 	if (view === 'draft' && (state.hatchedEggs?.length || state.pendingChoice?.length || state.pendingSwap || state.pendingMoves?.length || state.itemOptions?.length || state.pendingItemName || state.pendingConsumableType || state.pendingMoveSlot !== undefined || state.pendingReleaseSlot !== undefined)) {
 		displayView = 'main';
 	}
@@ -1445,7 +1438,6 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 
 	buf += renderHeader(displayView, !!state.gameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}`;
 
-	// UI Overlays by Priority
 	if (state.hatchedEggs?.length) return buf + renderHatchedEggsView(state) + `</div></div>`;
 	if (state.pendingChoice?.length) return buf + renderPendingChoice(state) + `</div></div>`;
 	if (state.pendingSwap) return buf + renderPendingSwap(state) + `</div></div>`;
