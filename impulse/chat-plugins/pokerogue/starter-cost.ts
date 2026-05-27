@@ -120,7 +120,8 @@ export const STARTER_COSTS: Record<string, number> = {
     kyogre: 8, groudon: 8, rayquaza: 8, arceus: 8, eternatus: 8, terapagos: 8,
 };
 
-export function getStarterCost(speciesId: string): number {
-	const id = speciesId.toLowerCase().replace(/[^a-z0-9]/g, '');
-	return STARTER_COSTS[id] ?? 3;
+
+export function getStarterCost(species: string): number {
+	const id = species.toLowerCase().replace(/[^a-z0-9]/g, '');
+	return STARTER_COSTS[id] || 3; 
 }
