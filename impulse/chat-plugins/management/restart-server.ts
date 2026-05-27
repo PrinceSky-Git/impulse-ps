@@ -1,3 +1,7 @@
+/*
+* Restart Server Chat-Plugin
+* Developed By @TurboRx
+*/
 export const commands: Chat.ChatCommands = {
 	async restartserver(target, room, user): Promise<void> {
 		this.checkCan("bypassall");
