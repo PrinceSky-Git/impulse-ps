@@ -135,9 +135,11 @@ export interface PokemonEntry {
 	unlockedNatures?: string[];
 	unlockedAbilities?: string[];
 	unlockedTeraTypes?: string[];
+	unlockedEggMoves?: string[];
 	selectedNature?: string;
 	selectedAbility?: string;
 	selectedTeraType?: string;
+	selectedMoves?: string[];
 
 	activeBuffs?: Record<string, number>;
 	stackedItems?: Record<string, number>;

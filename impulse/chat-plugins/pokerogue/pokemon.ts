@@ -366,11 +366,12 @@ function calculateEffectivePower(move: Move): number {
 	return Math.floor((bp * acc) / turns);
 }
 
-export function getLevelUpMoves(speciesId: string, level: number, genNumber = 9): string[] {
+export function getAllLevelUpMoves(speciesId: string, level: number, genNumber = 9): string[] {
 	const id = toID(speciesId);
-	while (genNumber > 1) {
-		if (Dex.mod(`gen${genNumber}`).species.get(id).isNonstandard) {
-			genNumber--;
+	let gen = genNumber;
+	while (gen > 1) {
+		if (Dex.mod(`gen${gen}`).species.get(id).isNonstandard) {
+			gen--;
 			continue;
 		}
 		break;
@@ -385,7 +386,7 @@ export function getLevelUpMoves(speciesId: string, level: number, genNumber = 9)
 			if (viableMoves.includes(move)) continue;
 			for (const src of learnset[move]) {
 				const match = /^(\d)L(\d+)$/.exec(src);
-				if (match && parseInt(match[1]) === genNumber && parseInt(match[2]) <= level) {
+				if (match && parseInt(match[1]) === gen && parseInt(match[2]) <= level) {
 					viableMoves.push(move);
 					break;
 				}
@@ -394,7 +395,40 @@ export function getLevelUpMoves(speciesId: string, level: number, genNumber = 9)
 	}
 
 	if (!viableMoves.length) return ['tackle'];
-	return viableMoves.slice(-4);
+	return viableMoves;
+}
+
+export function getLevelUpMoves(speciesId: string, level: number, genNumber = 9): string[] {
+	return getAllLevelUpMoves(speciesId, level, genNumber).slice(-4);
+}
+
+export function getEggMoves(speciesId: string, genNumber = 9): string[] {
+	const id = toID(speciesId);
+	let gen = genNumber;
+	while (gen > 1) {
+		if (Dex.mod(`gen${gen}`).species.get(id).isNonstandard) {
+			gen--;
+			continue;
+		}
+		break;
+	}
+
+	const fullLearn = Dex.species.getFullLearnset(id);
+	const eggMoves: string[] = [];
+
+	for (const learnsetIndex of fullLearn) {
+		const learnset = learnsetIndex.learnset;
+		for (const move in learnset) {
+			if (eggMoves.includes(move)) continue;
+			for (const src of learnset[move]) {
+				if (src.startsWith(`${gen}E`) || src.startsWith(`E`)) {
+					eggMoves.push(move);
+					break;
+				}
+			}
+		}
+	}
+	return eggMoves;
 }
 
 export function getMovesLearnedBetween(speciesId: string, oldLevel: number, newLevel: number, isEvolution = false, genNumber = 9): string[] {
@@ -1086,12 +1120,12 @@ export function packAIPokemon(set: AIPokemonSet): string {
 	let base = `${name}||${set.item}|${set.ability}|${movesStr}|${set.nature}|${evStr}|${set.gender}|${ivStr}|${shinyStr}|${set.level}|`;
 
 	const misc = [
-		'', // Happiness
-		'', // HP Type
-		'', // Pokeball
-		'', // Gigantamax
-		'', // Dynamax Level
-		set.teraType || '', // Tera Type
+		'',
+		'',
+		'',
+		'',
+		'',
+		set.teraType || '',
 	];
 
 	while (misc.length > 0 && misc[misc.length - 1] === '') {

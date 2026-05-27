@@ -11,6 +11,7 @@ import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
 	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution,
+	getEggMoves, getAllLevelUpMoves
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser, parseBattleState } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -362,6 +363,17 @@ function processFloorRewards(
 					haName = dexSpecies.abilities['H'];
 				}
 
+				const eggMoveRoll = Math.floor(Math.random() * 512) === 0;
+				let unlockedEggMove = '';
+				if (eggMoveRoll) {
+					const allEggMoves = getEggMoves(sid, config.generation || 9);
+					const existingUnlocked = userData.starters[sid]?.unlockedEggMoves || [];
+					const availableToUnlock = allEggMoves.filter(m => !existingUnlocked.includes(m));
+					if (availableToUnlock.length > 0) {
+						unlockedEggMove = availableToUnlock[Math.floor(Math.random() * availableToUnlock.length)];
+					}
+				}
+
 				const hatchedMon: PokemonEntry = {
 					species: sid, level: 5, exp: 0,
 					moves: [], nature: randomNature, ability: haName || dexSpecies.abilities['0'] || '',
@@ -376,6 +388,7 @@ function processFloorRewards(
 						unlockedNatures: [randomNature],
 						unlockedAbilities: [haName || dexSpecies.abilities['0'] || ''],
 						unlockedTeraTypes: [generatedTeraType],
+						unlockedEggMoves: unlockedEggMove ? [unlockedEggMove] : [],
 						selectedNature: randomNature,
 						selectedAbility: haName || dexSpecies.abilities['0'] || '',
 						selectedTeraType: generatedTeraType,
@@ -406,6 +419,14 @@ function processFloorRewards(
 
 					if (isShiny && !starter.shiny) {
 						starter.shiny = true;
+					}
+
+					if (unlockedEggMove) {
+						if (!starter.unlockedEggMoves) starter.unlockedEggMoves = [];
+						if (!starter.unlockedEggMoves.includes(unlockedEggMove)) {
+							starter.unlockedEggMoves.push(unlockedEggMove);
+							unlockedFeatures.push(`Egg Move`);
+						}
 					}
 				}
 				userData.eggs.splice(i, 1);
@@ -1149,13 +1170,28 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 	} else {
 		const finalExpType = getExpType(finalSpecies);
 		const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
+		
+		const allLevelMoves = getAllLevelUpMoves(finalSpecies, addedLevel, config.generation || 9);
+		const validEggMoves = getEggMoves(finalSpecies, config.generation || 9);
+		const legalPool = new Set([...allLevelMoves, ...validEggMoves]);
+
+		let validatedMoves = initialMoves;
+		if (savedStarter?.selectedMoves) {
+			validatedMoves = savedStarter.selectedMoves.filter(m => legalPool.has(m));
+			for (const m of initialMoves) {
+				if (validatedMoves.length >= 4) break;
+				if (!validatedMoves.includes(m)) validatedMoves.push(m);
+			}
+		}
+
 		const natures = Dex.natures.all().map(n => n.name);
 		const hash = ((state.floor ?? 1) * 37) + (n * 13) + Dex.species.get(finalSpecies).id.length;
 		const displayNature = natures[hash % natures.length] ?? 'Hardy';
 
 		newMon = {
 			species: finalSpecies, level: addedLevel, exp: expForLevel(addedLevel, finalExpType), expType: finalExpType,
-			moves: initialMoves, nature: savedStarter?.selectedNature || savedStarter?.nature || displayNature,
+			moves: validatedMoves,
+			nature: savedStarter?.selectedNature || savedStarter?.nature || displayNature,
 			ability: savedStarter?.selectedAbility || savedStarter?.ability || (Dex.species.get(finalSpecies).abilities as any)['0'] || '', ...commonProps,
 		} as PokemonEntry;
 	}
@@ -1899,6 +1935,46 @@ export const commands: Chat.ChatCommands = {
 					mon.teraType = pool[idx];
 					starterData.selectedTeraType = pool[idx];
 					starterData.teraType = pool[idx];
+				}
+			} else if (trait === 'move') {
+				const moveIndex = parseInt(parts[3]);
+				if (isNaN(moveIndex) || moveIndex < 0 || moveIndex >= 4) return;
+
+				if (!mon.moves) mon.moves = [];
+				const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+				const allLevelMoves = getAllLevelUpMoves(baseSpecies, mon.level, config.generation || 9);
+				const validEggMoves = getEggMoves(baseSpecies, config.generation || 9);
+
+				const legalUnlockedEggMoves = (starterData.unlockedEggMoves || []).filter(m => validEggMoves.includes(m));
+				const pool = [...new Set([...allLevelMoves, ...legalUnlockedEggMoves])];
+
+				if (pool.length <= mon.moves.length && pool.length <= 4) {
+					state.notification = `You haven't unlocked any additional legal moves for this Pokémon yet!`;
+				} else {
+					let currentMove = mon.moves[moveIndex];
+					if (!currentMove) {
+						currentMove = pool.find(m => !mon.moves.includes(m)) || pool[0];
+						mon.moves[moveIndex] = currentMove;
+					}
+
+					let idx = pool.indexOf(currentMove);
+					if (idx === -1) idx = 0;
+
+					let attempts = 0;
+					while (attempts < pool.length) {
+						if (direction === 'next') idx = (idx + 1) % pool.length;
+						if (direction === 'prev') idx = (idx - 1 + pool.length) % pool.length;
+
+						const candidate = pool[idx];
+						const alreadyHas = mon.moves.some((m, i) => i !== moveIndex && m === candidate);
+						if (!alreadyHas) {
+							mon.moves[moveIndex] = candidate;
+							break;
+						}
+						attempts++;
+					}
+
+					starterData.selectedMoves = [...mon.moves];
 				}
 			}
 
