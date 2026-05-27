@@ -363,7 +363,7 @@ function processFloorRewards(
 					haName = dexSpecies.abilities['H'];
 				}
 
-				const eggMoveRoll = Math.floor(Math.random() * 512) === 0;
+				const eggMoveRoll = Math.floor(Math.random() * 64) === 0;
 				let unlockedEggMove = '';
 				if (eggMoveRoll) {
 					const allEggMoves = getEggMoves(sid, config.generation || 9);
