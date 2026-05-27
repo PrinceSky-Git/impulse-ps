@@ -122,7 +122,7 @@ export const commands: Chat.ChatCommands = {
 		help() {
 			this.runBroadcast();
 			this.sendReplyBox(
-				`<center><b>Git Workflow Commands (Whitelist Only)</b></center><hr>` +
+				`<center><b>Git Workflow Commands - (Requires: Whitelisted Only)</b></center><hr>` +
 				`<b>/git add [files]</b>: Stage changes for commit.<hr>` +
 				`<b>/git commit [message]</b>: Commit staged changes.<hr>` +
 				`<b>/git pull</b>: Pull latest changes.<hr>` +

@@ -3,7 +3,6 @@ import { FS, Utils } from '../../../lib';
 const GITHUB_TOKEN = 'your_github_token_here';
 const WHITELISTED_USERS = ['princesky', 'musaddiktemkar', 'turborx'];
 
-// Paths that are restricted from write/delete/move operations
 const PROTECTED_PATHS = ['fullchain.pem', 'privkey.pem'];
 
 const FileManager = {
@@ -276,7 +275,7 @@ export const commands: Chat.ChatCommands = {
 		help() {
 			this.runBroadcast();
 			this.sendReplyBox(
-				`<center><b>File Management (Whitelisted)</b></center><hr>` +
+				`<center><b>File Management - (Requires: Whitelisted Only)</b></center><hr>` +
 				`<b>/file list [path]</b>: List all files and directories.<hr>` +
 				`<b>/file read [path]</b>: View file content.<hr>` +
 				`<b>/file delete [path]</b>: Remove a file.<hr>` +
