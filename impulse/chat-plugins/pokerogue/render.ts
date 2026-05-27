@@ -1,6 +1,7 @@
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
+import { getStarterCost } from './starter-cost';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS, getRerollCost, getItemPrice } from './items';
 import { globalStats, getUserData } from './state';
@@ -555,8 +556,9 @@ function renderPendingChoice(state: PokeRogueState): string {
 function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const pending = state.pendingChoice || [];
 	const userData = getUserData(user.id);
-	const unlockedCount = Object.keys(userData.starters || {}).length;
 	const search = ((state as any).starterSearch || '').toLowerCase().trim();
+
+	const currentCost = state.team?.reduce((sum, mon) => sum + getStarterCost(mon.species), 0) || 0;
 
 	const filtered = search.length > 0 ?
 		pending.filter(sid => {
@@ -574,8 +576,27 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 
 	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
 	buf += `<div style="text-align:center;font-size:11px;margin:-6px 0 12px">`;
-	buf += `Unlocked starters: <b>${unlockedCount}</b>`;
+	buf += `Total Cost: <b>${currentCost}/10</b>`;
 	buf += `</div>`;
+
+	if (state.team && state.team.length > 0) {
+		buf += `<div class="pr-section-title">Selected Starters</div>`;
+		buf += `<div style="display:flex; justify-content:center; gap: 8px; margin-bottom: 12px; flex-wrap:wrap;">`;
+		for (let i = 0; i < state.team.length; i++) {
+			const mon = state.team[i];
+			const cost = getStarterCost(mon.species);
+			const spData = Dex.species.get(mon.species);
+			buf += `<div class="pr-card" style="width: 100px; padding: 6px; position:relative;">`;
+			buf += getSprite(mon.species, 50, mon.shiny);
+			buf += `<div style="font-size:9px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${Utils.escapeHTML(spData.name)}</div>`;
+			buf += `<div style="font-size:9px;">Cost: ${cost}</div>`;
+			buf += `<div style="margin-top:4px;">${renderBtn(`/pokerogue view stats ${i}`, 'Config', 'pr-btn', 'font-size:10px;padding:2px;width:100%')}</div>`;
+			buf += `<div style="margin-top:4px;">${renderBtn(`/pokerogue removestarter ${i}`, 'Remove', 'pr-btn danger', 'font-size:10px;padding:2px;width:100%')}</div>`;
+			buf += `</div>`;
+		}
+		buf += `</div>`;
+		buf += `<div style="text-align:center;margin-bottom:12px;">${renderBtn('/pokerogue startrun', 'Start Run!', 'pr-btn primary', 'font-size:14px;padding:6px 12px;')}</div>`;
+	}
 
 	buf += `<form data-submitsend="/pokerogue startersearch {data}" style="text-align:center;margin-bottom:12px">`;
 	buf += `<input name="data" value="${Utils.escapeHTML(search)}" placeholder="Name, type, or 'shiny'..." ` +
@@ -605,12 +626,29 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 					const saved = userData.starters[sid];
 					const isShiny = !!saved?.shiny;
 					const originalIndex = pending.indexOf(filtered[j]);
+
+					const cost = getStarterCost(sid);
+					const isAlreadySelected = state.team && state.team.some(m => toID(m.species) === sid);
+					const canAfford = (currentCost + cost) <= 10 && (!state.team || state.team.length < 6);
+
 					buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
 					buf += Utils.escapeHTML(sp.name);
 					if (isShiny) buf += ` <span style="color:#fda085">★</span>`;
 					buf += `</div>`;
+					buf += `<div style="font-size:9px; color:#fac000;">Cost: ${cost}</div>`;
 					buf += getSprite(sp.id, 40, isShiny);
-					buf += `<button name="send" value="/pokerogue choose ${originalIndex + 1}" class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;">Select</button>`;
+
+					let selectBtn = '';
+					if (isAlreadySelected) {
+						selectBtn = `<button disabled class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;opacity:0.5;">Selected</button>`;
+					} else if (state.team && state.team.length >= 6) {
+						selectBtn = `<button disabled class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;opacity:0.5;">Team Full</button>`;
+					} else if (currentCost + cost > 10) {
+						selectBtn = `<button disabled class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;opacity:0.5;">Cost Limit</button>`;
+					} else {
+						selectBtn = `<button name="send" value="/pokerogue choose ${originalIndex + 1}" class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;">Select</button>`;
+					}
+					buf += selectBtn;
 				}
 			}
 			buf += `</td>`;
@@ -1010,7 +1048,7 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 	let showNatureArrows = false;
 	let showTeraArrows = false;
 
-	if (state.isConfiguringStarter && slot === 0) {
+	if (state.isConfiguringStarter) {
 		const userData = getUserData(user.id);
 		let baseSpecies = toID(mon.species);
 		while (true) {
@@ -1141,7 +1179,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	if (activeTab === 0) {
 		buf += `<div class="pr-sv-row"><span class="pr-sv-row-label">Ability</span><div class="pr-sv-row-val">`;
 		if (vm.showAbilityArrows) {
-			buf += `<b>${Utils.escapeHTML(vm.abilityName)}</b>&nbsp;&nbsp;&nbsp;${renderBtn('/pokerogue cyclestarter ability next', 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
+			buf += `<b>${Utils.escapeHTML(vm.abilityName)}</b>&nbsp;&nbsp;&nbsp;${renderBtn(`/pokerogue cyclestarter ability next ${slot}`, 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
 		} else {
 			buf += `<b>${Utils.escapeHTML(vm.abilityName)}</b>`;
 		}
@@ -1154,7 +1192,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		}
 		buf += `<div class="pr-sv-row"><span class="pr-sv-row-label">Nature</span><div class="pr-sv-row-val">`;
 		if (vm.showNatureArrows) {
-			buf += `<b>${Utils.escapeHTML(vm.natureName)}</b>&nbsp;&nbsp;${natureSuffix}&nbsp;&nbsp;&nbsp;${renderBtn('/pokerogue cyclestarter nature next', 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
+			buf += `<b>${Utils.escapeHTML(vm.natureName)}</b>&nbsp;&nbsp;${natureSuffix}&nbsp;&nbsp;&nbsp;${renderBtn(`/pokerogue cyclestarter nature next ${slot}`, 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
 		} else {
 			buf += `<b>${Utils.escapeHTML(vm.natureName)}</b>&nbsp;&nbsp;${natureSuffix}`;
 		}
@@ -1174,7 +1212,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		if (vm.mon.teraType && hasTera) {
 			buf += `<div class="pr-sv-row"><span class="pr-sv-row-label">Tera</span><div class="pr-sv-row-val">`;
 			if (vm.showTeraArrows) {
-				buf += `${renderTypeBadge([vm.mon.teraType])}&nbsp;&nbsp;&nbsp;${renderBtn('/pokerogue cyclestarter tera next', 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
+				buf += `${renderTypeBadge([vm.mon.teraType])}&nbsp;&nbsp;&nbsp;${renderBtn(`/pokerogue cyclestarter tera next ${slot}`, 'Change', 'pr-btn', 'font-size:8px;padding:3px 6px')}`;
 			} else {
 				buf += `${renderTypeBadge([vm.mon.teraType])}`;
 			}
@@ -1257,7 +1295,14 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	buf += `</div>`;
 
 	if (state.isConfiguringStarter) {
-		buf += `<div style="text-align:center;margin-bottom:8px">${renderBtn('/pokerogue confirmstarter', 'Choose & Start', 'pr-btn primary', 'font-size:16px;padding:5px 10px')}</div>`;
+		const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+		const useNewStarterSelectionUI = modeData.useNewStarterSelectionUI !== false;
+		
+		if (useNewStarterSelectionUI) {
+			buf += `<div style="text-align:center;margin-bottom:8px">${renderBtn('/pokerogue view starterselect', 'Back to Selection', 'pr-btn primary', 'font-size:16px;padding:5px 10px')}</div>`;
+		} else {
+			buf += `<div style="text-align:center;margin-bottom:8px">${renderBtn('/pokerogue confirmstarter', 'Choose & Start', 'pr-btn primary', 'font-size:16px;padding:5px 10px')}</div>`;
+		}
 	}
 
 	return buf;
