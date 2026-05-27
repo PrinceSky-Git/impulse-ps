@@ -1826,7 +1826,7 @@ export const commands: Chat.ChatCommands = {
 				const pool = EGG_POOLS[tier] && EGG_POOLS[tier].length > 0 ? EGG_POOLS[tier] : allSpeciesFallback;
 				const species = pool[Math.floor(Math.random() * pool.length)];
 
-				userData.eggs.push({ species, wavesRemaining: waves, tier, shiny: false, hiddenAbility: haRoll, bannerType: bannerType } as any);
+				userData.eggs.push({ species, wavesRemaining: waves, tier, shiny: false, hiddenAbility: haRoll, bannerType } as any);
 			}
 
 			saveUserData(user.id);

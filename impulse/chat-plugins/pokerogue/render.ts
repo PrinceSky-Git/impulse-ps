@@ -281,17 +281,17 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome') {
 		// 1. Add the flex wrapper to push items to the right
-		buf += `<div style="display:flex;margin-left:auto;align-items:center;">`; 
-		
+		buf += `<div style="display:flex;margin-left:auto;align-items:center;">`;
+
 		const backTarget = hasGameOver ? '/pokerogue view welcome' : '/pokerogue view main';
 		buf += renderBtn(backTarget, '← Back', 'pr-btn', 'font-size:11px;padding:5px 10px');
-		
+
 		if (view === 'gacha') {
 			buf += `&nbsp;&nbsp;${renderBtn('/pokerogue view incubator', 'Incubator', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		}
-		
+
 		// 2. Close the flex wrapper
-		buf += `</div>`; 
+		buf += `</div>`;
 	}
 	return buf + `</div>`;
 }
@@ -339,7 +339,7 @@ function renderGachaView(user: User): string {
 	const banners = [
 		{ id: 'shiny', name: 'Shiny Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/shiny-banner.jpg' },
 		{ id: 'eggmove', name: 'Egg Move Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/egg-move-banner.jpg' },
-		{ id: 'generic', name: 'Generic Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/rayquaza-banner.jpg' }
+		{ id: 'generic', name: 'Generic Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/rayquaza-banner.jpg' },
 	];
 
 	buf += `<div style="max-height: 500px; overflow-y: scroll; padding: 10px; margin-bottom: 20px;">`;
