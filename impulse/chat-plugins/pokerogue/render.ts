@@ -561,16 +561,14 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	let sort: 'costAsc' | 'costDesc' | null = null;
 	let filterEgg = false;
 
-	// Extract Sort Commands
 	if (rawSearch.includes('cost +') || rawSearch.includes('cost+')) {
-		sort = 'costDesc'; // Highest cost first
+		sort = 'costDesc';
 		rawSearch = rawSearch.replace(/cost\s*\+/, '').trim();
 	} else if (rawSearch.includes('cost -') || rawSearch.includes('cost-')) {
-		sort = 'costAsc'; // Lowest cost first
+		sort = 'costAsc';
 		rawSearch = rawSearch.replace(/cost\s*-/, '').trim();
 	}
 
-	// Extract Egg Filter (using \b word boundary to avoid matching "exeggcute")
 	if (/\begg\b/.test(rawSearch)) {
 		filterEgg = true;
 		rawSearch = rawSearch.replace(/\begg\b/, '').trim();
@@ -653,20 +651,34 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 		return buf;
 	}
 
+	const ITEMS_PER_PAGE = 1000;
+	const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+	let currentPage = state.starterPage || 0;
+	
+	if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
+	
+	const paginated = filtered.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
+
+	buf += `<div style="text-align:center; margin-bottom: 8px;">`;
+	buf += renderBtn(currentPage > 0 ? `/pokerogue starterpage ${currentPage - 1}` : null, '&#9664; Prev', 'pr-btn', 'font-size:10px;padding:3px 8px;', currentPage === 0);
+	buf += `<span style="font-size:11px; margin: 0 12px;">Page <b>${currentPage + 1}</b> of ${totalPages}</span>`;
+	buf += renderBtn(currentPage < totalPages - 1 ? `/pokerogue starterpage ${currentPage + 1}` : null, 'Next &#9654;', 'pr-btn', 'font-size:10px;padding:3px 8px;', currentPage >= totalPages - 1);
+	buf += `</div>`;
+
 	buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><tbody>`;
 
 	const COLS = 4;
-	for (let i = 0; i < filtered.length; i += COLS) {
+	for (let i = 0; i < paginated.length; i += COLS) {
 		buf += `<tr>`;
 		for (let j = i; j < i + COLS; j++) {
 			buf += `<td style="width:25%;text-align:center;padding:4px 2px;vertical-align:top;">`;
-			if (j < filtered.length) {
-				const sid = toID(filtered[j]);
+			if (j < paginated.length) {
+				const sid = toID(paginated[j]);
 				const sp = Dex.species.get(sid);
 				if (sp.exists) {
 					const saved = userData.starters[sid];
 					const isShiny = !!saved?.shiny;
-					const originalIndex = pending.indexOf(filtered[j]);
+					const originalIndex = pending.indexOf(paginated[j]);
 
 					const cost = getStarterCost(sid);
 					const isAlreadySelected = state.team?.some(m => toID(m.species) === sid);
@@ -697,6 +709,15 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	}
 
 	buf += `</tbody></table>`;
+	
+	if (totalPages > 1) {
+		buf += `<div style="text-align:center; margin-top: 12px;">`;
+		buf += renderBtn(currentPage > 0 ? `/pokerogue starterpage ${currentPage - 1}` : null, '&#9664; Prev', 'pr-btn', 'font-size:10px;padding:3px 8px;', currentPage === 0);
+		buf += `<span style="font-size:11px; margin: 0 12px;">Page <b>${currentPage + 1}</b> of ${totalPages}</span>`;
+		buf += renderBtn(currentPage < totalPages - 1 ? `/pokerogue starterpage ${currentPage + 1}` : null, 'Next &#9654;', 'pr-btn', 'font-size:10px;padding:3px 8px;', currentPage >= totalPages - 1);
+		buf += `</div>`;
+	}
+
 	return buf;
 }
 
