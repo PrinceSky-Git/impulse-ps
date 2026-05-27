@@ -1814,9 +1814,9 @@ export const commands: Chat.ChatCommands = {
 					highestTierRolled = tierValue;
 				}
 
-				const shinyRoll = Math.floor(Math.random() * 128) === 0;
-				const haRoll = Math.floor(Math.random() * 32) === 0;
-
+				const shinyRoll = Math.floor(Math.random() * 64) === 0;
+				const haRoll = Math.floor(Math.random() * 64) === 0;
+				
 				const pool = EGG_POOLS[tier] && EGG_POOLS[tier].length > 0 ? EGG_POOLS[tier] : allSpeciesFallback;
 				const species = pool[Math.floor(Math.random() * pool.length)];
 
