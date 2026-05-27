@@ -629,7 +629,6 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 
 					const cost = getStarterCost(sid);
 					const isAlreadySelected = state.team && state.team.some(m => toID(m.species) === sid);
-					const canAfford = (currentCost + cost) <= 10 && (!state.team || state.team.length < 6);
 
 					buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
 					buf += Utils.escapeHTML(sp.name);
