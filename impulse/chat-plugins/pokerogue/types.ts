@@ -159,6 +159,7 @@ export interface PokeRogueState {
 	pendingRewardDraft?: string[];
 	rerollCount?: number;
 	luck?: number;
+	starterPage?: number;
 
 	timesRerolled: number;
 	rotationalShop: string[];
