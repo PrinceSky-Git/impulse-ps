@@ -651,7 +651,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 		return buf;
 	}
 
-	const ITEMS_PER_PAGE = 100;
+	const ITEMS_PER_PAGE = 50;
 	const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
 	let currentPage = state.starterPage || 0;
 	
