@@ -11,7 +11,7 @@ import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
 	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution,
-	getEggMoves, getAllLevelUpMoves
+	getEggMoves, getAllLevelUpMoves,
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser, parseBattleState } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -1170,7 +1170,7 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 	} else {
 		const finalExpType = getExpType(finalSpecies);
 		const initialMoves = getLevelUpMoves(finalSpecies, addedLevel, config.generation);
-		
+
 		const allLevelMoves = getAllLevelUpMoves(finalSpecies, addedLevel, config.generation || 9);
 		const validEggMoves = getEggMoves(finalSpecies, config.generation || 9);
 		const legalPool = new Set([...allLevelMoves, ...validEggMoves]);
@@ -1856,7 +1856,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'starterselect') return;
 			(state as any).starterSearch = target.trim().toLowerCase();
-			state.starterPage = 0; 
+			state.starterPage = 0;
 			setState(user.id, state);
 			refreshGamePage(user);
 		},

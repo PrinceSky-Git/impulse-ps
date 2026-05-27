@@ -556,7 +556,7 @@ function renderPendingChoice(state: PokeRogueState): string {
 function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const pending = state.pendingChoice || [];
 	const userData = getUserData(user.id);
-	
+
 	let rawSearch = ((state as any).starterSearch || '').toLowerCase().trim();
 	let sort: 'costAsc' | 'costDesc' | null = null;
 	let filterEgg = false;
@@ -577,7 +577,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const search = rawSearch;
 	const currentCost = state.team?.reduce((sum, mon) => sum + getStarterCost(mon.species), 0) || 0;
 
-	let filtered = pending.filter(sid => {
+	const filtered = pending.filter(sid => {
 		const sp = Dex.species.get(toID(sid));
 		const saved = userData.starters[toID(sid)];
 
@@ -654,9 +654,9 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const ITEMS_PER_PAGE = 40;
 	const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
 	let currentPage = state.starterPage || 0;
-	
+
 	if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
-	
+
 	const paginated = filtered.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
 
 	buf += `<div style="text-align:center; margin-bottom: 8px;">`;
@@ -709,7 +709,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	}
 
 	buf += `</tbody></table>`;
-	
+
 	if (totalPages > 1) {
 		buf += `<div style="text-align:center; margin-top: 12px;">`;
 		buf += renderBtn(currentPage > 0 ? `/pokerogue starterpage ${currentPage - 1}` : null, '&#9664; Prev', 'pr-btn', 'font-size:10px;padding:3px 8px;', currentPage === 0);
@@ -1332,7 +1332,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 			const allLevel = getAllLevelUpMoves(baseSpecies, vm.mon.level, config.generation || 9);
 			const validEggMoves = getEggMoves(baseSpecies, config.generation || 9);
-			
+
 			const legalUnlockedEggMoves = (starterData?.unlockedEggMoves || []).filter(m => validEggMoves.includes(m));
 
 			const pool = new Set([...allLevel, ...legalUnlockedEggMoves]);
