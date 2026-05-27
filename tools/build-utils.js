@@ -31,7 +31,10 @@ const findFilesForPath = path => {
 		// traverse, databases adds/removes files which can lead to a filesystem
 		// race between readdirSync and statSync. Please, at some point someone
 		// fix this function to be more robust.
-		if (cur.includes('node_modules') || cur.includes("/logs") || cur.includes("/databases")) continue;
+		if (
+			cur.includes('node_modules') || cur.includes('/.git') ||
+			cur.includes("/logs") || cur.includes("/databases")
+		) continue;
 		if (fs.statSync(cur).isDirectory()) {
 			out.push(...findFilesForPath(cur));
 		} else if (shouldBeCompiled(cur)) {
