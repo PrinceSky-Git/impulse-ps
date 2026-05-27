@@ -1,7 +1,7 @@
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
 import { type PokemonEntry, type PokeRogueState } from './types';
-import { getStarterCost } from './starter-cost';
+import { getStarterCost } from './starter-data';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS, getRerollCost, getItemPrice } from './items';
 import { globalStats, getUserData } from './state';
@@ -582,7 +582,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	if (state.team && state.team.length > 0) {
 		buf += `<div class="pr-section-title">Selected Starters</div>`;
 		buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:12px;"><tbody>`;
-		
+
 		const TEAM_COLS = 4;
 		for (let i = 0; i < state.team.length; i += TEAM_COLS) {
 			buf += `<tr>`;
@@ -592,7 +592,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 					const mon = state.team[j];
 					const cost = getStarterCost(mon.species);
 					const spData = Dex.species.get(mon.species);
-					
+
 					buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
 					buf += Utils.escapeHTML(spData.name);
 					if (mon.shiny) buf += ` <span style="color:#fda085">★</span>`;
@@ -640,7 +640,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 					const originalIndex = pending.indexOf(filtered[j]);
 
 					const cost = getStarterCost(sid);
-					const isAlreadySelected = state.team && state.team.some(m => toID(m.species) === sid);
+					const isAlreadySelected = state.team?.some(m => toID(m.species) === sid);
 
 					buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`;
 					buf += Utils.escapeHTML(sp.name);
@@ -1308,7 +1308,7 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 	if (state.isConfiguringStarter) {
 		const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 		const useNewStarterSelectionUI = modeData.useNewStarterSelectionUI !== false;
-		
+
 		if (useNewStarterSelectionUI) {
 			buf += `<div style="text-align:center;margin-bottom:8px">${renderBtn('/pokerogue view starterselect', 'Back to Selection', 'pr-btn primary', 'font-size:16px;padding:5px 10px')}</div>`;
 		} else {
