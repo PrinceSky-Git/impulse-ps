@@ -219,6 +219,7 @@ export interface GlobalStatEntry {
 export interface EggData {
 	species: string;
 	wavesRemaining: number;
+	bannerType: 'shiny' | 'eggmove' | 'generic';
 	tier: 'Common' | 'Rare' | 'Epic' | 'Legendary';
 	shiny: boolean;
 	hiddenAbility: boolean;
