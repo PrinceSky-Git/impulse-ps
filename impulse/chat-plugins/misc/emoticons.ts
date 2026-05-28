@@ -185,14 +185,16 @@ export const commands: Chat.ChatCommands = {
 		''(target, room, user): void {
 			if (!this.runBroadcast()) return;
 
-			const emoteKeys = Object.keys(emoticons);
+			const emoteKeys = Object.keys(data.emoticons);
 			if (emoteKeys.length === 0) return this.sendReplyBox('No emoticons available.');
 
 			const rows: string[][] = [];
 			for (let i = 0; i < emoteKeys.length; i += 5) {
 				const row: string[] = [];
 				for (let j = i; j < i + 5 && j < emoteKeys.length; j++) {
-					row.push(renderEmoticonCell(emoteKeys[j], emoticons[emoteKeys[j]]));
+					const name = emoteKeys[j];
+					const emote = data.emoticons[name];
+					row.push(`<center><img src="${Utils.escapeHTML(emote.url)}" width="32" height="32" title="${Utils.escapeHTML(name)}"><br /><code>${Utils.escapeHTML(name)}</code></center>`);
 				}
 				rows.push(row);
 			}
