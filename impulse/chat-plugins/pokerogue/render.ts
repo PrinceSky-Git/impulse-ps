@@ -342,15 +342,30 @@ function renderGachaView(user: User): string {
 		{ id: 'generic', name: 'Generic Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/rayquaza-banner.jpg' },
 	];
 
+	// Forces left-alignment inside the button for a clean vertical list appearance
+	const getVoucherLabel = (imageName: string, labelText: string, count: number) => {
+		const url = `https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/${imageName}.png`;
+		return `<span style="display: inline-flex; align-items: center; justify-content: flex-start; gap: 8px; width: 100%;"><img src="${url}" alt="Voucher" style="width: 18px; height: 18px; image-rendering: pixelated; flex-shrink: 0;" /> <span>${labelText} (${count})</span></span>`;
+	};
+
 	buf += `<div style="max-height: 1000px; overflow-y: scroll; padding: 10px; margin-bottom: 20px;">`;
 	for (const banner of banners) {
-		buf += `<div style="text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #444;">`;
-		buf += `<img src="${banner.img}" alt="${banner.name}" style="max-width: 100%; max-height: 180px; border-radius: 6px; display: block; margin: 0 auto 12px auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.3);" />`;
-		buf += `<div>`;
-		buf += renderBtn(v.regular > 0 ? `/pokerogue pull regular, ${banner.id}` : null, 'Pull 1x', `pr-btn ${v.regular > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.regular > 0));
-		buf += renderBtn(v.plus > 0 ? `/pokerogue pull plus, ${banner.id}` : null, 'Pull 5x', `pr-btn ${v.plus > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.plus > 0));
-		buf += renderBtn(v.premium > 0 ? `/pokerogue pull premium, ${banner.id}` : null, 'Pull 10x', `pr-btn ${v.premium > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.premium > 0));
-		buf += renderBtn(v.gold > 0 ? `/pokerogue pull gold, ${banner.id}` : null, 'Pull 25x', `pr-btn ${v.gold > 0 ? 'primary' : ''}`, 'margin: 2px;', !(v.gold > 0));
+		// Row container for side-by-side layout
+		buf += `<div style="display: flex; flex-direction: row; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #444; gap: 15px;">`;
+		
+		// Left Column: Banner Image (takes up remaining space)
+		buf += `<div style="flex: 1; text-align: center;">`;
+		buf += `<img src="${banner.img}" alt="${banner.name}" style="max-width: 100%; max-height: 150px; border-radius: 6px; display: block; margin: 0 auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.3);" />`;
+		buf += `</div>`;
+		
+		// Right Column: Vertical Buttons (fixed minimum width)
+		buf += `<div style="display: flex; flex-direction: column; justify-content: center; gap: 8px; width: 140px; flex-shrink: 0;">`;
+		
+		buf += renderBtn(v.regular > 0 ? `/pokerogue pull regular, ${banner.id}` : null, getVoucherLabel('egg-voucher-regular', 'Pull 1x', v.regular), `pr-btn ${v.regular > 0 ? 'primary' : ''}`, 'padding: 6px 10px; width: 100%;', !(v.regular > 0));
+		buf += renderBtn(v.plus > 0 ? `/pokerogue pull plus, ${banner.id}` : null, getVoucherLabel('egg-voucher-plus', 'Pull 5x', v.plus), `pr-btn ${v.plus > 0 ? 'primary' : ''}`, 'padding: 6px 10px; width: 100%;', !(v.plus > 0));
+		buf += renderBtn(v.premium > 0 ? `/pokerogue pull premium, ${banner.id}` : null, getVoucherLabel('egg-voucher-premium', 'Pull 10x', v.premium), `pr-btn ${v.premium > 0 ? 'primary' : ''}`, 'padding: 6px 10px; width: 100%;', !(v.premium > 0));
+		buf += renderBtn(v.gold > 0 ? `/pokerogue pull gold, ${banner.id}` : null, getVoucherLabel('egg-voucher-gold', 'Pull 25x', v.gold), `pr-btn ${v.gold > 0 ? 'primary' : ''}`, 'padding: 6px 10px; width: 100%;', !(v.gold > 0));
+		
 		buf += `</div></div>`;
 	}
 	buf += `</div></div>`;
