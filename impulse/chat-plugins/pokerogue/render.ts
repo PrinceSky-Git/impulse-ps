@@ -342,31 +342,43 @@ function renderGachaView(user: User): string {
 		{ id: 'generic', name: 'Generic Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/rayquaza-banner.jpg' },
 	];
 
-	// Forces left-alignment inside the button for a clean vertical list appearance
 	const getVoucherLabel = (imageName: string, labelText: string, count: number) => {
 		const url = `https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/${imageName}.png`;
-		return `<span style="display: inline-flex; align-items: center; justify-content: flex-start; gap: 8px; width: 100%;"><img src="${url}" alt="Voucher" style="width: 18px; height: 18px; image-rendering: pixelated; flex-shrink: 0;" /> <span>${labelText} (${count})</span></span>`;
+		return `<span style="display:inline-flex;align-items:center;justify-content:flex-start;gap:6px;width:100%;"><img src="${url}" alt="Voucher" style="width:16px;height:16px;image-rendering:pixelated;flex-shrink:0;" /><span>${labelText} (${count})</span></span>`;
 	};
+
+	const btnStyle = 'display:block;width:100%;margin-bottom:4px;box-sizing:border-box;';
+
+	const voucherDefs: { key: keyof typeof v, imageName: string, label: string }[] = [
+		{ key: 'regular', imageName: 'egg-voucher-regular', label: 'Pull 1x' },
+		{ key: 'plus', imageName: 'egg-voucher-plus', label: 'Pull 5x' },
+		{ key: 'premium', imageName: 'egg-voucher-premium', label: 'Pull 10x' },
+		{ key: 'gold', imageName: 'egg-voucher-gold', label: 'Pull 25x' },
+	];
 
 	buf += `<div style="max-height: 1000px; overflow-y: scroll; padding: 10px; margin-bottom: 20px;">`;
 	for (const banner of banners) {
-		// Row container for side-by-side layout
-		buf += `<div style="display: flex; flex-direction: row; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #444; gap: 15px;">`;
-		
-		// Left Column: Banner Image (takes up remaining space)
-		buf += `<div style="flex: 1; text-align: center;">`;
-		buf += `<img src="${banner.img}" alt="${banner.name}" style="max-width: 100%; max-height: 150px; border-radius: 6px; display: block; margin: 0 auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.3);" />`;
+		buf += `<div style="display:flex;flex-direction:row;align-items:center;margin-bottom:25px;padding-bottom:15px;border-bottom:1px solid #444;gap:12px;">`;
+
+		buf += `<div style="flex:1;text-align:center;">`;
+		buf += `<img src="${banner.img}" alt="${banner.name}" style="max-width:100%;max-height:150px;border-radius:6px;display:block;margin:0 auto;box-shadow:0px 4px 8px rgba(0,0,0,0.3);" />`;
 		buf += `</div>`;
-		
-		// Right Column: Vertical Buttons (fixed minimum width)
-		buf += `<div style="display: flex; flex-direction: column; justify-content: center; gap: 8px; width: 140px; flex-shrink: 0;">`;
-		
-		buf += renderBtn(v.regular > 0 ? `/pokerogue pull regular, ${banner.id}` : null, getVoucherLabel('egg-voucher-regular', 'Pull 1x', v.regular), `pr-btn ${v.regular > 0 ? 'primary' : ''}`, 'padding: 6px 10px; width: 100%;', !(v.regular > 0));
-		buf += renderBtn(v.plus > 0 ? `/pokerogue pull plus, ${banner.id}` : null, getVoucherLabel('egg-voucher-plus', 'Pull 5x', v.plus), `pr-btn ${v.plus > 0 ? 'primary' : ''}`, 'padding: 6px 10px; width: 100%;', !(v.plus > 0));
-		buf += renderBtn(v.premium > 0 ? `/pokerogue pull premium, ${banner.id}` : null, getVoucherLabel('egg-voucher-premium', 'Pull 10x', v.premium), `pr-btn ${v.premium > 0 ? 'primary' : ''}`, 'padding: 6px 10px; width: 100%;', !(v.premium > 0));
-		buf += renderBtn(v.gold > 0 ? `/pokerogue pull gold, ${banner.id}` : null, getVoucherLabel('egg-voucher-gold', 'Pull 25x', v.gold), `pr-btn ${v.gold > 0 ? 'primary' : ''}`, 'padding: 6px 10px; width: 100%;', !(v.gold > 0));
-		
-		buf += `</div></div>`;
+
+		buf += `<div style="display:flex;flex-direction:column;justify-content:center;width:110px;flex-shrink:0;">`;
+		for (const def of voucherDefs) {
+			const count = v[def.key] || 0;
+			const hasVoucher = count > 0;
+			buf += renderBtn(
+				hasVoucher ? `/pokerogue pull ${def.key}, ${banner.id}` : null,
+				getVoucherLabel(def.imageName, def.label, count),
+				'pr-shop-buy',
+				btnStyle + (!hasVoucher ? 'opacity:0.45;' : ''),
+				!hasVoucher
+			);
+		}
+		buf += `</div>`;
+
+		buf += `</div>`;
 	}
 	buf += `</div></div>`;
 	return buf;
