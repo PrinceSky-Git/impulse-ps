@@ -189,20 +189,17 @@ export const commands: Chat.ChatCommands = {
 
 			const size = data.emoteSize;
 			const items = keys.map(key =>
-				`<div style="display:inline-block;text-align:center;padding:8px;min-width:80px;vertical-align:top">` +
+				`<div style="display:inline-block;text-align:center;padding:6px;width:80px;vertical-align:top;box-sizing:border-box">` +
 				`<img src="${Utils.escapeHTML(data.emoticons[key].url)}" width="${size}" height="${size}" title="${Utils.escapeHTML(key)}" style="display:block;margin:0 auto 4px" loading="lazy">` +
-				`<span style="font-size:11px;word-break:break-all">${Utils.escapeHTML(key)}</span>` +
+				`<span style="font-size:10px;word-break:break-all;display:block">${Utils.escapeHTML(key)}</span>` +
 				`</div>`
-				).join('');
+										 ).join('');
 
 			const html =
-				//`<div style="max-height: 400px; overflow: auto">` +
-				`<div style="background:#2a2d3a;border-radius:8px;padding:12px">` +
-				`<div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:10px">Emoticonos (${keys.length})</div>` +
-				`<div style="display:flex;flex-wrap:wrap;justify-content:flex-start">${items}</div>` +
-				//`</div>` +
+				`<div style="background:#2a2d3a;border-radius:8px;padding:12px;max-width:100%">` +
+				`<div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:10px">Emoticons (${keys.length})</div>` +
+				`<div style="font-size:0">${items}</div>` +
 				`</div>`;
-
 			this.sendReply(`|raw|${html}`);
 		},
 		
