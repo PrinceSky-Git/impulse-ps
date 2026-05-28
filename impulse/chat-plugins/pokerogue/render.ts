@@ -1584,7 +1584,9 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 
 	const isEffectivelyGameOver = state.gameOver || (state.team.length === 0 && !state.isConfiguringStarter && (!state.pendingChoice || state.pendingChoice.length === 0));
 
-	if (state.gameOver && view !== 'welcome' && view !== 'gacha') return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGameOverView(state)}</div></div>`;
+	const isGameOverAccessibleView = view === 'welcome' || view === 'gacha' || view === 'incubator';
+
+	if (state.gameOver && !isGameOverAccessibleView) return buf + renderHeader('main', true) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGameOverView(state)}</div></div>`;
 	if (view === 'resetconfirm') return buf + renderHeader('resetconfirm', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderResetConfirmView(state)}</div></div>`;
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderTopView()}</div></div>`;
 	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderWelcomeView()}</div></div>`;
