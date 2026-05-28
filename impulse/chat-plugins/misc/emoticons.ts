@@ -187,15 +187,25 @@ export const commands: Chat.ChatCommands = {
 			const keys = Object.keys(data.emoticons);
 			if (!keys.length) return this.sendReplyBox("No emoticons added.");
 
-			const dataRows = keys.map(key => [
-				`<img src="${data.emoticons[key].url}" width="32" height="32" title="${key}">`,
-				key,
-			]);
+			const size = data.emoteSize;
+			const items = keys.map(key =>
+				`<div style="display:inline-block;text-align:center;padding:8px;min-width:80px;vertical-align:top">` +
+				`<img src="${Utils.escapeHTML(data.emoticons[key].url)}" width="${size}" height="${size}" title="${Utils.escapeHTML(key)}" style="display:block;margin:0 auto 4px" loading="lazy">` +
+				`<span style="font-size:11px;word-break:break-all">${Utils.escapeHTML(key)}</span>` +
+				`</div>`
+				).join('');
 
-			const html = Table("Available Emoticons", ["Emoticon", "Name"], dataRows);
+			const html =
+				`<div style="max-height: 400px; overflow: auto">` +
+				`<div style="background:#2a2d3a;border-radius:8px;padding:12px">` +
+				`<div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:10px">Emoticonos (${keys.length})</div>` +
+				`<div style="display:flex;flex-wrap:wrap;justify-content:flex-start">${items}</div>` +
+				`</div>` +
+				`</div>`;
+
 			this.sendReply(`|raw|${html}`);
 		},
-
+		
 		help() {
 			this.runBroadcast();
 			this.sendReplyBox(
