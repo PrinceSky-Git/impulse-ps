@@ -345,7 +345,7 @@ function processFloorRewards(
 			if (egg.wavesRemaining <= 0) {
 				const sid = toID(egg.species);
 				const bannerType = (egg as any).bannerType || 'generic';
-				const shinyOdds = bannerType === 'shiny' ? 24 : 64;
+				const shinyOdds = bannerType === 'shiny' ? 64 : 128;
 				const isShiny = Math.floor(Math.random() * shinyOdds) === 0;
 				const dexSpecies = Dex.species.get(sid);
 
@@ -361,11 +361,16 @@ function processFloorRewards(
 				}
 
 				let haName = '';
-				if (egg.hiddenAbility && dexSpecies.abilities['H']) {
-					haName = dexSpecies.abilities['H'];
+				if (dexSpecies.abilities['H']) {
+					const haRoll = Math.floor(Math.random() * 192) === 0;
+					if (haRoll) haName = dexSpecies.abilities['H'];
 				}
 
-				const eggMoveOdds = bannerType === 'eggmove' ? 24 : 64;
+				const eggMoveTier = egg.tier ?? 'Common';
+				const isCommon = eggMoveTier === 'Common';
+				const eggMoveOdds = bannerType === 'eggmove'
+					? (isCommon ? 16 : 32)
+					: (isCommon ? 64 : 32);
 				const eggMoveRoll = Math.floor(Math.random() * eggMoveOdds) === 0;
 				let unlockedEggMove = '';
 				if (eggMoveRoll) {
@@ -1821,7 +1826,7 @@ export const commands: Chat.ChatCommands = {
 					highestTierRolled = tierValue;
 				}
 
-				const haRoll = Math.floor(Math.random() * 64) === 0;
+				const haRoll = Math.floor(Math.random() * 192) === 0;
 
 				const pool = EGG_POOLS[tier] && EGG_POOLS[tier].length > 0 ? EGG_POOLS[tier] : allSpeciesFallback;
 				const species = pool[Math.floor(Math.random() * pool.length)];
@@ -1838,7 +1843,7 @@ export const commands: Chat.ChatCommands = {
 			}
 			refreshGamePage(user);
 		},
-
+		
 		statstab(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
