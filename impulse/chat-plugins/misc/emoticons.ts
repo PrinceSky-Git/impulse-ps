@@ -182,25 +182,22 @@ export const commands: Chat.ChatCommands = {
 			);
 		},
 
-		''(target, room, user) {
+		''(target, room, user): void {
 			if (!this.runBroadcast()) return;
-			const keys = Object.keys(data.emoticons);
-			if (!keys.length) return this.sendReplyBox("No emoticons added.");
 
-			const size = data.emoteSize;
-			const items = keys.map(key =>
-				`<div style="display:inline-block;text-align:center;padding:6px;width:80px;vertical-align:top;box-sizing:border-box">` +
-				`<img src="${Utils.escapeHTML(data.emoticons[key].url)}" width="64px" height="$64px" title="${Utils.escapeHTML(key)}" style="display:block;margin:0 auto 4px" loading="lazy">` +
-				`<span style="font-size:10px;word-break:break-all;display:block">${Utils.escapeHTML(key)}</span>` +
-				`</div>`
-										 ).join('');
+			const emoteKeys = Object.keys(emoticons);
+			if (emoteKeys.length === 0) return this.sendReplyBox('No emoticons available.');
 
-			const html =
-				`<div style="background:#2a2d3a;border-radius:8px;padding:12px;">` +
-				`<div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:10px">Emoticons (${keys.length})</div>` +
-				`<div style="font-size:0">${items}</div>` +
-				`</div>`;
-			this.sendReply(`|raw|${html}`);
+			const rows: string[][] = [];
+			for (let i = 0; i < emoteKeys.length; i += 5) {
+				const row: string[] = [];
+				for (let j = i; j < i + 5 && j < emoteKeys.length; j++) {
+					row.push(renderEmoticonCell(emoteKeys[j], emoticons[emoteKeys[j]]));
+				}
+				rows.push(row);
+			}
+
+			this.sendReply(`|html|${Table('Available Emoticons', [], rows)}`);
 		},
 		
 		help() {
