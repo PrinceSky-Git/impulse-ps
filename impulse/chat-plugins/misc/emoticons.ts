@@ -190,7 +190,7 @@ export const commands: Chat.ChatCommands = {
 			const size = data.emoteSize;
 			const items = keys.map(key =>
 				`<div style="display:inline-block;text-align:center;padding:6px;width:80px;vertical-align:top;box-sizing:border-box">` +
-				`<img src="${Utils.escapeHTML(data.emoticons[key].url)}" width="${size}" height="${size}" title="${Utils.escapeHTML(key)}" style="display:block;margin:0 auto 4px" loading="lazy">` +
+				`<img src="${Utils.escapeHTML(data.emoticons[key].url)}" width="64px" height="$64px" title="${Utils.escapeHTML(key)}" style="display:block;margin:0 auto 4px" loading="lazy">` +
 				`<span style="font-size:10px;word-break:break-all;display:block">${Utils.escapeHTML(key)}</span>` +
 				`</div>`
 										 ).join('');
