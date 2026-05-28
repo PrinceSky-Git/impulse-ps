@@ -367,10 +367,14 @@ function processFloorRewards(
 				}
 
 				const eggMoveTier = egg.tier ?? 'Common';
-				const isCommon = eggMoveTier === 'Common';
-				const eggMoveOdds = bannerType === 'eggmove'
-					? (isCommon ? 16 : 32)
-					: (isCommon ? 64 : 32);
+				const eggMoveOddsMap: Record<string, [number, number]> = {
+					'Common':    [48, 16],
+					'Rare':      [24, 12],
+					'Epic':      [12,  6],
+					'Legendary': [ 6,  3],
+				};
+				const [genericOdds, moveUpOdds] = eggMoveOddsMap[eggMoveTier] ?? [48, 16];
+				const eggMoveOdds = bannerType === 'eggmove' ? moveUpOdds : genericOdds;
 				const eggMoveRoll = Math.floor(Math.random() * eggMoveOdds) === 0;
 				let unlockedEggMove = '';
 				if (eggMoveRoll) {
