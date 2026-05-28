@@ -342,7 +342,7 @@ function renderGachaView(user: User): string {
 		{ id: 'generic', name: 'Generic Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/rayquaza-banner.jpg' },
 	];
 
-	buf += `<div style="max-height: 500px; overflow-y: scroll; padding: 10px; margin-bottom: 20px;">`;
+	buf += `<div style="max-height: 1000px; overflow-y: scroll; padding: 10px; margin-bottom: 20px;">`;
 	for (const banner of banners) {
 		buf += `<div style="text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #444;">`;
 		buf += `<img src="${banner.img}" alt="${banner.name}" style="max-width: 100%; max-height: 180px; border-radius: 6px; display: block; margin: 0 auto 12px auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.3);" />`;
