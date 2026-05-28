@@ -196,11 +196,11 @@ export const commands: Chat.ChatCommands = {
 				).join('');
 
 			const html =
-				`<div style="max-height: 400px; overflow: auto">` +
+				//`<div style="max-height: 400px; overflow: auto">` +
 				`<div style="background:#2a2d3a;border-radius:8px;padding:12px">` +
 				`<div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:10px">Emoticonos (${keys.length})</div>` +
 				`<div style="display:flex;flex-wrap:wrap;justify-content:flex-start">${items}</div>` +
-				`</div>` +
+				//`</div>` +
 				`</div>`;
 
 			this.sendReply(`|raw|${html}`);
