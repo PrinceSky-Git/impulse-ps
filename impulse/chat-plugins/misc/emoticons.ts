@@ -196,7 +196,7 @@ export const commands: Chat.ChatCommands = {
 										 ).join('');
 
 			const html =
-				`<div style="background:#2a2d3a;border-radius:8px;padding:12px;max-width:100%">` +
+				`<div style="background:#2a2d3a;border-radius:8px;padding:12px;">` +
 				`<div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:10px">Emoticons (${keys.length})</div>` +
 				`<div style="font-size:0">${items}</div>` +
 				`</div>`;
