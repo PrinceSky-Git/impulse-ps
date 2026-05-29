@@ -361,28 +361,45 @@ function renderIncubatorView(user: User): string {
 	const userData = getUserData(user.id);
 	const eggs = userData.eggs || [];
 
-	let buf = `<div style="padding: 10px;">`;
-	buf += `<div class="pr-section-title">Your Incubator (${eggs.length}/100 Eggs)</div>`;
+	let buf = `<h2 class="pr-choice-heading">Your Incubator (${eggs.length}/100 Eggs)</h2>`;
 
 	if (eggs.length === 0) {
-		buf += `<div class="pr-card" style="text-align:center; color:#9d93c8; font-size:12px;">No eggs currently in the incubator. Keep playing to earn Vouchers!</div>`;
-	} else {
-		buf += `<div style="text-align:center;">`;
-		for (const egg of eggs) {
-			let tierColor = '#9d93c8';
-			if (egg.tier === 'Rare') tierColor = '#93c5fd';
-			else if (egg.tier === 'Epic') tierColor = '#c4b8ff';
-			else if (egg.tier === 'Legendary') tierColor = '#fca5a5';
-
-			buf += `<div class="pr-card" style="display:inline-block; width:100px; margin:4px; border-color:${tierColor}60; vertical-align:top;">`;
-			buf += `<b style="color:${tierColor}; font-size:13px;">${egg.tier} Egg</b><br>`;
-			buf += `<div class="pr-sv-subdesc" style="margin-top:6px;">${egg.wavesRemaining} waves left</div>`;
-			buf += `</div>`;
-		}
-		buf += `</div>`;
+		buf += `<div style="text-align:center;padding:16px;color:#888;">No eggs currently in the incubator. Keep playing to earn Vouchers!</div>`;
+		return buf;
 	}
 
-	buf += `</div>`;
+	buf += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><tbody>`;
+
+	const COLS = 6;
+	const EGG_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/egg/';
+
+	for (let i = 0; i < eggs.length; i += COLS) {
+		buf += `<tr>`;
+		for (let j = i; j < i + COLS; j++) {
+			buf += `<td style="width:16.66%;text-align:center;padding:4px 2px;vertical-align:top;">`;
+			if (j < eggs.length) {
+				const egg = eggs[j];
+				
+				let tierColor = '#9d93c8'; // Common
+				if (egg.tier === 'Rare') tierColor = '#93c5fd';
+				else if (egg.tier === 'Epic') tierColor = '#c4b8ff';
+				else if (egg.tier === 'Legendary') tierColor = '#fca5a5';
+
+				const eggImageUrl = `${EGG_SPRITE_BASE}${egg.tier.toLowerCase()}-egg.png`;
+				const floorText = egg.wavesRemaining === 1 ? 'Floor' : 'Floors';
+
+				buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${tierColor};font-weight:bold;">`;
+				buf += `${egg.tier} Egg`;
+				buf += `</div>`;
+				buf += `<div style="font-size:9px; color:#fac000;">${egg.wavesRemaining} ${floorText}</div>`;
+				buf += `<img src="${Utils.escapeHTML(eggImageUrl)}" alt="${egg.tier} Egg" class="pr-mon-img" style="width:40px;height:40px;display:block;margin:0 auto;" />`;
+			}
+			buf += `</td>`;
+		}
+		buf += `</tr>`;
+	}
+
+	buf += `</tbody></table>`;
 	return buf;
 }
 
