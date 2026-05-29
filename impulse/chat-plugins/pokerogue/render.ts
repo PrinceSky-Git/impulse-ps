@@ -380,17 +380,9 @@ function renderIncubatorView(user: User): string {
 			if (j < eggs.length) {
 				const egg = eggs[j];
 				
-				let tierColor = '#9d93c8'; // Common
-				if (egg.tier === 'Rare') tierColor = '#93c5fd';
-				else if (egg.tier === 'Epic') tierColor = '#c4b8ff';
-				else if (egg.tier === 'Legendary') tierColor = '#fca5a5';
-
 				const eggImageUrl = `${EGG_SPRITE_BASE}${egg.tier.toLowerCase()}-egg.png`;
 				const floorText = egg.wavesRemaining === 1 ? 'Floor' : 'Floors';
 
-				buf += `<div style="font-size:9px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${tierColor};font-weight:bold;">`;
-				buf += `${egg.tier} Egg`;
-				buf += `</div>`;
 				buf += `<div style="font-size:9px; color:#fac000;">${egg.wavesRemaining} ${floorText}</div>`;
 				buf += `<img src="${Utils.escapeHTML(eggImageUrl)}" alt="${egg.tier} Egg" class="pr-mon-img" style="width:40px;height:40px;display:block;margin:0 auto;" />`;
 			}
