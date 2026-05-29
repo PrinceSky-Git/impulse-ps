@@ -361,7 +361,7 @@ function renderIncubatorView(user: User): string {
 	const userData = getUserData(user.id);
 	const eggs = userData.eggs || [];
 
-	let buf = `<h2 class="pr-choice-heading">Your Incubator (${eggs.length}/100 Eggs)</h2>`;
+	let buf = `<h2 class="pr-choice-heading">Total Eggs: ${eggs.length}/100</h2>`;
 
 	if (eggs.length === 0) {
 		buf += `<div style="text-align:center;padding:16px;color:#888;">No eggs currently in the incubator. Keep playing to earn Vouchers!</div>`;
