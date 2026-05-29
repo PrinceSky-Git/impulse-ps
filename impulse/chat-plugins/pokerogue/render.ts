@@ -340,7 +340,7 @@ function renderGachaView(user: User): string {
 		{ id: 'generic', name: 'Generic Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/generic-banner.png' },
 		{ id: 'shiny', name: 'Shiny Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/shiny-banner.jpg' },
 		{ id: 'eggmove', name: 'Egg Move Banner', img: 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/refs/heads/master/impulse/chat-plugins/pokerogue/sprites/banners/egg-move-banner.jpg' },
-		];
+	];
 
 	buf += `<div style="max-height: 1000px; overflow-y: scroll; padding: 10px; margin-bottom: 20px;">`;
 	for (const banner of banners) {

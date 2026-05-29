@@ -368,10 +368,10 @@ function processFloorRewards(
 
 				const eggMoveTier = egg.tier ?? 'Common';
 				const eggMoveOddsMap: Record<string, [number, number]> = {
-					'Common':    [48, 16],
-					'Rare':      [24, 12],
-					'Epic':      [12,  6],
-					'Legendary': [ 6,  3],
+					'Common': [48, 16],
+					'Rare': [24, 12],
+					'Epic': [12, 6],
+					'Legendary': [6, 3],
 				};
 				const [genericOdds, moveUpOdds] = eggMoveOddsMap[eggMoveTier] ?? [48, 16];
 				const eggMoveOdds = bannerType === 'eggmove' ? moveUpOdds : genericOdds;
@@ -1847,7 +1847,7 @@ export const commands: Chat.ChatCommands = {
 			}
 			refreshGamePage(user);
 		},
-		
+
 		statstab(target, room, user) {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');

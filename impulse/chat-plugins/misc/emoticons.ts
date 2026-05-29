@@ -201,7 +201,7 @@ export const commands: Chat.ChatCommands = {
 
 			this.sendReply(`|html|${Table('Available Emoticons', [], rows)}`);
 		},
-		
+
 		help() {
 			this.runBroadcast();
 			this.sendReplyBox(
