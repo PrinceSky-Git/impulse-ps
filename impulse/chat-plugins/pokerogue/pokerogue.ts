@@ -199,7 +199,7 @@ function parseKillExp(
 		const validParticipantCount = Math.max(1, participantIndices.size);
 		const b = getExpYield(enemySpecies);
 
-		const a = (isBossFloor || isTrainerBattle) ? 1.5 : 1;
+		const a = isTrainerBattle ? 1.5 : 1;
 		const rawKillExp = Math.floor(Math.floor((b * enemyLevel) / 5 + 1) * a);
 		const basePerParticipant = Math.max(1, Math.floor(rawKillExp / validParticipantCount));
 
@@ -280,7 +280,7 @@ function applyExpShare(
 			
 			let benchedExp = Math.floor(basePerParticipant * expAllStacks * 0.2);
 			const hasLuckyEgg = mon.heldItem === 'luckyegg';
-			if (hasLuckyEgg) benchedExp = Math.floor(benchedExp * 1.4);
+			if (hasLuckyEgg) benchedExp = Math.floor(benchedExp * 1.5);
 			benchedExp = Math.max(1, Math.floor(benchedExp * charmMult));
 			
 			let penalty = 0;
