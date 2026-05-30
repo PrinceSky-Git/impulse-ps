@@ -618,6 +618,9 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 
 	const search = rawSearch;
 	const currentCost = state.team?.reduce((sum, mon) => sum + getStarterCost(mon.species), 0) || 0;
+	
+	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+	const maxCost = config.maxStarterCost || 10;
 
 	const filtered = pending.filter(sid => {
 		const sp = Dex.species.get(toID(sid));
@@ -644,7 +647,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 
 	let buf = `<h2 class="pr-choice-heading">Choose your starter!</h2>`;
 	buf += `<div style="text-align:center;font-size:11px;margin:-6px 0 12px">`;
-	buf += `Total Cost: <b>${currentCost}/10</b>`;
+	buf += `Total Cost: <b>${currentCost}/${maxCost}</b>`;
 	buf += `</div>`;
 
 	if (state.team && state.team.length > 0) {
@@ -737,7 +740,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 						selectBtn = `<button disabled class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;opacity:0.5;">Selected</button>`;
 					} else if (state.team && state.team.length >= 6) {
 						selectBtn = `<button disabled class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;opacity:0.5;">Team Full</button>`;
-					} else if (currentCost + cost > 10) {
+					} else if (currentCost + cost > maxCost) {
 						selectBtn = `<button disabled class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;opacity:0.5;">Cost Limit</button>`;
 					} else {
 						selectBtn = `<button name="send" value="/pokerogue choose ${originalIndex + 1}" class="pr-btn" style="width:90%;padding:2px 0;font-size:10px;">Select</button>`;
