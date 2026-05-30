@@ -42,6 +42,7 @@ export interface ModeConfig {
 	randomizeAbilities?: boolean;
 	startingBiome: string;
 	starterLevel?: number;
+	maxStarterCost?: number;
 	generation: number;
 	baseFormat: string;
 	doublesFormat?: string;
