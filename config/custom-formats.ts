@@ -36,7 +36,6 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		mod: 'pokerogue',
 		searchShow: false,
 		ruleset: [
-			'Cancel Mod',
 			'HP Percentage Mod',
 			'PokeRogue Endless',
 			'PokeRogue EXP Tracker',
@@ -51,7 +50,6 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		searchShow: false,
 		gameType: 'doubles',
 		ruleset: [
-			'Cancel Mod',
 			'HP Percentage Mod',
 			'PokeRogue Endless',
 			'PokeRogue EXP Tracker',
