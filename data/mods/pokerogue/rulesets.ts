@@ -40,17 +40,40 @@ export const Rulesets: import('../../../sim/dex-formats').FormatDataTable = {
 
 				let shields = 0;
 
-				// Exact Classic Mode Boss Levels mapped to base shield counts
-				if ([150, 162, 174, 188, 200].includes(pokemon.level)) {
+				// Reverse-engineer the expected Boss Floor based on the dynamically scaled level.
+				// This perfectly aligns with getLevelScaling() in pokemon.ts.
+				let estimatedFloor = 10;
+				let minDiff = Infinity;
+				for (let f = 10; f <= 200; f += 10) {
+					const baseLevel = 1 + f / 2 + Math.pow(f / 25, 2);
+					const bossBase = Math.max(1, Math.floor(baseLevel * 1.2));
+					const diff = Math.abs(pokemon.level - bossBase);
+					if (diff < minDiff) {
+						minDiff = diff;
+						estimatedFloor = f;
+					}
+				}
+
+				// Strict tolerance check: Only apply shields if the level tightly aligns with a boss level.
+				// This prevents standard wild Pokémon from receiving shields if they happen to spawn alone.
+				const expectedBaseLevel = 1 + estimatedFloor / 2 + Math.pow(estimatedFloor / 25, 2);
+				const expectedBossBase = Math.max(1, Math.floor(expectedBaseLevel * 1.2));
+				const maxOffset = Math.floor(estimatedFloor / 10);
+				
+				if (Math.abs(pokemon.level - expectedBossBase) > maxOffset + 4) {
+					return; // Bypass shields for normal encounters
+				}
+
+				if (estimatedFloor >= 160) {
 					shields = 4; // Waves 160 - 200
-				} else if ([84, 94, 104, 114, 126, 138].includes(pokemon.level)) {
+				} else if (estimatedFloor >= 100) {
 					shields = 3; // Waves 100 - 150
-				} else if ([38, 48, 56, 64, 74].includes(pokemon.level)) {
+				} else if (estimatedFloor >= 50) {
 					shields = 2; // Waves 50 - 90
-				} else if ([10, 16, 24, 32].includes(pokemon.level)) {
+				} else if (estimatedFloor >= 10) {
 					shields = 1; // Waves 10 - 40
 				} else {
-					return; // If the level doesn't exactly match a boss wave cap, no shields are applied!
+					return;
 				}
 
 				// Legendary/Paradox check (BST >= 670 gets +1 Shield)
