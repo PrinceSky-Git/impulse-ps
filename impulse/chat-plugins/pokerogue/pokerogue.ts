@@ -11,7 +11,7 @@ import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
 	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution,
-	getEggMoves, getAllLevelUpMoves,
+	getEggMoves, getAllLevelUpMoves, getLevelScaling,
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser, parseBattleState } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -225,36 +225,118 @@ function applyExpShare(
 	expMap: Map<number, number>,
 	baseShareExpMap: Map<number, number>,
 	state: PokeRogueState,
+	config: ModeConfig
 ): Map<number, number> {
 	const maxExpAllStacks = SHOP_ITEMS['expall']?.maxStack ?? 5;
 	const maxExpCharmStacks = SHOP_ITEMS['expcharm']?.maxStack ?? 99;
 	const maxSuperExpCharmStacks = SHOP_ITEMS['superexpcharm']?.maxStack ?? 30;
 
-	const expAllStacks = Math.min(maxExpAllStacks, (state.keyItems?.[EXP_SHARE_NAME] || 0));
+	const expAllStacks = Math.min(maxExpAllStacks, (state.keyItems?.['Exp. All'] || 0));
 	const expCharmStacks = Math.min(maxExpCharmStacks, (state.keyItems?.['Exp. Charm'] || 0));
 	const superExpCharmStacks = Math.min(maxSuperExpCharmStacks, (state.keyItems?.['Super Exp. Charm'] || 0));
 
 	const charmMult = 1 + (0.25 * expCharmStacks) + (0.60 * superExpCharmStacks);
 
 	const result = new Map<number, number>();
+	const scaling = getLevelScaling(state.floor, config);
+	const levelCap = scaling.cap;
 
+	// Calculate Mean Level
+	const aliveTeam = state.team.map((mon, idx) => ({ mon, idx })).filter(m => (m.mon.currentHp ?? 100) > 0);
+	if (aliveTeam.length === 0) return result;
+
+	const meanLevel = aliveTeam.reduce((sum, m) => sum + m.mon.level, 0) / aliveTeam.length;
+	let pooledExp = 0;
+
+	// 1. Process Participants & Extract Penalties
 	for (const [teamIdx, baseExp] of expMap) {
-		result.set(teamIdx, Math.max(1, Math.floor(baseExp * charmMult)));
-	}
-
-	if (expAllStacks === 0) return result;
-
-	for (const [teamIdx, basePerParticipant] of baseShareExpMap) {
-		if (expMap.has(teamIdx)) continue;
 		const mon = state.team[teamIdx];
 		if (!mon || (mon.currentHp ?? 100) <= 0) continue;
+		
+		let rawExp = Math.floor(baseExp * charmMult);
+		let penalty = 0;
 
-		let benchedExp = Math.floor(basePerParticipant * expAllStacks * 0.2);
-		const hasLuckyEgg = mon.heldItem === 'luckyegg';
-		if (hasLuckyEgg) benchedExp = Math.floor(benchedExp * 1.4);
-		benchedExp = Math.max(1, Math.floor(benchedExp * charmMult));
+		if (mon.level >= levelCap) {
+			penalty = 1.0; // 100% funnel if at cap
+		} else if (mon.level > meanLevel) {
+			// Penalize based on distance from mean, scaled by Exp. All stacks
+			const diff = mon.level - meanLevel;
+			const basePenalty = diff * 0.15; // 15% penalty per level above mean
+			const scalingFactor = Math.max(1, expAllStacks) / maxExpAllStacks;
+			penalty = Math.min(1.0, basePenalty * scalingFactor);
+		}
 
-		result.set(teamIdx, benchedExp);
+		const keptExp = Math.floor(rawExp * (1 - penalty));
+		pooledExp += (rawExp - keptExp);
+		result.set(teamIdx, keptExp);
+	}
+
+	// 2. Process Benched Pokémon Base Share
+	if (expAllStacks > 0) {
+		for (const [teamIdx, basePerParticipant] of baseShareExpMap) {
+			if (expMap.has(teamIdx)) continue;
+			const mon = state.team[teamIdx];
+			if (!mon || (mon.currentHp ?? 100) <= 0) continue;
+			
+			let benchedExp = Math.floor(basePerParticipant * expAllStacks * 0.2);
+			const hasLuckyEgg = mon.heldItem === 'luckyegg';
+			if (hasLuckyEgg) benchedExp = Math.floor(benchedExp * 1.4);
+			benchedExp = Math.max(1, Math.floor(benchedExp * charmMult));
+			
+			let penalty = 0;
+			if (mon.level >= levelCap) {
+				penalty = 1.0;
+			} else if (mon.level > meanLevel) {
+				const diff = mon.level - meanLevel;
+				const basePenalty = diff * 0.15;
+				const scalingFactor = expAllStacks / maxExpAllStacks;
+				penalty = Math.min(1.0, basePenalty * scalingFactor);
+			}
+			
+			const keptExp = Math.floor(benchedExp * (1 - penalty));
+			pooledExp += (benchedExp - keptExp);
+			result.set(teamIdx, keptExp);
+		}
+	}
+
+	// 3. Redistribute Pooled Exp to Underleveled Pokémon
+	if (pooledExp > 0) {
+		// Target underleveled members. If none are strictly below the mean, target anyone not at cap.
+		let recipients = aliveTeam.filter(m => m.mon.level < levelCap && m.mon.level < meanLevel);
+		if (recipients.length === 0) {
+			recipients = aliveTeam.filter(m => m.mon.level < levelCap);
+		}
+		
+		if (recipients.length > 0) {
+			let totalWeight = 0;
+			const weights = new Map<number, number>();
+			const useDistanceWeighting = recipients.some(m => m.mon.level < meanLevel);
+			
+			for (const { mon, idx } of recipients) {
+				let weight = 1;
+				if (useDistanceWeighting) {
+					weight = Math.max(1, meanLevel - mon.level); // More weight the further below mean
+				}
+				if (mon.heldItem === 'luckyegg') weight *= 1.4;
+				weights.set(idx, weight);
+				totalWeight += weight;
+			}
+			
+			for (const { idx } of recipients) {
+				const share = (weights.get(idx)! / totalWeight) * pooledExp;
+				const current = result.get(idx) || 0;
+				result.set(idx, current + Math.floor(share));
+			}
+		}
+	}
+
+	// Ensure minimum 1 exp for participants if they weren't fully penalized by cap
+	for (const [teamIdx, _] of expMap) {
+		const current = result.get(teamIdx) || 0;
+		const mon = state.team[teamIdx];
+		if (mon && mon.level < levelCap && current === 0) {
+			result.set(teamIdx, 1);
+		}
 	}
 
 	return result;
@@ -270,7 +352,7 @@ function processBattleExperience(
 ): string[] {
 	const detailMsgs: string[] = [];
 	const { expMap: rawExpMap, baseShareExpMap } = parseKillExp(logLines, state, floor, isBossFloor, isTrainerBattle);
-	const expMap = applyExpShare(rawExpMap, baseShareExpMap, state);
+	const expMap = applyExpShare(rawExpMap, baseShareExpMap, state, config);
 
 	if (expMap.size > 0) {
 		for (const [teamIdx, expGained] of expMap) {
