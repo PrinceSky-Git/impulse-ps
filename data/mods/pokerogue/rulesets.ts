@@ -79,9 +79,9 @@ export const Rulesets: import('../../../sim/dex-formats').FormatDataTable = {
 		},
 	},
 	
-	pokerogueendless: {
+  pokerogueendlessrule: {
 		effectType: 'Rule',
-		name: 'PokeRogue Endless',
+		name: 'PokeRogue Endless Rule',
 		desc: 'Applies dynamic Boss Shields and special boss handling for PokéRogue Endless Mode.',
 
 		onSwitchIn(pokemon) {
