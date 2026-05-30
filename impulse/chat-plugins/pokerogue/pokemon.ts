@@ -196,20 +196,21 @@ export function getLevelScaling(floor: number, config?: ModeConfig): { cap: numb
 		return config.levelScalingFn(floor);
 	}
 
-	const waveIndex = Math.ceil(Math.max(1, floor) / 10) * 10;
-	const baseLevel = (1 + waveIndex / 2 + (waveIndex / 25) ** 2) * 1.2;
-	const cap = Math.max(2, Math.ceil(baseLevel / 2) * 2 + 2);
+	// Player level cap: ceil(wave / 10) * 10, matching real PokéRogue Classic
+	const cap = Math.ceil(Math.max(1, floor) / 10) * 10;
 
+	// Boss floors use the full cap as both min and max
 	if (floor % 10 === 0) {
 		return { cap, min: cap, max: cap };
 	}
 
-	const currentBase = (1 + floor / 2 + (floor / 25) ** 2) * 1.2;
-	const currentTargetLevel = Math.ceil(currentBase / 2) * 2;
-	const min = Math.max(2, currentTargetLevel - 1);
-	const max = Math.max(min, Math.min(cap - 1, currentTargetLevel + 1));
+	// Non-boss: base level with no boss multiplier, ±1 band
+	const baseLevel = 1 + floor / 2 + Math.pow(floor / 25, 2);
+	const target = Math.max(1, Math.round(baseLevel));
+	const min = Math.max(1, target - 1);
+	const max = Math.min(cap - 1, target + 1);
 
-	return { cap, min, max };
+	return { cap, min: Math.min(min, max), max };
 }
 
 export function levelScaleForFloor(floor: number, config?: ModeConfig): [number, number] {
