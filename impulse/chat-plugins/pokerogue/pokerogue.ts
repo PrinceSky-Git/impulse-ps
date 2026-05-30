@@ -1192,6 +1192,7 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 	const isStarterChoice = state.pendingChoiceType === 'starter' || !state.team?.length;
 	const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 	const data = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
+	const maxCost = config.maxStarterCost || 10;
 
 	let addedLevel = config.starterLevel ?? 5;
 	if (!isStarterChoice) {
@@ -1216,8 +1217,8 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 	if (isStarterChoice) {
 		const currentCost = state.team?.reduce((sum, mon) => sum + getStarterCost(mon.species), 0) || 0;
 		const newCost = getStarterCost(finalSpecies);
-		if (currentCost + newCost > 10) {
-			ctx.errorReply("Total starter cost cannot exceed 10.");
+		if (currentCost + newCost > maxCost) {
+			ctx.errorReply(`Total starter cost cannot exceed ${maxCost}.`);
 			return false;
 		}
 		if (state.team?.length >= 6) {
@@ -2096,8 +2097,11 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state?.isConfiguringStarter) return;
 
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const maxCost = config.maxStarterCost || 10;
+
 			const totalCost = state.team.reduce((sum, mon) => sum + getStarterCost(mon.species), 0);
-			if (totalCost > 10) return this.errorReply("Total starter cost cannot exceed 10.");
+			if (totalCost > maxCost) return this.errorReply(`Total starter cost cannot exceed ${maxCost}.`);
 
 			delete state.pendingChoice;
 			delete state.pendingChoiceType;
@@ -2109,6 +2113,7 @@ export const commands: Chat.ChatCommands = {
 			refreshGamePage(user);
 		},
 
+		
 		removestarter(target, room, user) {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'starterselect') return;
@@ -2124,8 +2129,12 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state || (state as any).view !== 'starterselect') return;
 			if (!state.team || state.team.length === 0) return this.errorReply("You must select at least one starter.");
+			
+			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
+			const maxCost = config.maxStarterCost || 10;
+			
 			const totalCost = state.team.reduce((sum, mon) => sum + getStarterCost(mon.species), 0);
-			if (totalCost > 10) return this.errorReply("Total starter cost cannot exceed 10.");
+			if (totalCost > maxCost) return this.errorReply(`Total starter cost cannot exceed ${maxCost}.`);
 
 			delete state.pendingChoice;
 			delete state.pendingChoiceType;
