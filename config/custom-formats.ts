@@ -36,7 +36,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		mod: 'pokerogue',
 		searchShow: false,
 		ruleset: [
-			'PokeRogue Endless',
+			'pokerogueendless',
 			'PokeRogue EXP Tracker',
 		],
 		DefaultLevel: 1,
@@ -49,7 +49,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		searchShow: false,
 		gameType: 'doubles',
 		ruleset: [
-			'PokeRogue Endless',
+			'pokerogueendless',
 			'PokeRogue EXP Tracker',
 		],
 		DefaultLevel: 1,
