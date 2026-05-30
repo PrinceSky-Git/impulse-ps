@@ -1011,7 +1011,8 @@ export function genAIPokemon(
 	abilityCharms = 0
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string, isDoubles?: boolean } {
 	const scale = getLevelScaling(floor, config);
-	const isBossFloor = floor % bossInterval === 0;
+	const activeBossInterval = config?.bossInterval || 10;
+	const isBossFloor = floor % activeBossInterval === 0;
 
 	let effectiveScale: [number, number];
 	if (isBossFloor && scale.bossLevel !== undefined) {
