@@ -200,13 +200,44 @@ export function getLevelScaling(floor: number, config?: ModeConfig): { cap: numb
 	const bossInterval = config?.bossInterval || 10;
 	const cap = Math.ceil(Math.max(1, floor) / bossInterval) * bossInterval;
 
-	const baseLevel = 1 + floor / 2 + Math.pow(floor / 25, 2);
+	// Canonical PokéRogue Boss Levels
+	const CLASSIC_BOSS_LEVELS: Record<number, number> = {
+		0: 3, // Base starting level metric for Floor 1 calculation
+		10: 10, 20: 16, 30: 24, 40: 32,
+		50: 38, 60: 48, 70: 56, 80: 64, 90: 74,
+		100: 84, 110: 94, 120: 104, 130: 114, 140: 126, 150: 138,
+		160: 150, 170: 162, 180: 174, 190: 188, 200: 200
+	};
 
+	// 1. Exact Boss Floor Handling
 	if (floor % bossInterval === 0) {
-		const bossBase = Math.max(1, Math.floor(baseLevel * 1.2));
-		const bossOffset = Math.floor(floor / 10);
-		const bossLevel = bossBase + Math.round((Math.random() * 2 - 1) * bossOffset);
+		let bossLevel = CLASSIC_BOSS_LEVELS[floor];
+		
+		// Deterministic fallback for Endless Mode / Floors above 200
+		if (bossLevel === undefined) {
+			const fallbackBase = 1 + floor / 2 + Math.pow(floor / 25, 2);
+			bossLevel = Math.max(1, Math.floor(fallbackBase * 1.2));
+		}
+		
 		return { cap, min: bossLevel, max: bossLevel, bossLevel };
+	}
+
+	// 2. Standard Floor Handling
+	let baseLevel = 1 + floor / 2 + Math.pow(floor / 25, 2); // Legacy formula fallback
+
+	// Smoothly interpolate levels between boss floors to prevent massive level jumps
+	if (floor < 200) {
+		const prevBossFloor = Math.floor(floor / bossInterval) * bossInterval;
+		const nextBossFloor = prevBossFloor + bossInterval;
+		
+		const prevLevel = CLASSIC_BOSS_LEVELS[prevBossFloor];
+		const nextLevel = CLASSIC_BOSS_LEVELS[nextBossFloor];
+
+		if (prevLevel !== undefined && nextLevel !== undefined) {
+			const progress = (floor % bossInterval) / bossInterval;
+			// Linear interpolation: scales smoothly up to the next boss
+			baseLevel = prevLevel + (nextLevel - prevLevel) * progress;
+		}
 	}
 
 	const target = Math.max(1, Math.round(baseLevel));
@@ -215,7 +246,6 @@ export function getLevelScaling(floor: number, config?: ModeConfig): { cap: numb
 
 	return { cap, min: Math.min(min, max), max };
 }
-
 
 export function levelScaleForFloor(floor: number, config?: ModeConfig): [number, number] {
 	const scaling = getLevelScaling(floor, config);
