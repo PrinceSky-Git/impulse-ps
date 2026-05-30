@@ -33,12 +33,12 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 	},
 	{
 		name: "[Gen 9] PokeRogue Endless",
-		mod: 'pokerogueendless',
+		mod: 'pokerogue',
 		searchShow: false,
 		ruleset: [
 			'Cancel Mod',
 			'HP Percentage Mod',
-			'PokeRogue Endless',
+			'PokeRogue Endless Rule',
 			'PokeRogue EXP Tracker',
 		],
 		DefaultLevel: 1,
@@ -47,13 +47,13 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 	},
 	{
 		name: "[Gen 9] PokeRogue Endless Doubles",
-		mod: 'pokerogueendless',
+		mod: 'pokerogue',
 		searchShow: false,
 		gameType: 'doubles',
 		ruleset: [
 			'Cancel Mod',
 			'HP Percentage Mod',
-			'PokeRogue Endless',
+			'PokeRogue Endless Rule',
 			'PokeRogue EXP Tracker',
 		],
 		DefaultLevel: 1,
