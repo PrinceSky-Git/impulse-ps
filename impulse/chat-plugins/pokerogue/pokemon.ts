@@ -191,27 +191,31 @@ export function calcKillExp(
 	return Math.max(1, expValue);
 }
 
-export function getLevelScaling(floor: number, config?: ModeConfig): { cap: number, min: number, max: number } {
+
+export function getLevelScaling(floor: number, config?: ModeConfig): { cap: number, min: number, max: number, bossLevel?: number } {
 	if (config?.levelScalingFn) {
 		return config.levelScalingFn(floor);
 	}
 
-	// Player level cap: ceil(wave / 10) * 10, matching real PokéRogue Classic
-	const cap = Math.ceil(Math.max(1, floor) / 10) * 10;
+	const bossInterval = config?.bossInterval || 10;
+	const cap = Math.ceil(Math.max(1, floor) / bossInterval) * bossInterval;
 
-	// Boss floors use the full cap as both min and max
-	if (floor % 10 === 0) {
-		return { cap, min: cap, max: cap };
+	const baseLevel = 1 + floor / 2 + Math.pow(floor / 25, 2);
+
+	if (floor % bossInterval === 0) {
+		const bossBase = Math.max(1, Math.floor(baseLevel * 1.2));
+		const bossOffset = Math.floor(floor / 10);
+		const bossLevel = bossBase + Math.round((Math.random() * 2 - 1) * bossOffset);
+		return { cap, min: bossLevel, max: bossLevel, bossLevel };
 	}
 
-	// Non-boss: base level with no boss multiplier, ±1 band
-	const baseLevel = 1 + floor / 2 + Math.pow(floor / 25, 2);
 	const target = Math.max(1, Math.round(baseLevel));
 	const min = Math.max(1, target - 1);
 	const max = Math.min(cap - 1, target + 1);
 
 	return { cap, min: Math.min(min, max), max };
 }
+
 
 export function levelScaleForFloor(floor: number, config?: ModeConfig): [number, number] {
 	const scaling = getLevelScaling(floor, config);
@@ -1007,12 +1011,13 @@ export function genAIPokemon(
 	abilityCharms = 0
 ): { team: AIPokemonSet[], isTrainer: boolean, trainerName?: string, isDoubles?: boolean } {
 	const scale = getLevelScaling(floor, config);
-	const bossInterval = config?.bossInterval || 10;
 	const isBossFloor = floor % bossInterval === 0;
 
-	let effectiveScale: [number, number] = [scale.min, scale.max];
-	if (isBossFloor) {
-		effectiveScale = [scale.cap, scale.cap];
+	let effectiveScale: [number, number];
+	if (isBossFloor && scale.bossLevel !== undefined) {
+		effectiveScale = [scale.bossLevel, scale.bossLevel];
+	} else {
+		effectiveScale = [scale.min, scale.max];
 	}
 
 	let forcedTeam: (string | TrainerMon)[] | undefined = undefined;
