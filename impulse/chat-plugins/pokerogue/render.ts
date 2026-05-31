@@ -30,54 +30,6 @@ const SPRITE_ID_OVERRIDES: { [id: string]: string } = {
 	ursalunabloodmoon: 'ursaluna',
 };
 
-const CUSTOM_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/lure/';
-const CUSTOM_ICON_MAP: Record<string, string> = {
-	'Lure': 'lure.png',
-	'Super Lure': 'super-lure.png',
-	'Max Lure': 'max-lure.png',
-};
-
-const XITEM_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/xitems/';
-const XITEM_ICON_MAP: Record<string, string> = {
-	'X Attack': 'x-attack.png',
-	'X Defense': 'x-defense.png',
-	'X Sp. Atk': 'x-sp-atk.png',
-	'X Sp. Def': 'x-sp-def.png',
-	'X Speed': 'x-speed.png',
-};
-
-const MINT_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/mints/';
-const MINT_ICON_MAP: Record<string, string> = {
-	'Atk Mint': 'Lonely-Mint.png',
-	'Def Mint': 'Bold-Mint.png',
-	'SpAtk Mint': 'Modest-Mind.png',
-	'SpDef Mint': 'Calm-Mint.png',
-	'Spe Mint': 'Timid-Mint.png',
-	'Neutral Mint': 'Serious-Mint.png',
-};
-
-const TM_SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/tms/';
-const TM_ICON_MAP: Record<string, string> = {
-	'TM Normal': 'normal-tm.png',
-	'TM Fire': 'fire-tm.png',
-	'TM Water': 'water-tm.png',
-	'TM Grass': 'grass-tm.png',
-	'TM Electric': 'eletric-tm.png',
-	'TM Ice': 'ice-tm.png',
-	'TM Fighting': 'fighting-tm.png',
-	'TM Poison': 'poison-tm.png',
-	'TM Ground': 'ground-tm.png',
-	'TM Flying': 'flying-tm.png',
-	'TM Psychic': 'psychic-tm.png',
-	'TM Bug': 'bug-tm.png',
-	'TM Rock': 'rock-tm.png',
-	'TM Ghost': 'ghost-tm.png',
-	'TM Dragon': 'dragon-tm.png',
-	'TM Dark': 'dark-tm.png',
-	'TM Steel': 'steel-tm.png',
-	'TM Fairy': 'fairy-tm.png',
-};
-
 interface DialogConfig {
 	title: string;
 	spriteUrl?: string;
@@ -135,25 +87,49 @@ function getSprite(species: string, size = 80, shiny = false, className = 'pr-mo
 }
 
 function getShopItemIcon(icon: string, size = 20): string {
-	const mintFile = MINT_ICON_MAP[icon];
-	if (mintFile) {
-		return `<img src="${Utils.escapeHTML(MINT_SPRITE_BASE + mintFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
-	}
-	const tmFile = TM_ICON_MAP[icon];
-	if (tmFile) {
-		return `<img src="${Utils.escapeHTML(TM_SPRITE_BASE + tmFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
-	}
-	const customFile = CUSTOM_ICON_MAP[icon];
-	if (customFile) {
-		return `<img src="${Utils.escapeHTML(CUSTOM_SPRITE_BASE + customFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
-	}
-	const xItemFile = XITEM_ICON_MAP[icon];
-	if (xItemFile) {
-		return `<img src="${Utils.escapeHTML(XITEM_SPRITE_BASE + xItemFile)}" width="${size}" height="${size}" class="pr-shop-icon">`;
-	}
-	const url = `https://www.smogon.com/forums/media/minisprites/${itemURLFormat(icon)}.png`;
+	const file = SHOP_ICON_MAP[icon];
+	const url = file
+		? SPRITE_BASE + file
+		: `https://www.smogon.com/forums/media/minisprites/${itemURLFormat(icon)}.png`;
 	return `<img src="${Utils.escapeHTML(url)}" width="${size}" height="${size}" class="pr-shop-icon">`;
 }
+
+const SPRITE_BASE = 'https://raw.githubusercontent.com/PrinceSky-Git/pokemon-showdown/master/impulse/chat-plugins/pokerogue/sprites/';
+
+const SHOP_ICON_MAP: Record<string, string> = {
+	'Lure': 'lure.png',
+	'Super Lure': 'super-lure.png',
+	'Max Lure': 'max-lure.png',
+	'X Attack': 'x-attack.png',
+	'X Defense': 'x-defense.png',
+	'X Sp. Atk': 'x-sp-atk.png',
+	'X Sp. Def': 'x-sp-def.png',
+	'X Speed': 'x-speed.png',
+	'Atk Mint': 'lonely-mint.png',
+	'Def Mint': 'bold-mint.png',
+	'SpAtk Mint': 'modest-mint.png',
+	'SpDef Mint': 'calm-mint.png',
+	'Spe Mint': 'timid-mint.png',
+	'Neutral Mint': 'serious-mint.png',
+	'TM Normal': 'normal-tm.png',
+	'TM Fire': 'fire-tm.png',
+	'TM Water': 'water-tm.png',
+	'TM Grass': 'grass-tm.png',
+	'TM Electric': 'electric-tm.png',
+	'TM Ice': 'ice-tm.png',
+	'TM Fighting': 'fighting-tm.png',
+	'TM Poison': 'poison-tm.png',
+	'TM Ground': 'ground-tm.png',
+	'TM Flying': 'flying-tm.png',
+	'TM Psychic': 'psychic-tm.png',
+	'TM Bug': 'bug-tm.png',
+	'TM Rock': 'rock-tm.png',
+	'TM Ghost': 'ghost-tm.png',
+	'TM Dragon': 'dragon-tm.png',
+	'TM Dark': 'dark-tm.png',
+	'TM Steel': 'steel-tm.png',
+	'TM Fairy': 'fairy-tm.png',
+};
 
 function getPokeballInfo(speciesId: string, ball?: string): { src: string, alt: string } {
 	const BASE = 'https://raw.githubusercontent.com/smogon/sprites/master/src/minisprites/items/';
