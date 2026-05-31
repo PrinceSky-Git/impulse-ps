@@ -46,6 +46,8 @@ export const classicConfig: ModeConfig = {
 		{ floor: 10, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. All', amount: 1 },
 		{ floor: 25, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
+		{ floor: 100, interval: true, itemType: 'voucher', itemName: 'premium', amount: 1 },
+		{ floor: 200, interval: true, itemType: 'voucher', itemName: 'gold', amount: 1 },
 	],
 
 	maxFloor: 200,
