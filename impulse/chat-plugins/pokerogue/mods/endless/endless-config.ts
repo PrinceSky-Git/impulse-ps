@@ -107,7 +107,7 @@ export const endlessConfig: ModeConfig = {
 		{ floor: 50, interval: false, itemType: 'keyItem', itemName: 'Exp. Charm', amount: 1 },
 		{ floor: 100, interval: true, itemType: 'voucher', itemName: 'plus', amount: 1 },
 		{ floor: 200, interval: true, itemType: 'voucher', itemName: 'premium', amount: 1 },
-		{ floor: 500, interval: true, itemType: 'voucher', itemName: 'gold', amount: 1 ),
+		{ floor: 500, interval: true, itemType: 'voucher', itemName: 'gold', amount: 1 },
 	],
 
 	maxFloor: 4000,
