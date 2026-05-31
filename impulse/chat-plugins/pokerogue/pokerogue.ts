@@ -11,7 +11,7 @@ import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
 	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution,
-	getEggMoves, getAllLevelUpMoves, getLevelScaling,
+	getEggMoves, getAllLevelUpMoves, getLevelScaling, rollTeraTypeForSpecies,
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser, parseBattleState } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -434,13 +434,7 @@ function processFloorRewards(
 				const allNatures = Dex.natures.all().map(n => n.name);
 				const randomNature = allNatures[Math.floor(Math.random() * allNatures.length)] || 'Hardy';
 
-				let generatedTeraType = 'Normal';
-				if (Math.random() < 0.8 && dexSpecies.types.length > 0) {
-					generatedTeraType = dexSpecies.types[Math.floor(Math.random() * dexSpecies.types.length)];
-				} else {
-					const allTypes = Dex.types.all().map(t => t.name);
-					generatedTeraType = allTypes[Math.floor(Math.random() * allTypes.length)] || 'Normal';
-				}
+				const generatedTeraType = rollTeraTypeForSpecies(sid);
 
 				let haName = '';
 				if (dexSpecies.abilities['H']) {
@@ -502,6 +496,10 @@ function processFloorRewards(
 						starter.unlockedTeraTypes.push(generatedTeraType);
 						unlockedFeatures.push('Tera');
 					}
+					const hasLegacyNormalTera = starter.teraType === 'Normal' && !dexSpecies.types.includes('Normal');
+					const hasLegacySelectedTera = starter.selectedTeraType === 'Normal' && !dexSpecies.types.includes('Normal');
+					if (!starter.teraType || hasLegacyNormalTera) starter.teraType = generatedTeraType;
+					if (!starter.selectedTeraType || hasLegacySelectedTera) starter.selectedTeraType = generatedTeraType;
 
 					if (haName) {
 						if (!starter.unlockedAbilities) starter.unlockedAbilities = [starter.ability || dexSpecies.abilities['0'] || ''];

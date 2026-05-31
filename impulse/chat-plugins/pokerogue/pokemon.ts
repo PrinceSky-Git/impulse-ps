@@ -717,6 +717,16 @@ function calcEVSpread(_species: Species, _floor: number): StatTable {
 	return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 }
 
+export function rollTeraTypeForSpecies(speciesName: string): string {
+	const dexSpecies = Dex.species.get(toID(speciesName));
+	const speciesTypes = dexSpecies.types.length ? dexSpecies.types : ['Normal'];
+	if (Math.random() < 0.8) {
+		return speciesTypes[Math.floor(Math.random() * speciesTypes.length)] || 'Normal';
+	}
+	const allTypes = Dex.types.all().map(t => t.name);
+	return allTypes[Math.floor(Math.random() * allTypes.length)] || 'Normal';
+}
+
 function pickRandomHeldItem(speciesName: string): string {
 	if (Math.floor(Math.random() * 20) !== 0) return '';
 	const allItems = Dex.items.all().filter(i => {

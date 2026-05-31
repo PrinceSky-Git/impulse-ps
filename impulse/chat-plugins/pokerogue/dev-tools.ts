@@ -180,13 +180,7 @@ export const devCommands: Chat.ChatCommands = {
 			const allNatures = Dex.natures.all().map(n => n.name);
 			const randomNature = allNatures[Math.floor(Math.random() * allNatures.length)] || 'Hardy';
 
-			let generatedTeraType = 'Normal';
-			if (Math.random() < 0.8 && dexSpecies.types.length > 0) {
-				generatedTeraType = dexSpecies.types[Math.floor(Math.random() * dexSpecies.types.length)];
-			} else {
-				const allTypes = Dex.types.all().map(t => t.name);
-				generatedTeraType = allTypes[Math.floor(Math.random() * allTypes.length)] || 'Normal';
-			}
+			const generatedTeraType = rollTeraTypeForSpecies(sid);
 
 			let haName = '';
 			if (egg.hiddenAbility && dexSpecies.abilities['H']) {
@@ -231,6 +225,10 @@ export const devCommands: Chat.ChatCommands = {
 
 				if (!starter.unlockedTeraTypes) starter.unlockedTeraTypes = [starter.teraType || 'Normal'];
 				if (!starter.unlockedTeraTypes.includes(generatedTeraType)) starter.unlockedTeraTypes.push(generatedTeraType);
+				const hasLegacyNormalTera = starter.teraType === 'Normal' && !dexSpecies.types.includes('Normal');
+				const hasLegacySelectedTera = starter.selectedTeraType === 'Normal' && !dexSpecies.types.includes('Normal');
+				if (!starter.teraType || hasLegacyNormalTera) starter.teraType = generatedTeraType;
+				if (!starter.selectedTeraType || hasLegacySelectedTera) starter.selectedTeraType = generatedTeraType;
 
 				if (haName) {
 					if (!starter.unlockedAbilities) starter.unlockedAbilities = [starter.ability || dexSpecies.abilities['0'] || ''];
