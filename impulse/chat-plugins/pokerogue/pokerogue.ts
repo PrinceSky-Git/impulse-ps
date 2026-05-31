@@ -1,5 +1,5 @@
 import { Utils } from '../../../lib';
-import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig } from './types';
+import { type PokemonEntry, type PokeRogueState, type StatusCondition, type GameMode, type ModeConfig, type BiomePool, type PokeRogueView, type EggData, type StatTable } from './types';
 import { EGG_POOLS, getStarterCost, type EggTier } from './starter-data';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { CATCH_RATES } from './pokemon-basic-data';
@@ -11,7 +11,7 @@ import {
 	pickStarterOptions, expForLevel, applyExpAndLevelUp, getLevelUpEvo,
 	getLevelUpMoves, getMovesLearnedBetween, calcKillExp, getExpType, getExpYield, botLevel,
 	packTeam, genPokemon, processLevelUpEvolutions, getItemEvolution, getMegaEvolution,
-	getEggMoves, getAllLevelUpMoves, getLevelScaling,
+	getEggMoves, getAllLevelUpMoves, getLevelScaling, rollTeraTypeForSpecies,
 } from './pokemon';
 import { activeMatches, startBattle, destroyBotUser, parseBattleState } from './battle';
 import { renderGamePage, refreshGamePage } from './render';
@@ -69,7 +69,7 @@ function parseFloorRange(range: string): { start: number, end: number } | null {
 
 function pickNextBiome(
 	currentBiome: string,
-	data: { transitions: Record<string, { biome: string, weight: number }[]>, excludedBiomes?: string[], biomes: Record<string, any> },
+	data: { transitions: Record<string, { biome: string, weight: number }[]>, excludedBiomes?: string[], biomes: Record<string, BiomePool> },
 	startingBiome: string
 ): string {
 	const excluded = new Set(data.excludedBiomes ?? []);
@@ -426,7 +426,7 @@ function processFloorRewards(
 			egg.wavesRemaining--;
 			if (egg.wavesRemaining <= 0) {
 				const sid = toID(egg.species);
-				const bannerType = (egg as any).bannerType || 'generic';
+				const bannerType = egg.bannerType || 'generic';
 				const shinyOdds = bannerType === 'shiny' ? 64 : 128;
 				const isShiny = Math.floor(Math.random() * shinyOdds) === 0;
 				const dexSpecies = Dex.species.get(sid);
@@ -434,13 +434,7 @@ function processFloorRewards(
 				const allNatures = Dex.natures.all().map(n => n.name);
 				const randomNature = allNatures[Math.floor(Math.random() * allNatures.length)] || 'Hardy';
 
-				let generatedTeraType = 'Normal';
-				if (Math.random() < 0.8 && dexSpecies.types.length > 0) {
-					generatedTeraType = dexSpecies.types[Math.floor(Math.random() * dexSpecies.types.length)];
-				} else {
-					const allTypes = Dex.types.all().map(t => t.name);
-					generatedTeraType = allTypes[Math.floor(Math.random() * allTypes.length)] || 'Normal';
-				}
+				const generatedTeraType = rollTeraTypeForSpecies(sid);
 
 				let haName = '';
 				if (dexSpecies.abilities['H']) {
@@ -502,6 +496,10 @@ function processFloorRewards(
 						starter.unlockedTeraTypes.push(generatedTeraType);
 						unlockedFeatures.push('Tera');
 					}
+					const hasLegacyNormalTera = starter.teraType === 'Normal' && !dexSpecies.types.includes('Normal');
+					const hasLegacySelectedTera = starter.selectedTeraType === 'Normal' && !dexSpecies.types.includes('Normal');
+					if (!starter.teraType || hasLegacyNormalTera) starter.teraType = generatedTeraType;
+					if (!starter.selectedTeraType || hasLegacySelectedTera) starter.selectedTeraType = generatedTeraType;
 
 					if (haName) {
 						if (!starter.unlockedAbilities) starter.unlockedAbilities = [starter.ability || dexSpecies.abilities['0'] || ''];
@@ -748,8 +746,8 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 				if (item) state.money = (state.money || 0) + getItemPrice(state.floor, item.moneyMultiplier);
 			}
 
-			if (state.pendingRewardDraft) (state as any).view = 'draft';
-			else { state.floor++; (state as any).view = 'main'; }
+			if (state.pendingRewardDraft) state.view = 'draft';
+			else { state.floor++; state.view = 'main'; }
 			return true;
 		}
 
@@ -779,8 +777,8 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 				delete state.pendingDraftPick;
 			}
 
-			if (state.pendingRewardDraft) (state as any).view = 'draft';
-			else { state.floor++; (state as any).view = 'main'; }
+			if (state.pendingRewardDraft) state.view = 'draft';
+			else { state.floor++; state.view = 'main'; }
 			return true;
 		}
 
@@ -863,8 +861,8 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			delete state.pendingDraftPick;
 		}
 
-		if (state.pendingRewardDraft) (state as any).view = 'draft';
-		else { state.floor++; (state as any).view = 'main'; }
+		if (state.pendingRewardDraft) state.view = 'draft';
+		else { state.floor++; state.view = 'main'; }
 		return true;
 	},
 
@@ -887,8 +885,8 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 				if (item) state.money = (state.money || 0) + getItemPrice(state.floor, item.moneyMultiplier);
 			}
 
-			if (state.pendingRewardDraft) (state as any).view = 'draft';
-			else { state.floor++; (state as any).view = 'main'; }
+			if (state.pendingRewardDraft) state.view = 'draft';
+			else { state.floor++; state.view = 'main'; }
 			return true;
 		}
 
@@ -1032,8 +1030,8 @@ const ActionResolvers: Record<string, (state: PokeRogueState, user: User, rest: 
 			delete state.pendingDraftPick;
 		}
 
-		if (state.pendingRewardDraft) (state as any).view = 'draft';
-		else { state.floor++; (state as any).view = 'main'; }
+		if (state.pendingRewardDraft) state.view = 'draft';
+		else { state.floor++; state.view = 'main'; }
 		return true;
 	},
 };
@@ -1043,7 +1041,7 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 		delete state.pendingRewardDraft;
 		delete state.rerollCount;
 		state.floor++;
-		(state as any).view = 'main';
+		state.view = 'main';
 		return true;
 	}
 
@@ -1074,7 +1072,7 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 		delete state.pendingRewardDraft;
 		delete state.rerollCount;
 		state.floor++;
-		(state as any).view = 'main';
+		state.view = 'main';
 	} else if (item.type === 'key') {
 		state.keyItems = state.keyItems || {};
 		const maxStack = item.maxStack ?? 1;
@@ -1088,7 +1086,7 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 		delete state.pendingRewardDraft;
 		delete state.rerollCount;
 		state.floor++;
-		(state as any).view = 'main';
+		state.view = 'main';
 	} else if (item.type === 'itemPack') {
 		delete state.pendingRewardDraft;
 		delete state.rerollCount;
@@ -1096,19 +1094,19 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 		if (itemKey === 'starter_token') {
 			state.notification = `You unlocked a new Starter!`;
 			state.floor++;
-			(state as any).view = 'main';
+			state.view = 'main';
 		} else if (itemKey === 'lure' || itemKey === 'superlure' || itemKey === 'maxlure') {
 			const charges = itemKey === 'lure' ? 5 : itemKey === 'superlure' ? 10 : 25;
 			state.lureCharges = (state.lureCharges || 0) + charges;
 			state.notification = `Lure active! Doubles chance increased for ${state.lureCharges} battles!`;
 			state.floor++;
-			(state as any).view = 'main';
+			state.view = 'main';
 		} else if (itemKey === 'rarercandy') {
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 			const notifs = applyRarerCandy(state, config);
 			state.notification = notifs.join('<br>');
 			state.floor++;
-			(state as any).view = 'main';
+			state.view = 'main';
 		} else {
 			const amuletCoinStacks = state.keyItems?.['Amulet Coin'] || 0;
 			let rewardMoney = getRewardMoney(state.floor, item.moneyMultiplier || 1);
@@ -1117,7 +1115,7 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 			state.money = (state.money || 0) + rewardMoney;
 			state.notification = `You sold the ${item.name} for $${rewardMoney}!`;
 			state.floor++;
-			(state as any).view = 'main';
+			state.view = 'main';
 		}
 	} else if (item.type === 'item' || item.type === 'evolveItem' || item.type === 'megaStone' || item.type === 'stackableItem' || item.type === 'gmaxMushroom') {
 		state.pendingDraftPick = true;
@@ -1127,12 +1125,12 @@ function handleDraftAction(target: string, user: User, state: PokeRogueState, ct
 		state.pendingItemIsMega = item.type === 'megaStone';
 		state.pendingItemIsGmax = item.type === 'gmaxMushroom';
 		state.pendingItemIsStackable = item.type === 'stackableItem' || itemKey === 'metalcoat';
-		(state as any).view = 'main';
+		state.view = 'main';
 	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
 		state.pendingDraftPick = true;
 		state.purchasedItem = itemKey;
 		state.pendingConsumableType = item.type;
-		(state as any).view = 'main';
+		state.view = 'main';
 	}
 	return true;
 }
@@ -1164,8 +1162,8 @@ function handleBuyShopAction(target: string, user: User, state: PokeRogueState, 
 		const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 		const notifs = applyRarerCandy(state, config);
 		state.notification = notifs.join('<br>');
-		if (state.pendingRewardDraft) (state as any).view = 'draft';
-		else { state.floor++; (state as any).view = 'main'; }
+		if (state.pendingRewardDraft) state.view = 'draft';
+		else { state.floor++; state.view = 'main'; }
 		return true;
 	}
 
@@ -1176,10 +1174,10 @@ function handleBuyShopAction(target: string, user: User, state: PokeRogueState, 
 		state.pendingItemIsMega = item.type === 'megaStone';
 		state.pendingItemIsGmax = item.type === 'gmaxMushroom';
 		state.pendingItemIsStackable = item.type === 'stackableItem' || itemKey === 'metalcoat';
-	} else if (['healHP', 'revive', 'cureStatus', 'vitamin', 'tm', 'mint', 'rareCandy', 'xItem'].includes(item.type)) {
+	} else if (item.type === 'healHP' || item.type === 'revive' || item.type === 'cureStatus' || item.type === 'vitamin' || item.type === 'tm' || item.type === 'mint' || item.type === 'rareCandy' || item.type === 'xItem') {
 		state.pendingConsumableType = item.type;
 	}
-	(state as any).view = 'main';
+	state.view = 'main';
 	return true;
 }
 
@@ -1248,7 +1246,7 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 	const commonProps = {
 		ivs: savedStarter?.ivs ? { ...savedStarter.ivs } : randomIvs,
 		evs: savedStarter?.evs ? { ...savedStarter.evs } : { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-		shiny, gender: gender as any, teraType, happiness: 120,
+		shiny, gender: gender === 'M' || gender === 'F' || gender === 'N' ? gender : 'N', teraType, happiness: 120,
 		originalTrainer: state.displayName || user.name, otId: user.id.substring(0, 6),
 		metLocation: "Professor Oak's Lab", metLevel: addedLevel, metDate: Date.now(),
 		marks: savedStarter?.marks ? [...savedStarter.marks] : [], ball: savedStarter?.ball || 'pokeball',
@@ -1287,7 +1285,7 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 			species: finalSpecies, level: addedLevel, exp: expForLevel(addedLevel, finalExpType), expType: finalExpType,
 			moves: validatedMoves,
 			nature: savedStarter?.selectedNature || savedStarter?.nature || displayNature,
-			ability: savedStarter?.selectedAbility || savedStarter?.ability || (Dex.species.get(finalSpecies).abilities as any)['0'] || '', ...commonProps,
+			ability: savedStarter?.selectedAbility || savedStarter?.ability || Dex.species.get(finalSpecies).abilities[0] || '', ...commonProps,
 		} as PokemonEntry;
 	}
 
@@ -1314,8 +1312,8 @@ function handleChooseAction(target: string, user: User, state: PokeRogueState, c
 			delete state.pendingChoice;
 			delete state.pendingChoiceType;
 			delete state.pendingChoiceFloor;
-			(state as any).view = 'stats';
-			(state as any).pendingStatsSlot = 0;
+			state.view = 'stats';
+			state.pendingStatsSlot = 0;
 		}
 	} else if (state.team.length < 6) {
 		state.team.push(newMon);
@@ -1361,12 +1359,12 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 	if ((state.inventory[ballType] || 0) <= 0) { ctx.errorReply(`You don't have any ${ballType}s left!`); return; }
 
 	const now = Date.now();
-	const lastThrow = (state as any).lastThrowTime || 0;
+	const lastThrow = state.lastThrowTime || 0;
 	if (now - lastThrow < 1500) {
 		ctx.errorReply("Please wait a moment before throwing another Poké Ball.");
 		return;
 	}
-	(state as any).lastThrowTime = now;
+	state.lastThrowTime = now;
 
 	const log = room.log?.log || [];
 	const parsed = parseBattleState(log, state.team);
@@ -1421,7 +1419,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		`<button name="send" value="/pokerogue catch masterball" class="button" ${inv['masterball'] ? '' : 'disabled'}>Master Ball (${inv['masterball'] || 0})</button>` +
 		`</div>`;
 
-	user.sendTo(room, `|uhtmlchange|catchpanel-${turn}|${catchHTML}`);
+	user.sendTo(room as BasicRoom, `|uhtmlchange|catchpanel-${turn}|${catchHTML}`);
 	room.add(`|c|~|You threw a ${ballType}!`).update();
 
 	const baseCatchRate = CATCH_RATES[p2Species] || 45;
@@ -1476,15 +1474,15 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 		const randomNature = natures[Math.floor(Math.random() * natures.length)];
 
 		let caughtMoves = getLevelUpMoves(p2Species, p2Level, config.generation);
-		let caughtAbility = (Dex.species.get(p2Species).abilities as any)['0'] || '';
+		let caughtAbility = Dex.species.get(p2Species).abilities[0] || '';
 		let caughtItem = '';
 
-		const freshCaughtIvs = {
+		const freshCaughtIvs: StatTable = {
 			hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32), def: Math.floor(Math.random() * 32),
 			spa: Math.floor(Math.random() * 32), spd: Math.floor(Math.random() * 32), spe: Math.floor(Math.random() * 32),
 		};
 		let caughtShiny = false;
-		let caughtGender = Dex.species.get(p2Species).gender || (Math.random() < 0.5 ? 'M' : 'F');
+		let caughtGender: PokemonEntry['gender'] = Dex.species.get(p2Species).gender || (Math.random() < 0.5 ? 'M' : 'F');
 		let caughtTera = Dex.species.get(p2Species).types[0];
 
 		if (catchMatch.botTeam) {
@@ -1494,23 +1492,23 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 				if (botMon.ability) caughtAbility = botMon.ability;
 				if (botMon.item) caughtItem = botMon.item;
 				if (botMon.shiny) caughtShiny = botMon.shiny;
-				if (botMon.gender) caughtGender = botMon.gender;
+				if (botMon.gender === 'M' || botMon.gender === 'F' || botMon.gender === 'N') caughtGender = botMon.gender;
 				if (botMon.teraType) caughtTera = botMon.teraType;
 			}
 		}
 
-		const caught: any = {
+		const caught: PokemonEntry = {
 			species: p2Species, level: p2Level, exp: expForLevel(p2Level, getExpType(p2Species)), expType: getExpType(p2Species),
 			moves: caughtMoves, nature: randomNature, currentHp: hpPct, ability: caughtAbility, ball: ballType,
 			ivs: freshCaughtIvs, evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-			shiny: caughtShiny, gender: caughtGender as any, teraType: caughtTera, happiness: 70,
+			shiny: caughtShiny, gender: caughtGender === 'M' || caughtGender === 'F' || caughtGender === 'N' ? caughtGender : 'N', teraType: caughtTera, happiness: 70,
 			originalTrainer: state.displayName || user.name, otId: user.id.substring(0, 6),
 			metLocation: `${state.currentBiome || 'Wild Area'} (Floor ${state.floor})`, metLevel: p2Level,
 			metDate: Date.now(), marks: [],
 		};
 
 		if (caughtItem) caught.heldItem = caughtItem;
-		if (p2Status && p2Status !== 'none') caught.status = p2Status;
+		if (p2Status === 'brn' || p2Status === 'psn' || p2Status === 'tox' || p2Status === 'par' || p2Status === 'slp' || p2Status === 'frz') caught.status = p2Status;
 
 		const userData = getUserData(user.id);
 
@@ -1526,11 +1524,11 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 			const existingStarter = userData.starters[baseSpecies];
 			const baseDex = Dex.species.get(baseSpecies);
 
-			const bestIvs = existingStarter?.ivs ? {
-				hp: Math.max(existingStarter.ivs.hp, caught.ivs.hp), atk: Math.max(existingStarter.ivs.atk, caught.ivs.atk),
-				def: Math.max(existingStarter.ivs.def, caught.ivs.def), spa: Math.max(existingStarter.ivs.spa, caught.ivs.spa),
-				spd: Math.max(existingStarter.ivs.spd, caught.ivs.spd), spe: Math.max(existingStarter.ivs.spe, caught.ivs.spe),
-			} : { ...caught.ivs };
+			const bestIvs: StatTable = existingStarter?.ivs ? {
+				hp: Math.max(existingStarter.ivs.hp, freshCaughtIvs.hp), atk: Math.max(existingStarter.ivs.atk, freshCaughtIvs.atk),
+				def: Math.max(existingStarter.ivs.def, freshCaughtIvs.def), spa: Math.max(existingStarter.ivs.spa, freshCaughtIvs.spa),
+				spd: Math.max(existingStarter.ivs.spd, freshCaughtIvs.spd), spe: Math.max(existingStarter.ivs.spe, freshCaughtIvs.spe),
+			} : { ...freshCaughtIvs };
 
 			const isShiny = existingStarter?.shiny || caught.shiny;
 
@@ -1556,7 +1554,7 @@ function handleCatchAction(target: string, room: AnyObject, user: User, state: P
 			const selectedAbility = existingStarter?.selectedAbility || caught.ability;
 			const selectedTeraType = existingStarter?.selectedTeraType || caught.teraType;
 
-			const baseCaught = {
+			const baseCaught: PokemonEntry = {
 				...caught, species: baseSpecies, level: 5, exp: expForLevel(5, getExpType(baseSpecies)), expType: getExpType(baseSpecies),
 				moves: getLevelUpMoves(baseSpecies, 5, config.generation), ability: selectedAbility, nature: selectedNature,
 				shiny: !!isShiny, ivs: bestIvs, evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
@@ -1642,20 +1640,22 @@ export const commands: Chat.ChatCommands = {
 
 			if (!state || (!hasActiveRun && !isGameOver)) {
 				const defaultConfig = MODE_CONFIGS['classic'];
+				const previousHighestFloor = state?.highestFloor || 0;
+				const previousRecordTeam = state?.recordTeam || [];
 				state = {
 					floor: 1, gameMode: 'classic', currentBiome: defaultConfig.startingBiome, team: [],
 					money: defaultConfig.economy.startingMoney || 0, timesRerolled: 0, rotationalShop: [],
 					keyItems: { ...(defaultConfig.economy.startingKeyItems || {}) },
 					inventory: { ...(defaultConfig.economy.startingInventory || {}) },
-					highestFloor: state?.highestFloor || 0, displayName: state?.displayName || user.name,
-					recordTeam: state?.recordTeam || [],
+					highestFloor: previousHighestFloor, displayName: state?.displayName || user.name,
+					recordTeam: previousRecordTeam,
 				} as PokeRogueState;
 
-				(state as any).view = (!state && (state as any)?.highestFloor === 0) ? 'welcome' : 'main';
+				state.view = previousHighestFloor === 0 ? 'welcome' : 'main';
 				setState(user.id, state);
 			}
 
-			if ((state as any).view !== 'welcome') repairEmptyPendingChoice(state, user.id);
+			if (state.view !== 'welcome') repairEmptyPendingChoice(state, user.id);
 			return this.parse('/join view-pokerogue');
 		},
 
@@ -1697,7 +1697,7 @@ export const commands: Chat.ChatCommands = {
 				displayName: existingInMode?.displayName || user.name, recordTeam: existingInMode?.recordTeam || [],
 			};
 
-			(newState as any).view = useNewStarterSelectionUI ? 'starterselect' : 'main';
+			newState.view = useNewStarterSelectionUI ? 'starterselect' : 'main';
 			setState(user.id, newState);
 			return this.parse('/pokerogue start');
 		},
@@ -1716,7 +1716,7 @@ export const commands: Chat.ChatCommands = {
 			saveUserData(user.id);
 
 			state.notification = `Progress successfully saved to <b>Slot ${slot}</b>!`;
-			(state as any).view = 'main';
+			state.view = 'main';
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
@@ -1735,7 +1735,7 @@ export const commands: Chat.ChatCommands = {
 				if (bRoom?.battle && !bRoom.battle.ended) return this.errorReply("You cannot load a game while currently in a battle!");
 			}
 
-			const restoredState = JSON.parse(JSON.stringify(slotData));
+			const restoredState = JSON.parse(JSON.stringify(slotData)) as PokeRogueState;
 			userData.runs[restoredState.gameMode] = restoredState;
 			userData.activeMode = restoredState.gameMode;
 			delete userData.saveSlots[slot];
@@ -1744,7 +1744,7 @@ export const commands: Chat.ChatCommands = {
 			const newState = getState(user.id);
 			if (newState) {
 				newState.notification = `Game loaded successfully from <b>Slot ${slot}</b>!`;
-				(newState as any).view = 'main';
+				newState.view = 'main';
 				setState(user.id, newState);
 			}
 			refreshGamePage(user);
@@ -1801,13 +1801,13 @@ export const commands: Chat.ChatCommands = {
 			if (!state) return this.parse('/pokerogue start');
 
 			const args = target.trim().split(' ');
-			const v = args[0] as any;
+			const v = args[0] as PokeRogueView;
 
 			if (['main', 'top', 'guide', 'resetconfirm', 'welcome', 'stats', 'save', 'load', 'starterselect', 'draft', 'gacha', 'incubator'].includes(v)) {
 				if (v === 'main' && !state.isConfiguringStarter && state.pendingChoiceType === 'starter' && state.pendingChoice?.length) {
 					const modeData = MODE_REGISTRY[state.gameMode] || MODE_REGISTRY['classic'];
 					if (modeData.useNewStarterSelectionUI !== false) {
-						(state as any).view = 'starterselect';
+						state.view = 'starterselect';
 						setState(user.id, state);
 						refreshGamePage(user);
 						return;
@@ -1822,9 +1822,9 @@ export const commands: Chat.ChatCommands = {
 						[...new Set([...modeData.starters, ...unlockedStarterIds])] : modeData.starters;
 
 					state.team = []; state.pendingChoice = starterPool; state.pendingChoiceType = 'starter';
-					delete state.isConfiguringStarter; delete (state as any).pendingStatsSlot; delete (state as any).statsTab;
-					delete (state as any).starterSearch;
-					(state as any).view = 'starterselect';
+					delete state.isConfiguringStarter; delete state.pendingStatsSlot; delete state.statsTab;
+					delete state.starterSearch;
+					state.view = 'starterselect';
 					setState(user.id, state);
 					refreshGamePage(user);
 					return;
@@ -1833,14 +1833,14 @@ export const commands: Chat.ChatCommands = {
 				if (v === 'stats') {
 					const slot = parseInt(args[1]);
 					if (!isNaN(slot) && slot >= 0 && slot < state.team.length) {
-						(state as any).pendingStatsSlot = slot;
-						(state as any).statsTab = (state as any).statsTab ?? 0;
+						state.pendingStatsSlot = slot;
+						state.statsTab = state.statsTab ?? 0;
 					} else return;
 				} else {
-					delete (state as any).pendingStatsSlot; delete (state as any).statsTab;
+					delete state.pendingStatsSlot; delete state.statsTab;
 				}
 
-				(state as any).view = v;
+				state.view = v;
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
@@ -1850,7 +1850,7 @@ export const commands: Chat.ChatCommands = {
 			const parts = target.split(',').map(p => p.trim());
 			const type = parts[0].toLowerCase();
 			const rawBanner = parts[1] || 'generic';
-			const bannerType = ['shiny', 'eggmove', 'generic'].includes(rawBanner) ? rawBanner : 'generic';
+			const bannerType: EggData['bannerType'] = rawBanner === 'shiny' || rawBanner === 'eggmove' || rawBanner === 'generic' ? rawBanner : 'generic';
 
 			const validTypes: Record<string, number> = { regular: 1, plus: 5, premium: 10, gold: 25 };
 			if (!validTypes[type]) return this.errorReply("Invalid voucher type.");
@@ -1918,7 +1918,7 @@ export const commands: Chat.ChatCommands = {
 				const pool = EGG_POOLS[tier] && EGG_POOLS[tier].length > 0 ? EGG_POOLS[tier] : allSpeciesFallback;
 				const species = pool[Math.floor(Math.random() * pool.length)];
 
-				userData.eggs.push({ species, wavesRemaining: waves, tier, shiny: false, hiddenAbility: haRoll, bannerType } as any);
+				userData.eggs.push({ species, wavesRemaining: waves, tier, shiny: false, hiddenAbility: haRoll, bannerType } satisfies EggData);
 			}
 
 			saveUserData(user.id);
@@ -1937,7 +1937,7 @@ export const commands: Chat.ChatCommands = {
 			const args = target.trim().split(' ');
 			const dir = args[0];
 			const TAB_COUNT = 3;
-			let current = (state as any).statsTab ?? 0;
+			let current = state.statsTab ?? 0;
 
 			if (dir === 'next') current = (current + 1) % TAB_COUNT;
 			else if (dir === 'prev') current = (current - 1 + TAB_COUNT) % TAB_COUNT;
@@ -1945,15 +1945,15 @@ export const commands: Chat.ChatCommands = {
 				const n = parseInt(dir);
 				if (!isNaN(n) && n >= 0 && n < TAB_COUNT) current = n;
 			}
-			(state as any).statsTab = current;
+			state.statsTab = current;
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
 
 		startersearch(target, room, user) {
 			const state = getState(user.id);
-			if (!state || (state as any).view !== 'starterselect') return;
-			(state as any).starterSearch = target.trim().toLowerCase();
+			if (!state || state.view !== 'starterselect') return;
+			state.starterSearch = target.trim().toLowerCase();
 			state.starterPage = 0;
 			setState(user.id, state);
 			refreshGamePage(user);
@@ -1961,7 +1961,7 @@ export const commands: Chat.ChatCommands = {
 
 		starterpage(target, room, user) {
 			const state = getState(user.id);
-			if (!state || (state as any).view !== 'starterselect') return;
+			if (!state || state.view !== 'starterselect') return;
 			const page = parseInt(target.trim());
 			if (!isNaN(page)) {
 				state.starterPage = page;
@@ -2107,7 +2107,7 @@ export const commands: Chat.ChatCommands = {
 			delete state.pendingChoiceType;
 			delete state.pendingChoiceFloor;
 			delete state.isConfiguringStarter;
-			(state as any).view = 'main';
+			state.view = 'main';
 
 			setState(user.id, state);
 			refreshGamePage(user);
@@ -2116,7 +2116,7 @@ export const commands: Chat.ChatCommands = {
 		
 		removestarter(target, room, user) {
 			const state = getState(user.id);
-			if (!state || (state as any).view !== 'starterselect') return;
+			if (!state || state.view !== 'starterselect') return;
 			const slot = parseInt(target.trim());
 			if (isNaN(slot) || slot < 0 || slot >= state.team.length) return this.errorReply("Invalid slot.");
 			state.team.splice(slot, 1);
@@ -2127,7 +2127,7 @@ export const commands: Chat.ChatCommands = {
 
 		startrun(target, room, user) {
 			const state = getState(user.id);
-			if (!state || (state as any).view !== 'starterselect') return;
+			if (!state || state.view !== 'starterselect') return;
 			if (!state.team || state.team.length === 0) return this.errorReply("You must select at least one starter.");
 			
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
@@ -2140,7 +2140,7 @@ export const commands: Chat.ChatCommands = {
 			delete state.pendingChoiceType;
 			delete state.pendingChoiceFloor;
 			delete state.isConfiguringStarter;
-			(state as any).view = 'main';
+			state.view = 'main';
 			setState(user.id, state);
 			refreshGamePage(user);
 		},
@@ -2211,7 +2211,7 @@ export const commands: Chat.ChatCommands = {
 				state.team.splice(slot, 1);
 
 				state.notification = `You released <b>${spName}</b>.`;
-				delete state.pendingReleaseSlot; delete state.pendingMoveSlot; delete (state as any).pendingStatsSlot;
+				delete state.pendingReleaseSlot; delete state.pendingMoveSlot; delete state.pendingStatsSlot;
 				setState(user.id, state);
 				refreshGamePage(user);
 				return;
@@ -2311,7 +2311,7 @@ export const commands: Chat.ChatCommands = {
 
 		reroll(target, room, user) {
 			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft') return;
+			if (!state || state.view !== 'draft') return;
 			if (hasPendingActions(state, true)) return this.errorReply("You must resolve your pending actions first.");
 
 			const cost = getRerollCost(state.floor, state.rerollCount || 0);
@@ -2328,10 +2328,10 @@ export const commands: Chat.ChatCommands = {
 
 		draft(target, room, user) {
 			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft' || !state.pendingRewardDraft) return;
+			if (!state || state.view !== 'draft' || !state.pendingRewardDraft) return;
 			if (hasPendingActions(state, true)) return this.errorReply("You must resolve your pending actions first.");
 
-			if (handleDraftAction(target, user, state, this as any)) {
+			if (handleDraftAction(target, user, state, this)) {
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
@@ -2339,10 +2339,10 @@ export const commands: Chat.ChatCommands = {
 
 		buyshop(target, room, user) {
 			const state = getState(user.id);
-			if (!state || (state as any).view !== 'draft') return;
+			if (!state || state.view !== 'draft') return;
 			if (hasPendingActions(state, true)) return this.errorReply("You must resolve your pending actions first.");
 
-			if (handleBuyShopAction(target, user, state, this as any)) {
+			if (handleBuyShopAction(target, user, state, this)) {
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
@@ -2357,7 +2357,7 @@ export const commands: Chat.ChatCommands = {
 			const rest = spaceIdx === -1 ? '' : target.slice(spaceIdx + 1).trim();
 
 			if (ActionResolvers[action]) {
-				if (ActionResolvers[action](state, user, rest, this as any)) {
+				if (ActionResolvers[action](state, user, rest, this)) {
 					setState(user.id, state);
 					refreshGamePage(user);
 				}
@@ -2370,7 +2370,7 @@ export const commands: Chat.ChatCommands = {
 			const state = getState(user.id);
 			if (!state) return this.parse('/pokerogue start');
 
-			if (handleChooseAction(target, user, state, this as any)) {
+			if (handleChooseAction(target, user, state, this)) {
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
@@ -2381,7 +2381,7 @@ export const commands: Chat.ChatCommands = {
 			if (!state || state.gameOver) return this.errorReply("No active run.");
 			if (!room?.battle) return this.errorReply("You must be in a battle to catch Pokémon.");
 
-			handleCatchAction(target, room, user, state, this as any);
+			handleCatchAction(target, room, user, state, this);
 		},
 
 		prebattle(target, room, user) {
@@ -2396,7 +2396,7 @@ export const commands: Chat.ChatCommands = {
 			if (state.battleRoomId) return this.errorReply("You are already in a battle.");
 
 			if (state.pendingTrainer && state.pendingTrainerKey) {
-				(state as any).view = 'trainer';
+				state.view = 'trainer';
 				setState(user.id, state);
 				refreshGamePage(user);
 				return;
@@ -2413,7 +2413,7 @@ export const commands: Chat.ChatCommands = {
 					const trainerData = data.trainers?.[resolvedTrainer.key]?.[resolvedTrainer.name];
 
 					if (trainerData?.spriteUrl || trainerData?.dialog) {
-						(state as any).view = 'trainer';
+						state.view = 'trainer';
 						setState(user.id, state);
 						refreshGamePage(user);
 						return;
@@ -2435,7 +2435,7 @@ export const commands: Chat.ChatCommands = {
 			if (!state.team.some(m => (m.currentHp ?? 100) > 0)) return this.errorReply("All your Pokémon have fainted! Buy a Revive from the shop before battling.");
 
 			if (startBattle(user, state)) {
-				(state as any).view = 'main';
+				state.view = 'main';
 				setState(user.id, state);
 				refreshGamePage(user);
 			}
@@ -2476,7 +2476,7 @@ export const pages: Chat.PageTable = {
 		if (!user.named) return this.errorReply('Login required.');
 		const state = getState(user.id);
 		if (!state) return `<div class="pr-popup"><div class="pr-popup-header"><h2>PokéRogue</h2></div><div style="text-align:center;padding:16px"><button name="send" value="/pokerogue start" class="button">Start New Run</button></div></div>`;
-		const v = (state as any).view || 'main';
+		const v = state.view || 'main';
 		this.title = `PokéRogue - ${v.toUpperCase()}`;
 
 		const html = renderGamePage(state, user);
@@ -2628,7 +2628,7 @@ export const handlers: Chat.Handlers = {
 			state.pendingRewardDraft = generateDraftOptions(state, config);
 
 			state.rerollCount = 0;
-			(state as any).view = 'draft';
+			state.view = 'draft';
 		} else {
 			handleBattleLoss(state, match.floor, match.userId);
 		}

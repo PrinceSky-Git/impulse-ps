@@ -1,6 +1,15 @@
+import { type ShopItem } from './items';
 export type StatusCondition = 'brn' | 'psn' | 'tox' | 'par' | 'slp' | 'frz';
 
-export type GameMode = 'classic' | 'random';
+export type GameMode = 'classic' | 'random' | 'endless';
+
+export type StatID = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
+
+export type StatTable = Record<StatID, number>;
+
+export type PokeRogueView =
+	| 'main' | 'top' | 'guide' | 'resetconfirm' | 'welcome' | 'stats' | 'save' | 'load'
+	| 'starterselect' | 'draft' | 'gacha' | 'incubator' | 'trainer' | 'victory';
 
 export type RarityTier =
 	| 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Ultra Rare' |
@@ -14,8 +23,8 @@ export interface BiomeEntry {
 export interface TrainerMon {
 	species: string;
 	moves?: string[];
-	ivs?: any;
-	evs?: any;
+	ivs?: StatTable;
+	evs?: StatTable;
 	ability?: string;
 	teraType?: string;
 	item?: string;
@@ -92,12 +101,12 @@ export interface BiomeTransition {
 export interface ModeData {
 	biomes: Record<string, BiomePool>;
 	transitions: Record<string, BiomeTransition[]>;
-	trainers: Record<string, any>;
+	trainers: Record<string, Record<string, TrainerData>>;
 	starters: string[];
 	useNewStarterSelectionUI?: boolean;
 	excludedBiomes?: string[];
 
-	shop?: Record<string, any>;
+	shop?: Record<string, ShopItem>;
 
 	resolveBiome?: (floor: number, currentBiome: string, config: ModeConfig) => string;
 
@@ -117,9 +126,9 @@ export interface PokemonEntry {
 	status?: StatusCondition;
 	ball?: string;
 	nature?: string;
-	evs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
+	evs?: StatTable;
 	ability?: string;
-	ivs?: { hp: number, atk: number, def: number, spa: number, spd: number, spe: number };
+	ivs?: StatTable;
 	teraType?: string;
 	gender?: 'M' | 'F' | 'N';
 	shiny?: boolean;
@@ -149,6 +158,7 @@ export interface PokemonEntry {
 }
 
 export interface PokeRogueState {
+	view?: PokeRogueView;
 	starterSearch?: string;
 	gameWon?: boolean;
 	floor: number;

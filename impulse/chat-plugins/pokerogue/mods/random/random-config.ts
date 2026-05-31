@@ -105,7 +105,7 @@ export const randomData: ModeData = {
 			if (categoryKey.startsWith('STANDARD_mid') && (floor <= 30 || floor > 100)) continue;
 			if (categoryKey.startsWith('STANDARD_late') && floor <= 100) continue;
 
-			for (const [trainerName, trainerData] of Object.entries(categoryData as Record<string, any>)) {
+			for (const [trainerName, trainerData] of Object.entries(categoryData)) {
 				if (trainerData.biome) {
 					const allowedBiomes = Array.isArray(trainerData.biome) ? trainerData.biome : [trainerData.biome];
 					if (!allowedBiomes.includes(currentBiome)) {

@@ -1,6 +1,6 @@
 import { getState, setState, deleteState, getUserData, saveUserData, globalStats, saveGlobalStats, userCache, saveAllData } from './state';
-import { getLevelUpEvo, getExpType, getLevelUpMoves, expForLevel, getEggMoves } from './pokemon';
-import { type PokeRogueState, type PokemonEntry } from './types';
+import { getLevelUpEvo, getExpType, getLevelUpMoves, expForLevel, getEggMoves, rollTeraTypeForSpecies } from './pokemon';
+import { type PokeRogueState, type PokemonEntry, type GameMode } from './types';
 import { nameColor } from '../customization/custom-color';
 import { refreshGamePage } from './render';
 import { SHOP_ITEMS } from './items';
@@ -180,13 +180,7 @@ export const devCommands: Chat.ChatCommands = {
 			const allNatures = Dex.natures.all().map(n => n.name);
 			const randomNature = allNatures[Math.floor(Math.random() * allNatures.length)] || 'Hardy';
 
-			let generatedTeraType = 'Normal';
-			if (Math.random() < 0.8 && dexSpecies.types.length > 0) {
-				generatedTeraType = dexSpecies.types[Math.floor(Math.random() * dexSpecies.types.length)];
-			} else {
-				const allTypes = Dex.types.all().map(t => t.name);
-				generatedTeraType = allTypes[Math.floor(Math.random() * allTypes.length)] || 'Normal';
-			}
+			const generatedTeraType = rollTeraTypeForSpecies(sid);
 
 			let haName = '';
 			if (egg.hiddenAbility && dexSpecies.abilities['H']) {
@@ -231,6 +225,10 @@ export const devCommands: Chat.ChatCommands = {
 
 				if (!starter.unlockedTeraTypes) starter.unlockedTeraTypes = [starter.teraType || 'Normal'];
 				if (!starter.unlockedTeraTypes.includes(generatedTeraType)) starter.unlockedTeraTypes.push(generatedTeraType);
+				const hasLegacyNormalTera = starter.teraType === 'Normal' && !dexSpecies.types.includes('Normal');
+				const hasLegacySelectedTera = starter.selectedTeraType === 'Normal' && !dexSpecies.types.includes('Normal');
+				if (!starter.teraType || hasLegacyNormalTera) starter.teraType = generatedTeraType;
+				if (!starter.selectedTeraType || hasLegacySelectedTera) starter.selectedTeraType = generatedTeraType;
 
 				if (haName) {
 					if (!starter.unlockedAbilities) starter.unlockedAbilities = [starter.ability || dexSpecies.abilities['0'] || ''];
@@ -314,10 +312,10 @@ export const devCommands: Chat.ChatCommands = {
 			expType: finalExpType,
 			moves,
 			nature: displayNature,
-			ability: (Dex.species.get(finalSpecies).abilities as any)['0'] || '',
+			ability: Dex.species.get(finalSpecies).abilities[0] || '',
 			ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
 			evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-			gender: gender as any,
+			gender: gender === 'M' || gender === 'F' || gender === 'N' ? gender : 'N',
 			teraType: Dex.species.get(finalSpecies).types[0],
 			happiness: 120,
 			shiny: false,
@@ -428,9 +426,10 @@ export const devCommands: Chat.ChatCommands = {
 			for (const userid in userCache) {
 				const userData = userCache[userid];
 				for (const mode in userData.runs) {
-					if (userData.runs[mode as any]) {
-						userData.runs[mode as any]!.highestFloor = 0;
-						userData.runs[mode as any]!.recordTeam = [];
+					const gameMode = mode as GameMode;
+					if (userData.runs[gameMode]) {
+						userData.runs[gameMode]!.highestFloor = 0;
+						userData.runs[gameMode]!.recordTeam = [];
 					}
 				}
 				notifyUser(userid, `Your PokéRogue ladder data has been reset by ${staffName}.`);
