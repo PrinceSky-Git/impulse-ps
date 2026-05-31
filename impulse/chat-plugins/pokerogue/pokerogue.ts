@@ -579,6 +579,18 @@ function processFloorRewards(
 						state.inventory[ballType] = currentAmount + added;
 						extraNotifs.push(`<div style="text-align: center;"><b>Milestone Reward: Received ${added}x ${reward.itemName} for clearing Floor ${clearedFloor}!</b></div>`);
 					}
+				} else if (reward.itemType === 'voucher') {
+					if (!userData.vouchers) userData.vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
+					const vType = reward.itemName as 'regular' | 'plus' | 'premium' | 'gold';
+					userData.vouchers[vType] = (userData.vouchers[vType] || 0) + reward.amount;
+					
+					let color = '#ffffff';
+					if (vType === 'gold') color = '#fbbf24';
+					else if (vType === 'premium') color = '#a78bfa';
+					else if (vType === 'plus') color = '#60a5fa';
+					
+					const displayType = vType.charAt(0).toUpperCase() + vType.slice(1);
+					extraNotifs.push(`<div style="text-align: center; color: ${color};"><b>Milestone Reward: Received an Egg Voucher ${displayType}!</b></div>`);
 				}
 			}
 		}
@@ -590,18 +602,6 @@ function processFloorRewards(
 			delete mon.status;
 		}
 		extraNotifs.push(`<div style="text-align: center;"><b>Zone Boss Defeated! Full heal!</b></div>`);
-
-		if (!userData.vouchers) userData.vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
-		if (clearedFloor === 200) {
-			userData.vouchers.gold = (userData.vouchers.gold || 0) + 1;
-			extraNotifs.push(`<div style="text-align: center; color: #fbbf24;"><b>Received an Egg Voucher Gold!</b></div>`);
-		} else if (clearedFloor % 50 === 0) {
-			userData.vouchers.premium = (userData.vouchers.premium || 0) + 1;
-			extraNotifs.push(`<div style="text-align: center; color: #a78bfa;"><b>Received an Egg Voucher Premium!</b></div>`);
-		} else if (clearedFloor % 10 === 0) {
-			userData.vouchers.plus = (userData.vouchers.plus || 0) + 1;
-			extraNotifs.push(`<div style="text-align: center; color: #60a5fa;"><b>Received an Egg Voucher Plus!</b></div>`);
-		}
 	}
 
 	saveUserData(userId);
