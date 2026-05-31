@@ -1,9 +1,9 @@
 import { Utils } from '../../../lib';
 import { nameColor } from '../customization/custom-color';
-import { type PokemonEntry, type PokeRogueState } from './types';
+import { type PokemonEntry, type PokeRogueState, type StatID, type StatTable } from './types';
 import { getStarterCost } from './starter-data';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
-import { SHOP_ITEMS, getRerollCost, getItemPrice } from './items';
+import { SHOP_ITEMS, getRerollCost, getItemPrice, type ShopItem } from './items';
 import { globalStats, getUserData } from './state';
 import { expForLevel, getLevelUpMoves, getAllLevelUpMoves, getEggMoves } from './pokemon';
 
@@ -95,7 +95,7 @@ export function refreshGamePage(user: User): void {
 }
 
 function itemURLFormat(item: string): string {
-	return item.replaceAll(/[^a-zA-Z0-9\s-]+/g, '').toLowerCase().replaceAll(' ', '-');
+	return item.replace(/[^a-zA-Z0-9\s-]+/g, '').toLowerCase().replace(/ /g, '-');
 }
 
 function typeColor(type: string): string {
@@ -443,8 +443,8 @@ function renderTeamTableRow(mon: PokemonEntry, actionButton?: string, genNumber 
 	const spData = Dex.species.get(toID(mon.species));
 	const expNeeded = mon.level < 9999 ? expForLevel(mon.level + 1) - mon.exp : 0;
 
-	const abilities = spData.abilities as Record<string, string>;
-	const abilityId = mon.ability || abilities['0'] || '';
+	const abilities = spData.abilities;
+	const abilityId = mon.ability || abilities[0] || '';
 	const ability = abilityId ? (Dex.abilities.get(abilityId).name || abilityId) : '';
 	let nature = mon.nature;
 	if (!nature) {
@@ -577,7 +577,7 @@ function renderPendingChoice(state: PokeRogueState): string {
 		const sp = Dex.species.get(toID(state.pendingChoice![i]));
 		const bs = sp.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 		const abilities = sp.abilities ?? {};
-		const ability = (abilities as unknown as Record<string, string>)['0'] || 'Unknown';
+		const ability = abilities[0] || 'Unknown';
 		const hash = ((state.floor ?? 1) * 37) + (i * 13) + sp.id.length;
 		const nature = natures[hash % natures.length] ?? 'Hardy';
 		const genNumber = MODE_CONFIGS[state.gameMode]?.generation || 9;
@@ -599,7 +599,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	const pending = state.pendingChoice || [];
 	const userData = getUserData(user.id);
 
-	let rawSearch = ((state as any).starterSearch || '').toLowerCase().trim();
+	let rawSearch = (state.starterSearch || '').toLowerCase().trim();
 	let sort: 'costAsc' | 'costDesc' | null = null;
 	let filterEgg = false;
 
@@ -682,7 +682,7 @@ function renderStarterSelectionView(state: PokeRogueState, user: User): string {
 	}
 
 	buf += `<form data-submitsend="/pokerogue startersearch {data}" style="text-align:center;margin-bottom:12px">`;
-	const displaySearch = ((state as any).starterSearch || '');
+	const displaySearch = (state.starterSearch || '');
 	buf += `<input name="data" value="${Utils.escapeHTML(displaySearch)}" placeholder="Name, type, 'shiny', 'egg', 'cost+', 'cost-'" ` +
 		`style="padding:5px 10px;border-radius:6px;border:1px solid rgba(150,150,150,0.4);background:rgba(0,0,0,0.2);color:inherit;font-size:12px;width:240px;" />`;
 	buf += `&nbsp;&nbsp;<button type="submit" class="pr-btn" style="font-size:11px;padding:5px 10px;">Search</button>`;
@@ -889,7 +889,8 @@ function renderGiveItem(state: PokeRogueState): string {
 			}
 		} else if (state.pendingItemIsMega) {
 			isCompatible = false;
-			if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(mon.species)) {
+			const megaItem = dexItem as ReturnType<typeof Dex.items.get> & { megaEvolves?: string };
+			if (megaItem.megaEvolves && toID(megaItem.megaEvolves) === toID(mon.species)) {
 				isCompatible = true;
 			}
 			if (!isCompatible) reason = 'Incompatible';
@@ -945,9 +946,9 @@ function renderConsumable(state: PokeRogueState): string {
 		case 'vitamin':
 			const evStat = (consumableItem)?.evStat as string | undefined;
 			if (!evStat) { disabled = true; reason = 'invalid'; break; }
-			if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } as any;
+			if (!mon.evs) mon.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 			const totalEvs = Object.values(mon.evs as Record<string, number>).reduce((a, b) => a + b, 0);
-			const statEv = (mon.evs as any)[evStat] ?? 0;
+			const statEv = mon.evs[evStat as StatID] ?? 0;
 			disabled = hp <= 0 || totalEvs >= 508 || statEv >= 252;
 			reason = hp <= 0 ? 'fainted' : totalEvs >= 508 ? 'EVs full' : statEv >= 252 ? `${evStat} maxed` : '';
 			break;
@@ -1006,7 +1007,7 @@ function renderConsumable(state: PokeRogueState): string {
 			const evStat = (consumableItem)?.evStat as string;
 			const statLabel: Record<string, string> = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
 			const totalEvs = Object.values(mon.evs as Record<string, number>).reduce((a, b) => a + b, 0);
-			flexHtml += `<div style="font-size:9px;">${statLabel[evStat] ?? evStat} EVs: ${(mon.evs as any)[evStat] ?? 0}/252 &nbsp;·&nbsp; Total: ${totalEvs}/508</div>`;
+			flexHtml += `<div style="font-size:9px;">${statLabel[evStat] ?? evStat} EVs: ${mon.evs[evStat as StatID] ?? 0}/252 &nbsp;·&nbsp; Total: ${totalEvs}/508</div>`;
 		}
 
 		if ((consumableType === 'tm' || consumableType === 'mint') && !disabled) {
@@ -1116,7 +1117,7 @@ function renderVictoryView(state: PokeRogueState): string {
 
 interface StatsViewModel {
 	mon: PokemonEntry;
-	spData: any;
+	spData: ReturnType<typeof Dex.species.get>;
 	showAbilityArrows: boolean;
 	showNatureArrows: boolean;
 	showTeraArrows: boolean;
@@ -1126,18 +1127,18 @@ interface StatsViewModel {
 	abilityName: string;
 	abilityDesc: string;
 	bs: Record<string, number>;
-	ivs: Record<string, number>;
-	evs: Record<string, number>;
+	ivs: StatTable;
+	evs: StatTable;
 	stats: Record<string, number>;
 	maxStats: Record<string, number>;
 	totalEvs: number;
 	hpPct: number;
 	hpColor: string;
 	dateStr: string;
-	heldItem: any | null;
+	heldItem: ReturnType<typeof Dex.items.get> | null;
 	genderHtml: string;
 	statusHtml: string;
-	statKeys: string[];
+	statKeys: StatID[];
 	statLabels: Record<string, string>;
 	statColors: Record<string, string>;
 	tabNames: string[];
@@ -1177,8 +1178,8 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 	const naturePlus = nature?.plus ?? null;
 	const natureMinus = nature?.minus ?? null;
 
-	const abilities = spData.abilities as Record<string, string>;
-	const rawAbility = mon.ability || abilities['0'] || '';
+	const abilities = spData.abilities;
+	const rawAbility = mon.ability || abilities[0] || '';
 	const abilityDex = rawAbility ? Dex.abilities.get(rawAbility) : null;
 	const abilityName = abilityDex?.name || rawAbility || 'Unknown';
 	const abilityDesc = abilityDex?.shortDesc || abilityDex?.desc || '';
@@ -1186,16 +1187,16 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 	const bs = spData.baseStats ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 	const ivs = mon.ivs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
 	const evs = mon.evs || { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-	const statKeys = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+	const statKeys: StatID[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 	const statLabels: Record<string, string> = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SPA', spd: 'SPD', spe: 'SPE' };
 	const statColors: Record<string, string> = { hp: '#FF5959', atk: '#F5AC78', def: '#FAE078', spa: '#9DB7F5', spd: '#A7DB8D', spe: '#FA92B2' };
 
 	const stats: Record<string, number> = {};
 	for (const stat of statKeys) {
 		if (stat === 'hp') {
-			stats.hp = Math.floor((2 * bs.hp + ivs.hp + Math.floor((evs as any)[stat] / 4)) * mon.level / 100) + mon.level + 10;
+			stats.hp = Math.floor((2 * bs.hp + ivs.hp + Math.floor(evs[stat] / 4)) * mon.level / 100) + mon.level + 10;
 		} else {
-			let val = Math.floor((2 * bs[stat] + ivs[stat] + Math.floor((evs as any)[stat] / 4)) * mon.level / 100) + 5;
+			let val = Math.floor((2 * bs[stat] + ivs[stat] + Math.floor(evs[stat] / 4)) * mon.level / 100) + 5;
 			if (naturePlus === stat) val = Math.floor(val * 1.1);
 			if (natureMinus === stat) val = Math.floor(val * 0.9);
 			stats[stat] = val;
@@ -1243,15 +1244,15 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 
 	return {
 		mon, spData, showAbilityArrows, showNatureArrows, showTeraArrows, natureName, naturePlus, natureMinus,
-		abilityName, abilityDesc, bs, ivs, evs: evs as any, stats, maxStats, totalEvs, hpPct, hpColor,
+		abilityName, abilityDesc, bs, ivs, evs, stats, maxStats, totalEvs, hpPct, hpColor,
 		dateStr, heldItem, genderHtml, statusHtml, statKeys, statLabels, statColors,
 		tabNames, prevTab, nextTab, teamNav,
 	};
 }
 
 function renderStatsView(state: PokeRogueState, user: User): string {
-	const slot = (state as any).pendingStatsSlot;
-	const activeTab: number = (state as any).statsTab ?? 0;
+	const slot = state.pendingStatsSlot;
+	const activeTab: number = state.statsTab ?? 0;
 	if (slot === undefined || slot < 0 || slot >= state.team.length) {
 		return `<div class="pr-warning-box">Error loading stats.</div>`;
 	}
@@ -1507,7 +1508,7 @@ function renderTopView(): string {
 	buf += `<thead><tr><th>Rank</th><th>Player</th><th>Floor</th><th>Team</th></tr></thead><tbody>`;
 
 	entries.forEach(([userid, s], i) => {
-		const displayTeam = s.recordTeam?.length ? s.recordTeam : s.team;
+		const displayTeam = s.recordTeam;
 		const teamSprites = (displayTeam ?? []).slice(0, 6).map((m: PokemonEntry) => getSprite(m.species, 28)).join('');
 		buf += `<tr><td class="pr-td-desc" style="font-weight:500;white-space:nowrap;">#${i + 1}</td><td class="pr-td-name" style="white-space:nowrap;">${nameColor(s.displayName || userid, true, false)}</td>`;
 		buf += `<td class="pr-td-desc" style="white-space:nowrap;">Floor ${s.highestFloor}</td><td style="white-space:nowrap;"><div class="pr-lb-team">${teamSprites}</div></td></tr>`;
@@ -1593,7 +1594,7 @@ function renderSlotsView(user: User, action: 'save' | 'load'): string {
 }
 
 export function renderGamePage(state: PokeRogueState, user: User): string {
-	const view = (state as any).view || 'main';
+	const view = state.view || 'main';
 
 	let buf = (state.battleRoomId || state.notification) ? `<meta http-equiv="refresh" content="${PAGE_REFRESH_SECONDS}">` : '';
 
@@ -1608,7 +1609,7 @@ export function renderGamePage(state: PokeRogueState, user: User): string {
 	if (view === 'top') return buf + renderHeader('top', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderTopView()}</div></div>`;
 	if (view === 'welcome') return buf + renderHeader(view, false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderWelcomeView()}</div></div>`;
 	if (view === 'starterselect') return buf + renderHeader('main', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStarterSelectionView(state, user)}</div></div>`;
-	if (view === 'stats' && (state as any).pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStatsView(state, user)}</div></div>`;
+	if (view === 'stats' && state.pendingStatsSlot !== undefined) return buf + renderHeader('stats', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderStatsView(state, user)}</div></div>`;
 	if (view === 'save') return buf + renderHeader('save', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'save')}</div></div>`;
 	if (view === 'load') return buf + renderHeader('load', false) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderSlotsView(user, 'load')}</div></div>`;
 	if (view === 'gacha') return buf + renderHeader('gacha', !!isEffectivelyGameOver) + `<div style="padding:0 14px 14px">${renderNotification(state)}${renderGachaView(user)}</div></div>`;

@@ -18,7 +18,8 @@ export type ItemType =
 	'mint' |
 	'rareCandy' |
 	'stackableItem' |
-	'gmaxMushroom';
+	'gmaxMushroom' |
+	'xItem';
 
 export type ItemRarityTier = 'Common' | 'Great' | 'Ultra' | 'Rogue' | 'Master';
 
@@ -44,6 +45,7 @@ export interface ShopItem {
 	isMax?: boolean;
 	evStat?: string;
 	maxStack?: number;
+	buffStat?: string;
 }
 
 export interface TierConfig {
@@ -81,7 +83,7 @@ export function genItem(quantity: number, extraArg?: PokemonSet[] | string): str
 			}
 		} else {
 			if (i.zMove) return true;
-			return Object.keys(i).some(k => typeof (i as any)[k] === 'function');
+			return Object.values(i).some(v => typeof v === 'function');
 		}
 		return false;
 	});
@@ -197,7 +199,7 @@ function hasCompatibleEvoTarget(partySpecies: Set<string>, itemKey: string): boo
 function hasCompatibleMegaTarget(team: PokemonEntry[], itemKey: string): boolean {
 	for (const mon of team) {
 		const speciesId = toID(mon.species);
-		const dexItem = Dex.items.get(itemKey);
+		const dexItem = Dex.items.get(itemKey) as ReturnType<typeof Dex.items.get> & { megaEvolves?: string };
 		if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === speciesId) {
 			return true;
 		}
