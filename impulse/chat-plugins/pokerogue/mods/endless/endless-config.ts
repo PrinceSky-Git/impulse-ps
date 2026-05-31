@@ -102,7 +102,7 @@ export const endlessConfig: ModeConfig = {
 
 	milestoneRewards: [],
 
-	maxFloor: 2000,
+	maxFloor: 4000,
 
 	lastBiome: {
 		biome: 'End',
