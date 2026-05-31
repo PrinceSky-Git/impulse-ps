@@ -1,4 +1,4 @@
-import { type TrainerData, type TrainerMon } from './types';
+import { type TrainerData, type TrainerMon } from '../../types';
 
 export const EVS_PHYS_SWEEPER = { hp: 0, atk: 252, def: 0, spa: 0, spd: 0, spe: 252 } as const;
 export const EVS_SPEC_SWEEPER = { hp: 0, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 } as const;

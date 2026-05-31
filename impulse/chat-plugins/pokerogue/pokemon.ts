@@ -1,4 +1,4 @@
-import { type PokemonEntry, type ModeConfig, type ModeData, type BiomeEntry, type TrainerMon, type PokeRogueState } from './types';
+import { type PokemonEntry, type ModeConfig, type ModeData, type BiomeEntry, type TrainerMon, type PokeRogueState, type StatTable, type RarityTier } from './types';
 import { BASE_EXP, GROWTH_RATES } from './pokemon-basic-data';
 import { SHOP_ITEMS } from './items';
 
@@ -8,8 +8,8 @@ export interface AIPokemonSet {
 	level: number;
 	ability: string;
 	nature: string;
-	ivs: any;
-	evs: any;
+	ivs: StatTable;
+	evs: StatTable;
 	item: string;
 	shiny: boolean;
 	teraType: string;
@@ -311,7 +311,7 @@ export function getItemEvolution(speciesId: string, itemId: string): string | nu
 }
 
 export function getMegaEvolution(speciesId: string, itemId: string): string | null {
-	const dexItem = Dex.items.get(toID(itemId));
+	const dexItem = Dex.items.get(toID(itemId)) as ReturnType<typeof Dex.items.get> & { megaEvolves?: string, megaStone?: string };
 	if (dexItem.megaEvolves && toID(dexItem.megaEvolves) === toID(speciesId)) {
 		return dexItem.megaStone || null;
 	}
@@ -390,7 +390,7 @@ function calculateEffectivePower(move: Move): number {
 
 	if (move.flags?.recharge) turns = 2;
 	if (move.flags?.charge && !move.flags?.recharge) turns = 2;
-	if ((move as any).delayedAttack) turns = 3;
+	if ((move as { delayedAttack?: boolean }).delayedAttack) turns = 3;
 
 	if (move.multihit) {
 		const expectedHits = calculateExpectedHits(move);
@@ -647,7 +647,7 @@ function pickBestAbility(species: Species, floor: number, config?: ModeConfig, a
 		return allAbilities[Math.floor(Math.random() * allAbilities.length)].id;
 	}
 
-	const abilities = species.abilities as Record<string, string>;
+	const abilities = species.abilities;
 	const candidates: { id: string, priority: number }[] = [];
 
 	for (const slot of ['S', 'H', '1', '0'] as const) {
@@ -713,7 +713,7 @@ function pickNatureForSpecies(species: Species, floor: number): string {
 	}
 }
 
-function calcEVSpread(_species: Species, _floor: number): Record<string, number> {
+function calcEVSpread(_species: Species, _floor: number): StatTable {
 	return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 }
 
@@ -723,13 +723,13 @@ function pickRandomHeldItem(speciesName: string): string {
 		if (i.isNonstandard && i.isNonstandard !== 'Past') return false;
 		if (i.zMove) return true;
 		if (i.itemUser) return i.itemUser.some(u => toID(u) === toID(speciesName));
-		return Object.keys(i).some(k => typeof (i as any)[k] === 'function');
+		return Object.values(i).some(v => typeof v === 'function');
 	});
 	if (!allItems.length) return '';
 	return allItems[Math.floor(Math.random() * allItems.length)].id;
 }
 
-function rollRaritySpawn(floor: number, isBoss: boolean, isStarter: boolean, luck = 0): string {
+function rollRaritySpawn(floor: number, isBoss: boolean, isStarter: boolean, luck = 0): RarityTier {
 	if (isStarter) {
 		const rand = Math.random() * 100;
 		if (floor <= 5) {
@@ -814,7 +814,7 @@ function buildSpawnPool(
 
 	if (starter) {
 		for (const b of Object.values(activeBiomes)) {
-			const tierPool = (b as any)[rarity];
+			const tierPool = b[rarity];
 			if (tierPool && tierPool.length > 0) pool.push(...tierPool);
 		}
 	} else {
@@ -829,13 +829,13 @@ function buildSpawnPool(
 			const excludedBiomes = new Set(data?.excludedBiomes ?? []);
 			for (const [bName, biomeData] of Object.entries(activeBiomes)) {
 				if (excludedBiomes.has(bName)) continue;
-				const tierPool = (biomeData as any)[rarity];
+				const tierPool = biomeData[rarity];
 				if (tierPool && tierPool.length > 0) pool.push(...tierPool);
 			}
 			if (pool.length === 0) {
-				const fallbackTier = isBossFloor ? 'Boss' : 'Common';
+				const fallbackTier: RarityTier = isBossFloor ? 'Boss' : 'Common';
 				for (const biomeData of Object.values(activeBiomes)) {
-					const tierPool = (biomeData as any)[fallbackTier];
+					const tierPool = biomeData[fallbackTier];
 					if (tierPool && tierPool.length > 0) {
 						pool = tierPool;
 						break;
@@ -892,7 +892,7 @@ function getValidGeneration(speciesName: string, baseGen: number): number {
 	return genNumber;
 }
 
-function rollIVs(floor: number): any {
+function rollIVs(floor: number): StatTable {
 	if (floor <= 10) {
 		return {
 			hp: Math.floor(Math.random() * 32), atk: Math.floor(Math.random() * 32),
@@ -952,8 +952,8 @@ export function genPokemon(
 
 		let finalSpeciesId = '';
 		let forcedMoves: string[] | undefined = undefined;
-		let forcedIvs: any = undefined;
-		let forcedEvs: any = undefined;
+		let forcedIvs: StatTable | undefined = undefined;
+		let forcedEvs: StatTable | undefined = undefined;
 		let forcedAbility: string | undefined = undefined;
 		let forcedTeraType: string | undefined = undefined;
 		let forcedItem: string | undefined = undefined;
@@ -1092,7 +1092,7 @@ export function genAIPokemon(
 export function packPokemon(mon: PokemonEntry): string {
 	const sp = Dex.species.get(toID(mon.species));
 	const name = sp.exists ? sp.name : mon.species;
-	const ability = mon.ability || (sp.abilities as any)['0'] || '';
+	const ability = mon.ability || sp.abilities[0] || '';
 	const nature = mon.nature || 'Hardy';
 	if (!mon.moves) mon.moves = getLevelUpMoves(toID(mon.species), mon.level);
 
