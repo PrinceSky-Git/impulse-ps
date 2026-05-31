@@ -1,4 +1,5 @@
 import { type ShopItem } from './items';
+
 export type StatusCondition = 'brn' | 'psn' | 'tox' | 'par' | 'slp' | 'frz';
 
 export type GameMode = 'classic' | 'random' | 'endless';
@@ -43,6 +44,14 @@ export interface TrainerData {
 
 export type BiomePool = Partial<Record<RarityTier, BiomeEntry[]>>;
 
+export interface MilestoneReward {
+	floor: number;
+	interval: boolean;
+	itemType: 'keyItem' | 'inventory' | 'voucher';
+	itemName: string;
+	amount: number;
+}
+
 export interface ModeConfig {
 	biomeRotationInterval: number;
 	bossInterval: number;
@@ -55,7 +64,7 @@ export interface ModeConfig {
 	generation: number;
 	baseFormat: string;
 	doublesFormat?: string;
-	milestoneRewards?: { floor: number, interval: boolean, itemType: string, itemName: string, amount: number }[];
+	milestoneRewards?: MilestoneReward[];
 
 	levelScalingFn?: (floor: number) => { cap: number, min: number, max: number };
 
@@ -69,7 +78,6 @@ export interface ModeConfig {
 		startingInventory?: Record<string, number>,
 		draftChoicesCount?: number,
 		maxDraftChoicesCount?: number,
-
 	};
 
 	mechanicUnlocks?: {
