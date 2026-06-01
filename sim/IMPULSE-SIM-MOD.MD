@@ -58,7 +58,6 @@ Add the following tags to your Pokémon's nickname in the Teambuilder:
 Name your Charizard "Smaug", start at 20% HP, and be Burned:
 
 ```text
-```text
 Smaug [H:20] [S:brn] (Charizard) @ Heavy-Duty Boots
 Ability: Blaze
 EVs: 252 SpA / 4 SpD / 252 Spe

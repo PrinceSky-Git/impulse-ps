@@ -32,8 +32,32 @@ export const IMPULSE_VALID_STACKED_ITEMS = [
 
 const IMPULSE_VALID_STATUSES = ['psn', 'tox', 'brn', 'par', 'slp', 'frz'];
 
+export const STACKED_ITEM_TYPES: { [id: string]: string } = {
+	silkscarf: 'Normal',
+	blackbelt: 'Fighting',
+	sharpbeak: 'Flying',
+	poisonbarb: 'Poison',
+	softsand: 'Ground',
+	hardstone: 'Rock',
+	silverpowder: 'Bug',
+	spelltag: 'Ghost',
+	metalcoat: 'Steel',
+	charcoal: 'Fire',
+	mysticwater: 'Water',
+	miracleseed: 'Grass',
+	magnet: 'Electric',
+	twistedspoon: 'Psychic',
+	nevermeltice: 'Ice',
+	dragonfang: 'Dragon',
+	blackglasses: 'Dark',
+	fairyfeather: 'Fairy',
+};
+
 export const ImpulseSimMod = new class ImpulseSimMod {
 	hasPackedMiscData(set: PokemonSet) {
+		// Note: hp === 100 is treated as equivalent to hp === undefined (full HP).
+		// This means an explicit hp:100 will not survive a pack/unpack round-trip,
+		// but the two are semantically identical in the battle engine.
 		return (set.hp !== undefined && set.hp !== 100) || !!set.status || !!set.bstBoosts ||
 			!!set.hpMultiplier || !!set.stackedItem;
 	}
@@ -169,7 +193,7 @@ export const ImpulseSimMod = new class ImpulseSimMod {
 		const stackMatch = /\[STACK:\s*([a-zA-Z0-9]+)\s*:\s*(\d+)\s*\]/i.exec(set.name);
 		if (stackMatch) {
 			set.stackedItem = {
-				id: stackMatch[1].toLowerCase(),
+				id: toID(stackMatch[1]),
 				count: parseInt(stackMatch[2]),
 			};
 			set.name = set.name.replace(stackMatch[0], '').trim();
@@ -188,7 +212,20 @@ export const ImpulseSimMod = new class ImpulseSimMod {
 			if (!status.exists || !IMPULSE_VALID_STATUSES.includes(status.id)) {
 				problems.push(`${name} has an invalid starting status condition (${set.status}).`);
 			} else {
-				set.status = status.name;
+				set.status = status.id;
+			}
+		}
+		if (set.bstBoosts) {
+			for (const stat of ['atk', 'def', 'spa', 'spd', 'spe'] as const) {
+				const val = set.bstBoosts[stat];
+				if (isNaN(val)) {
+					problems.push(`${name} has an invalid BST boost for ${stat}.`);
+				}
+			}
+		}
+		if (set.hpMultiplier !== undefined) {
+			if (isNaN(set.hpMultiplier) || set.hpMultiplier < 1 || set.hpMultiplier > 999) {
+				problems.push(`${name} has an invalid HP Multiplier (${set.hpMultiplier}). It must be between 1 and 999.`);
 			}
 		}
 		if (set.stackedItem) {
@@ -237,6 +274,11 @@ export const ImpulseSimMod = new class ImpulseSimMod {
 		};
 	}
 
+	/**
+	 * Applies BST percentage boosts to base stats.
+	 * Note: HP is intentionally passed through unmodified — use hpMultiplier
+	 * (via modifyMaxHp) for HP scaling instead.
+	 */
 	modifyBaseStats(baseStats: StatsTable, set: PokemonSet) {
 		const bstBoosts = set.bstBoosts;
 		if (!bstBoosts) return baseStats;
@@ -253,5 +295,21 @@ export const ImpulseSimMod = new class ImpulseSimMod {
 	modifyMaxHp(hp: number, set: PokemonSet) {
 		if (!set.hpMultiplier) return hp;
 		return Math.floor(hp * set.hpMultiplier);
+	}
+
+	/**
+	 * Applies the Stacked Item base power boost.
+	 * Each stack gives +20% base power additively to moves matching the item's type.
+	 * This is called from the core damage pipeline so it works in all formats.
+	 */
+	applyStackedItemBoost(basePower: number, source: Pokemon, move: ActiveMove, battle: Battle) {
+		const stackedItem = source.stackedItem;
+		if (!stackedItem) return basePower;
+		const boostedType = STACKED_ITEM_TYPES[stackedItem.id];
+		if (boostedType && move.type === boostedType) {
+			const additiveBoost = 1 + (0.2 * stackedItem.count);
+			return battle.modify(basePower, additiveBoost);
+		}
+		return basePower;
 	}
 };

@@ -213,6 +213,10 @@ export const Teams = new class Teams {
 			if (set.pokeball || set.hpType || set.gigantamax ||
 				(set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10) || set.teraType ||
 				ImpulseSimMod.hasPackedMiscData(set)) {
+				// Misc fields are comma-separated after HAPPINESS in the packed format:
+				// Index: 0=happiness 1=hpType 2=pokeball 3=gmax 4=dmaxLvl 5=teraType
+				//        6=hp(impulse) 7=status(impulse)
+				//        8=bstBoosts 9=hpMultiplier 10=stackedItem (via ImpulseSimMod)
 				buf += `,${set.hpType || ''}`;
 				buf += `,${this.packName(set.pokeball || '')}`;
 				buf += `,${set.gigantamax ? 'G' : ''}`;
@@ -346,6 +350,10 @@ export const Teams = new class Teams {
 				if (i !== j) misc = buf.substring(i, j).split(',', 11);
 			}
 			if (misc) {
+				// Misc fields index contract (must match packing order above):
+				// 0=happiness 1=hpType 2=pokeball 3=gmax 4=dmaxLvl 5=teraType
+				// 6=hp(impulse) 7=status(impulse)
+				// 8=bstBoosts 9=hpMultiplier 10=stackedItem (via ImpulseSimMod)
 				set.happiness = (misc[0] ? Number(misc[0]) : 255);
 				set.hpType = misc[1] || '';
 				set.pokeball = this.unpackName(misc[2] || '', Dex.items);

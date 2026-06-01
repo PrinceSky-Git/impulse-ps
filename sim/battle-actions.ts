@@ -1,4 +1,5 @@
 import { Dex, toID } from './dex';
+import { ImpulseSimMod } from './impulse-sim-mod';
 
 const CHOOSABLE_TARGETS = new Set(['normal', 'any', 'adjacentAlly', 'adjacentAllyOrSelf', 'adjacentFoe']);
 
@@ -1654,6 +1655,7 @@ export class BattleActions {
 		basePower = this.battle.runEvent('BasePower', source, target, move, basePower, true);
 
 		if (!basePower) return 0;
+		basePower = ImpulseSimMod.applyStackedItemBoost(basePower, source, move, this.battle);
 		basePower = this.battle.clampIntRange(basePower, 1);
 		// Hacked Max Moves have 0 base power, even if you Dynamax
 		if ((!source.volatiles['dynamax'] && move.isMax) || (move.isMax && this.dex.moves.get(move.baseMove).isMax)) {

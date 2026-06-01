@@ -509,6 +509,10 @@ export class Pokemon {
 		this.hp = 0;
 		this.clearVolatile();
 
+		// IMPORTANT: applyInitialHpAndStatus MUST run after clearVolatile().
+		// clearVolatile() → setSpecies() sets hp = maxhp, but only on first init
+		// (guarded by `if (!this.maxhp)`). applyInitialHpAndStatus then overrides
+		// hp/status with the custom values from the set. This ordering is critical.
 		ImpulseSimMod.applyInitialHpAndStatus(this);
 	}
 
@@ -1505,7 +1509,9 @@ export class Pokemon {
 	}
 
 	updateMaxHp() {
-		let newBaseMaxHp = this.battle.statModify(this.species.baseStats, this.set, 'hp');
+		// Apply BST boosts to base stats before calculating HP, matching setSpecies() behavior
+		const baseStats = ImpulseSimMod.modifyBaseStats(this.species.baseStats, this.set);
+		let newBaseMaxHp = this.battle.statModify(baseStats, this.set, 'hp');
 		newBaseMaxHp = ImpulseSimMod.modifyMaxHp(newBaseMaxHp, this.set);
 		if (newBaseMaxHp === this.baseMaxhp) return;
 		this.baseMaxhp = newBaseMaxHp;
