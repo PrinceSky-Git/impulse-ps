@@ -1200,5 +1200,3 @@ export function packTeam(mons: PokemonEntry[]): string {
 export function packAITeam(sets: AIPokemonSet[]): string {
 	return sets.map(s => packAIPokemon(s)).join(']');
 }
-
-}
