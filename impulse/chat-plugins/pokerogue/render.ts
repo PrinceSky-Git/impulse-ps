@@ -5,7 +5,7 @@ import { getStarterCost } from './starter-data';
 import { MODE_CONFIGS, MODE_REGISTRY } from './config';
 import { SHOP_ITEMS, getRerollCost, getItemPrice, type ShopItem } from './items';
 import { globalStats, getUserData } from './state';
-import { expForLevel, getLevelUpMoves, getAllLevelUpMoves, getEggMoves, getItemEvolution, getStarterRoot } from './pokemon';
+import { expForLevel, getLevelUpMoves, getAllLevelUpMoves, getEggMoves } from './pokemon';
 
 const PAGE_REFRESH_SECONDS = 20;
 
@@ -234,7 +234,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		main: 'PokéRogue', top: 'Ladder',
 		resetconfirm: 'Reset run', trainer: 'Encounter!', welcome: 'Welcome',
 		victory: 'Victory', stats: 'Pokémon Summary', save: 'Save Game', load: 'Load Game', draft: 'Reward Draft',
-		gacha: 'Egg Gacha', incubator: 'Incubator',
+		gacha: 'Egg Gacha', incubator: 'Incubator', // Added incubator title
 	};
 
 	let buf = `<div class="pr-header"><h2>${titles[view] ?? 'PokéRogue'}</h2>`;
@@ -256,6 +256,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 		buf += `${renderBtn('/pokerogue view gacha', 'Egg Gacha', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		buf += `</div>`;
 	} else if (view !== 'main' && view !== 'trainer' && view !== 'welcome') {
+		// 1. Add the flex wrapper to push items to the right
 		buf += `<div style="display:flex;margin-left:auto;align-items:center;">`;
 
 		const backTarget = hasGameOver ? '/pokerogue view welcome' : '/pokerogue view main';
@@ -265,6 +266,7 @@ function renderHeader(view: string, hasGameOver: boolean): string {
 			buf += `&nbsp;&nbsp;${renderBtn('/pokerogue view incubator', 'Incubator', 'pr-btn primary', 'font-size:11px;padding:5px 10px')}`;
 		}
 
+		// 2. Close the flex wrapper
 		buf += `</div>`;
 	}
 	return buf + `</div>`;
@@ -840,7 +842,23 @@ function renderGiveItem(state: PokeRogueState): string {
 		let isEvoAble = false;
 
 		if (state.pendingItemIsEvo) {
-			isEvoAble = !!getItemEvolution(mon.species, state.pendingItemName!);
+			const evoList = dexSpecies.evos;
+
+			if (evoList) {
+				for (const newEvo of evoList) {
+					const evoData = Dex.species.get(newEvo);
+					const evoItemId = toID(evoData.evoItem);
+
+					const isUseItemEvolution = evoData.evoType === 'useItem' && evoItemId === pendingItemId;
+					const isHeldTradeEvolution = evoData.evoType === 'trade' && evoItemId === pendingItemId;
+					const isPlainTradeEvolution = evoData.evoType === 'trade' && !evoItemId && pendingItemId === 'linkingcord';
+
+					if (isUseItemEvolution || isHeldTradeEvolution || isPlainTradeEvolution) {
+						isEvoAble = true;
+						break;
+					}
+				}
+			}
 			if (!isEvoAble && !state.pendingItemIsStackable) {
 				isCompatible = false;
 				reason = 'Incompatible';
@@ -1115,7 +1133,12 @@ function buildStatsViewModel(state: PokeRogueState, user: User, slot: number, ac
 
 	if (state.isConfiguringStarter) {
 		const userData = getUserData(user.id);
-		const baseSpecies = getStarterRoot(mon.species);
+		let baseSpecies = toID(mon.species);
+		while (true) {
+			const sp = Dex.species.get(baseSpecies);
+			if (!sp.prevo) break;
+			baseSpecies = toID(sp.prevo);
+		}
 		const starterData = userData.starters[baseSpecies];
 		if (starterData) {
 			if ((starterData.unlockedAbilities?.length || 0) > 1) showAbilityArrows = true;
@@ -1321,7 +1344,12 @@ function renderStatsView(state: PokeRogueState, user: User): string {
 		const moves = vm.mon.moves || [];
 		let hasAltMoves = false;
 		if (state.isConfiguringStarter) {
-			const baseSpecies = getStarterRoot(vm.mon.species);
+			let baseSpecies = toID(vm.mon.species);
+			while (true) {
+				const sp = Dex.species.get(baseSpecies);
+				if (!sp.prevo) break;
+				baseSpecies = toID(sp.prevo);
+			}
 			const starterData = getUserData(user.id).starters[baseSpecies];
 			const config = MODE_CONFIGS[state.gameMode] || MODE_CONFIGS['classic'];
 			const allLevel = getAllLevelUpMoves(baseSpecies, vm.mon.level, config.generation || 9);

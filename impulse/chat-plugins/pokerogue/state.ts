@@ -5,19 +5,8 @@ const STATS_FILE = 'impulse/db/pokerogue-stats.json';
 const USERS_DIR = 'impulse/db/pokerogue-users/';
 
 export let globalStats: Record<string, GlobalStatEntry> = {};
-export const userCache: Record<string, UserSaveData> = {};
 
-function hydrateUserData(data: Partial<UserSaveData>, userid: string): UserSaveData {
-	return {
-		displayName: data.displayName || userid,
-		activeMode: data.activeMode || 'classic',
-		starters: data.starters || {},
-		runs: data.runs || {},
-		saveSlots: data.saveSlots || {},
-		vouchers: data.vouchers || { regular: 0, plus: 0, premium: 0, gold: 0 },
-		eggs: data.eggs || [],
-	};
-}
+export const userCache: Record<string, UserSaveData> = {};
 
 export function loadGlobalStats(): void {
 	try {
@@ -34,19 +23,30 @@ export function saveGlobalStats(): void {
 
 export function getUserData(userid: string): UserSaveData {
 	if (userCache[userid]) {
-		userCache[userid] = hydrateUserData(userCache[userid], userid);
+		if (!userCache[userid].vouchers) userCache[userid].vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
+		if (!userCache[userid].eggs) userCache[userid].eggs = [];
 		return userCache[userid];
 	}
 
 	try {
 		const raw = FS(`${USERS_DIR}${userid}.json`).readIfExistsSync();
 		if (raw) {
-			userCache[userid] = hydrateUserData(JSON.parse(raw), userid);
+			userCache[userid] = JSON.parse(raw);
+			if (!userCache[userid].vouchers) userCache[userid].vouchers = { regular: 0, plus: 0, premium: 0, gold: 0 };
+			if (!userCache[userid].eggs) userCache[userid].eggs = [];
 			return userCache[userid];
 		}
 	} catch {}
 
-	const newData = hydrateUserData({}, userid);
+	const newData: UserSaveData = {
+		displayName: userid,
+		activeMode: 'classic',
+		starters: {},
+		runs: {},
+		saveSlots: {},
+		vouchers: { regular: 0, plus: 0, premium: 0, gold: 0 },
+		eggs: [],
+	};
 	userCache[userid] = newData;
 	return newData;
 }
