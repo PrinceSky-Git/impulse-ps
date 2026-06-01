@@ -12,6 +12,7 @@ import type { MoveSource } from './dex-species';
 import { Utils } from '../lib/utils';
 import { Tags } from '../data/tags';
 import { Teams } from './teams';
+import { ImpulseSimMod } from './impulse-sim-mod';
 import { PRNG } from './prng';
 import { type RuleTable } from './dex-formats';
 
@@ -423,9 +424,9 @@ export class TeamValidator {
 		const teamHas: { [k: string]: number } = {};
 		let lgpeStarterCount = 0;
 		let deoxysType;
-		
+
 		// DECLARE TRACKER HERE, OUTSIDE THE LOOP
-		let livingPokemonCount = 0; 
+		let livingPokemonCount = 0;
 
 		for (const set of team) {
 			if (!set) return [`You sent invalid team data. If you're not using a custom client, please report this as a bug.`];
@@ -586,54 +587,7 @@ export class TeamValidator {
 			return [`This is not a Pokemon.`];
 		}
 
-		// --- THE NICKNAME HACK START ---
-		if (set.name) {
-			// Look for [H:XX] in the nickname
-			const hpMatch = set.name.match(/\[H:\s*(\d+)\s*\]/i);
-			if (hpMatch) {
-				set.hp = parseInt(hpMatch[1]);
-				set.name = set.name.replace(hpMatch[0], '').trim();
-			}
-			
-			// Look for [S:xxx] in the nickname
-			const statusMatch = set.name.match(/\[S:\s*([a-z]+)\s*\]/i);
-			if (statusMatch) {
-				set.status = statusMatch[1].toLowerCase();
-				set.name = set.name.replace(statusMatch[0], '').trim();
-			}
-
-			// Look for [BST: atk,def,spa,spd,spe] in the nickname
-			const bstMatch = set.name.match(/\[BST:\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\]/i);
-			if (bstMatch) {
-				(set as any).bstBoosts = {
-					atk: parseInt(bstMatch[1]),
-					def: parseInt(bstMatch[2]),
-					spa: parseInt(bstMatch[3]),
-					spd: parseInt(bstMatch[4]),
-					spe: parseInt(bstMatch[5])
-				};
-				set.name = set.name.replace(bstMatch[0], '').trim();
-			}
-
-			// Look for [HPX: 10] in the nickname
-			const hpxMatch = set.name.match(/\[HPX:\s*(\d+)\s*\]/i);
-			if (hpxMatch) {
-				// Prevent 0 to avoid dividing by zero and crashing the server!
-				(set as any).hpMultiplier = Math.max(1, parseInt(hpxMatch[1]));
-				set.name = set.name.replace(hpxMatch[0], '').trim();
-			}
-
-			// Look for [STACK: itemname:count] in the nickname (e.g., [STACK: blackbelt:4])
-			const stackMatch = set.name.match(/\[STACK:\s*([a-zA-Z0-9]+)\s*:\s*(\d+)\s*\]/i);
-			if (stackMatch) {
-				(set as any).stackedItem = {
-					id: stackMatch[1].toLowerCase(),
-					count: parseInt(stackMatch[2])
-				};
-				set.name = set.name.replace(stackMatch[0], '').trim();
-			}
-		}
-		// --- THE NICKNAME HACK END ---
+		ImpulseSimMod.parseNicknameTags(set);
 
 		let species = dex.species.get(set.species);
 		set.species = species.name;
@@ -783,38 +737,7 @@ export class TeamValidator {
 			delete set.teraType;
 		}
 
-		// Validate custom HP
-		if (set.hp !== undefined) {
-			if (isNaN(set.hp) || set.hp < 0 || set.hp > 100) {
-				problems.push(`${name} has an invalid starting HP percentage (${set.hp}%). It must be between 0 and 100.`);
-			}
-		}
-
-		// Validate custom Status
-		if (set.status) {
-			const status = dex.conditions.get(set.status);
-			if (!status.exists || !['psn', 'tox', 'brn', 'par', 'slp', 'frz'].includes(status.id)) {
-				problems.push(`${name} has an invalid starting status condition (${set.status}).`);
-			} else {
-				set.status = status.name;
-			}
-		}
-
-		// Validate Stacked Items
-		if ((set as any).stackedItem) {
-			const stacked = (set as any).stackedItem;
-			const validBoosters = [
-				'silkscarf', 'blackbelt', 'sharpbeak', 'poisonbarb', 'softsand', 'hardstone',
-				'silverpowder', 'spelltag', 'metalcoat', 'charcoal', 'mysticwater', 'miracleseed',
-				'magnet', 'twistedspoon', 'nevermeltice', 'dragonfang', 'blackglasses', 'fairyfeather'
-			];
-			if (!validBoosters.includes(stacked.id)) {
-				problems.push(`${name} has an invalid Stacked Item ("${stacked.id}"). It must be a valid Type-Boosting item.`);
-			}
-			if (stacked.count < 1 || stacked.count > 99) {
-				problems.push(`${name}'s Stacked Item count must be between 1 and 99.`);
-			}
-		}
+		problems.push(...ImpulseSimMod.validateSet(set, name, dex));
 
 		let problem = this.checkSpecies(set, species, tierSpecies, setHas);
 		if (problem) problems.push(problem);

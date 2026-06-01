@@ -8,6 +8,7 @@
  */
 
 import { Dex, toID } from './dex';
+import { ImpulseSimMod, type ImpulseBstBoosts, type ImpulseStackedItem } from './impulse-sim-mod';
 import type { PRNG, PRNGSeed } from './prng';
 
 interface ExportOptions {
@@ -119,11 +120,11 @@ export interface PokemonSet {
 	/** Starting Status condition */
 	status?: string;
 	/** Custom Base Stat % Boosts */
-	bstBoosts?: { atk: number, def: number, spa: number, spd: number, spe: number };
+	bstBoosts?: ImpulseBstBoosts;
 	/** Custom Max HP Multiplier */
 	hpMultiplier?: number;
 	/** Custom Stacked Type-Boosting Item */
-	stackedItem?: { id: string, count: number };
+	stackedItem?: ImpulseStackedItem;
 }
 
 export const Teams = new class Teams {
@@ -211,7 +212,7 @@ export const Teams = new class Teams {
 
 			if (set.pokeball || set.hpType || set.gigantamax ||
 				(set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10) || set.teraType ||
-				(set.hp !== undefined && set.hp !== 100) || set.status || set.bstBoosts) {
+				ImpulseSimMod.hasPackedMiscData(set)) {
 				buf += `,${set.hpType || ''}`;
 				buf += `,${this.packName(set.pokeball || '')}`;
 				buf += `,${set.gigantamax ? 'G' : ''}`;
@@ -219,27 +220,7 @@ export const Teams = new class Teams {
 				buf += `,${set.teraType || ''}`;
 				buf += `,${set.hp !== undefined && set.hp !== 100 ? set.hp : ''}`;
 				buf += `,${set.status || ''}`;
-				
-				// --- CUSTOM BST BOOST PACKING ---
-				if (set.bstBoosts) {
-					buf += `,${set.bstBoosts.atk}:${set.bstBoosts.def}:${set.bstBoosts.spa}:${set.bstBoosts.spd}:${set.bstBoosts.spe}`;
-				} else {
-					buf += `,`;
-				}
-
-				// --- CUSTOM HPX PACKING ---
-				if (set.hpMultiplier) {
-					buf += `,${set.hpMultiplier}`;
-				} else {
-					buf += `,`;
-				}
-
-				// --- CUSTOM STACKED ITEM PACKING ---
-				if (set.stackedItem) {
-					buf += `,${set.stackedItem.id}:${set.stackedItem.count}`;
-				} else {
-					buf += `,`;
-				}
+				buf += ImpulseSimMod.packMiscFields(set);
 			}
 		}
 
@@ -373,29 +354,7 @@ export const Teams = new class Teams {
 				set.teraType = misc[5];
 				if (misc[6]) set.hp = Number(misc[6]);
 				if (misc[7]) set.status = misc[7];
-				
-				// --- CUSTOM BST BOOST UNPACKING ---
-				if (misc[8]) {
-					const bstParts = misc[8].split(':');
-					set.bstBoosts = {
-						atk: Number(bstParts[0]),
-						def: Number(bstParts[1]),
-						spa: Number(bstParts[2]),
-						spd: Number(bstParts[3]),
-						spe: Number(bstParts[4]),
-					};
-				}
-
-				// --- CUSTOM HPX UNPACKING ---
-				if (misc[9]) {
-					set.hpMultiplier = Number(misc[9]);
-				}
-
-				// --- CUSTOM STACKED ITEM UNPACKING ---
-				if (misc[10]) {
-					const stackParts = misc[10].split(':');
-					set.stackedItem = { id: stackParts[0], count: Number(stackParts[1]) };
-				}
+				ImpulseSimMod.unpackMiscFields(set, misc);
 			}
 			if (j < 0) break;
 			i = j + 1;
@@ -477,22 +436,7 @@ export const Teams = new class Teams {
 		if (set.teraType && !useStatPoints) {
 			out += `Tera Type: ${set.teraType}  \n`;
 		}
-		if (set.hp !== undefined && set.hp !== 100) {
-			out += `HP: ${set.hp}%  \n`;
-		}
-		if (set.status) {
-			out += `Status: ${set.status}  \n`;
-		}
-		if (set.bstBoosts) {
-			out += `BST: ${set.bstBoosts.atk}, ${set.bstBoosts.def}, ${set.bstBoosts.spa}, ${set.bstBoosts.spd}, ${set.bstBoosts.spe}  \n`;
-		}
-		if (set.hpMultiplier) {
-			out += `HPX: ${set.hpMultiplier}  \n`;
-		}
-		if (set.stackedItem) {
-			// e.g., "Stacked Item: Black Belt x4"
-			out += `Stacked Item: ${Dex.items.get(set.stackedItem.id).name} x${set.stackedItem.count}  \n`;
-		}
+		out += ImpulseSimMod.exportSetLines(set);
 
 		// stats
 		if (!hideStats) {
@@ -577,31 +521,8 @@ export const Teams = new class Teams {
 		} else if (line.startsWith('Tera Type: ')) {
 			line = line.slice(11);
 			set.teraType = aggressive ? line.replace(/[^a-zA-Z0-9]/g, '') : line;
-		} else if (line.startsWith('HP: ')) {
-			line = line.slice(4).replace('%', '');
-			set.hp = parseInt(line);
-		} else if (line.startsWith('Status: ')) {
-			line = line.slice(8).trim();
-			set.status = aggressive ? toID(line) : line;
-		} else if (line.startsWith('BST: ')) {
-			line = line.slice(5).trim();
-			const bstParts = line.split(',');
-			set.bstBoosts = {
-				atk: parseInt(bstParts[0]),
-				def: parseInt(bstParts[1]),
-				spa: parseInt(bstParts[2]),
-				spd: parseInt(bstParts[3]),
-				spe: parseInt(bstParts[4]),
-			};
-		} else if (line.startsWith('HPX: ')) {
-			line = line.slice(5).trim();
-			set.hpMultiplier = parseInt(line);			
-		} else if (line.startsWith('Stacked Item: ')) {
-			line = line.slice(14).trim();
-			const match = line.match(/(.+) x(\d+)/);
-			if (match) {
-				set.stackedItem = { id: toID(match[1]), count: parseInt(match[2]) };
-			}
+		} else if (ImpulseSimMod.parseExportedTeamLine(line, set, aggressive)) {
+			return;
 		} else if (line === 'Gigantamax: Yes') {
 			set.gigantamax = true;
 		} else if (line.startsWith('EVs: ')) {
